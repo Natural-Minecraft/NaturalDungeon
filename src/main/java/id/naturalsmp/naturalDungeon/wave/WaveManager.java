@@ -22,6 +22,7 @@ public class WaveManager {
     private final World dungeonWorld;
     private final Set<UUID> activeMobs = new HashSet<>();
     private int initialWaveCount = 0;
+    private int pendingSpawns = 0; // [NEW] Track mobs in telegraphing phase
     private BukkitTask waveCheckTask;
     private boolean active = false;
 
@@ -37,6 +38,11 @@ public class WaveManager {
         int baseCount = wave.getCount();
         int scaledCount = (int) Math.ceil(baseCount * (1 + (playerCount - 1) * (scaleFactor - 1)));
         List<String> mobTypes = wave.getMobs();
+
+        // ATOMIC RESET
+        initialWaveCount = scaledCount;
+        pendingSpawns = scaledCount;
+        activeMobs.clear();
 
         plugin.getLogger().info("Spawning Wave: Base=" + baseCount + ", Scaled=" + scaledCount + " for " + playerCount
                 + " players at center: " + center);
@@ -72,13 +78,13 @@ public class WaveManager {
                         }
                     }
                 }
+                pendingSpawns--; // DECREMENT after spawn
             }, 20L); // 1 Second delay
         }
-        initialWaveCount = activeMobs.size();
-        instance.updateBossBar("&eWave " + (instance.getCurrentWave()) + " Progress", 1.0,
+
+        instance.updateBossBar(ChatUtils.colorize("&eWave " + (instance.getCurrentWave()) + " &f- &7Spawning..."), 1.0,
                 org.bukkit.boss.BarColor.YELLOW);
 
-        plugin.getLogger().info("Wave Active Mobs: " + activeMobs.size());
         startWaveCheck();
     }
 
@@ -202,6 +208,10 @@ public class WaveManager {
                 Entity entity = Bukkit.getEntity(uuid);
                 return entity == null || entity.isDead();
             });
+
+            // RECRUITMENT LOCK: Don't clear wave if spawns are still pending
+            if (pendingSpawns > 0)
+                return;
 
             if (activeMobs.isEmpty()) {
                 cancelWaveCheck();
