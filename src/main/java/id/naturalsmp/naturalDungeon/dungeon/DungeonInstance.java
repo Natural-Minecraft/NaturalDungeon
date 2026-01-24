@@ -470,7 +470,7 @@ public class DungeonInstance {
         }
     }
 
-    private void playSound(Sound sound, float pitch) {
+    public void playSound(Sound sound, float pitch) {
         for (UUID uuid : participants) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null)
