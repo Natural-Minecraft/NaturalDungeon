@@ -1,0 +1,52 @@
+# ========================================
+# NaturalDungeon Configuration
+# ========================================
+config-version: 2.0.4
+
+# General Settings
+dungeon:
+  # Cooldown in seconds between dungeon runs (per player)
+  cooldown: 180
+  # Default lives per dungeon run
+  default-lives: 3
+  # Announce dungeon completion to server
+  announce-completion: true
+
+# Party System
+party:
+  # Party host upgrade tiers
+  upgrades:
+    tier1:
+      max-size: 4
+      cost: 0
+    tier2:
+      max-size: 6
+      cost: 50000
+    tier3:
+      max-size: 12
+      cost: 200000
+  # Party invite timeout in seconds
+  invite-timeout: 60
+
+# Difficulty Scaling (per additional player)
+scaling:
+  # HP multiplier per extra player (1.2 = 20% more HP)
+  hp-per-player: 1.2
+  # Damage multiplier per extra player
+  damage-per-player: 1.1
+  # Loot multiplier per player
+  loot-per-player: 1.0
+
+# Rewards
+rewards:
+  # Base AuraSkills XP per dungeon completion
+  base-xp: 500
+  # XP skill to reward (fighting, mining, etc)
+  xp-skill: fighting
+
+# Tier Gate (NaturalCore Integration)
+# tier-id from tiers.yml in NaturalCore
+tier-gates:
+  forest_cave: 1      # Warrior
+  dark_castle: 5      # Epic
+  dragon_lair: 8      # Mythic

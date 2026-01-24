@@ -1,0 +1,82 @@
+# ========================================
+# NaturalDungeon Messages
+# ========================================
+
+prefix: "&#FF5555&l⚔ &7"
+
+# --- GENERAL ---
+general:
+  no-permission: "%prefix%&cKamu tidak memiliki izin untuk melakukan ini!"
+  player-only: "%prefix%&cPerintah ini hanya bisa digunakan oleh player!"
+  player-not-found: "%prefix%&cPlayer &f%player% &ctidak ditemukan!"
+  reload: "%prefix%&aKonfigurasi berhasil dimuat ulang!"
+
+# --- PARTY ---
+party:
+  created: "%prefix%&aParty berhasil dibuat! Kamu adalah &bHost&a."
+  disbanded: "%prefix%&cParty telah dibubarkan."
+  already-in-party: "%prefix%&cKamu sudah berada dalam party!"
+  not-in-party: "%prefix%&cKamu tidak berada dalam party!"
+  not-leader: "%prefix%&cHanya leader yang bisa melakukan ini!"
+  invite-sent: "%prefix%&aDalam perjalanan... Undangan dikirim ke &f%player%&a!"
+  invite-received: "%prefix%&f%player% &7mengundangmu ke party mereka! Ketik &a/party accept &7atau buka GUI."
+  invite-expired: "%prefix%&cUndangan party dari &f%player% &ctelah kedaluwarsa."
+  invite-accepted: "%prefix%&f%player% &abergabung dengan party!"
+  player-joined: "%prefix%&f%player% &7bergabung dengan party."
+  player-left: "%prefix%&f%player% &7meninggalkan party."
+  player-kicked: "%prefix%&f%player% &cdikeluarkan dari party."
+  you-kicked: "%prefix%&cKamu dikeluarkan dari party oleh &f%leader%&c."
+  you-left: "%prefix%&7Kamu meninggalkan party."
+  party-full: "%prefix%&cParty sudah penuh! Upgrade host untuk menambah slot."
+  cannot-invite-self: "%prefix%&cKamu tidak bisa mengundang dirimu sendiri!"
+  already-invited: "%prefix%&f%player% &csudah diundang!"
+  player-already-in-party: "%prefix%&f%player% &csudah berada dalam party lain!"
+  invite-prompt: "%prefix%&7Ketik &b/party invite <player> &7untuk mengundang."
+  no-pending-invite: "%prefix%&cKamu tidak memiliki undangan party!"
+  you-are-leader: "%prefix%&aKamu sekarang menjadi leader party!"
+  player-not-in-party: "%prefix%&f%player% &ctidak ada dalam party."
+  kick-usage: "%prefix%&cGunakan: /party kick <player>"
+  invite-usage: "%prefix%&cGunakan: /party invite <player>"
+  upgrade-success: "%prefix%&aParty berhasil di-upgrade ke &bTier %tier%&a! Max &f%max% &aplayer."
+  upgrade-not-enough: "%prefix%&cUang tidak cukup! Butuh &6$%cost%&c."
+  upgrade-max: "%prefix%&cParty sudah mencapai tier maksimum!"
+
+# --- DUNGEON ---
+dungeon:
+  starting: "%prefix%&eDungeon dimulai dalam &f%seconds% &edetik..."
+  started: "%prefix%&a&lDUNGEON DIMULAI! &7Selamat berjuang!"
+  wave-start: "%prefix%&eWave &f%wave% &edimulai!"
+  wave-complete: "%prefix%&aWave &f%wave% &aselesai!"
+  boss-spawn: "%prefix%&c&lBOSS MUNCUL! &7Bersiaplah!"
+  boss-defeated: "%prefix%&a&lBOSS DIKALAHKAN! &7Selamat!"
+  stage-complete: "%prefix%&aStage &f%stage% &aselesai! Menuju stage berikutnya..."
+  dungeon-complete: "%prefix%&a&lDUNGEON SELESAI! &7Waktu: &f%time%"
+  dungeon-failed: "%prefix%&c&lDUNGEON GAGAL! &7Semua nyawa habis."
+  player-died: "%prefix%&f%player% &7tewas! Sisa nyawa: &c%lives%"
+  respawning: "%prefix%&7Respawn dalam &f%seconds% &7detik..."
+  no-more-lives: "%prefix%&cSemua nyawa habis! Kamu akan jadi penonton."
+  on-cooldown: "%prefix%&cDungeon masih cooldown! Tunggu &f%time% &clagi."
+  tier-required: "%prefix%&cButuh tier &f%tier% &catau lebih tinggi untuk masuk!"
+  not-in-dungeon: "%prefix%&cKamu tidak sedang dalam dungeon!"
+  already-in-dungeon: "%prefix%&cKamu sudah berada dalam dungeon!"
+  safe-zone-exit: "%prefix%&eMeninggalkan safe zone. Hati-hati!"
+  cannot-enter-safe-zone: "%prefix%&cKamu tidak bisa kembali ke safe zone!"
+  stage-start: "%prefix%&6&lSTAGE %stage% &eDimulai!"
+  force-ended: "%prefix%&cDungeon di-force end oleh sistem."
+  world-not-found: "%prefix%&cWorld dungeon tidak ditemukan: %world%"
+  player-left: "%prefix%&f%player% &7meninggalkan dungeon."
+
+# --- GUI ---
+gui:
+  dungeon:
+    title: "&#FF5555❂ &#FF5555ᴅᴜɴɢᴇᴏɴ &#FFAA00sᴇʟᴇᴄᴛ &#FFAA00❂"
+  party:
+    title: "&#00AAFF❂ &#00AAFFᴘᴀʀᴛʏ &#55FF55ᴍᴀɴᴀɢᴇʀ &#55FF55❂"
+  completion:
+    title: "&#55FF55❂ &#55FF55ᴅᴜɴɢᴇᴏɴ &#FFAA00ᴄᴏᴍᴘʟᴇᴛᴇ &#FFAA00❂"
+  admin:
+    title: "&#FF5555⚙ &#FF5555ᴀᴅᴍɪɴ &#AAAAAA❂"
+
+# --- BROADCAST ---
+broadcast:
+  completion: "&8[&6&#FF5555⚔&8] &f%player% &7dan partynya menyelesaikan &c%dungeon% &7dalam &e%time%&7!"
