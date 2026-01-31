@@ -25,7 +25,12 @@ public class AuraMobsHook {
             return;
 
         try {
-            Class<?> apiClass = Class.forName("dev.aurelium.auramobs.api.AuraMobsAPI");
+            Class<?> apiClass;
+            try {
+                apiClass = Class.forName("dev.aurelium.auramobs.api.AuraMobsAPI");
+            } catch (ClassNotFoundException e) {
+                apiClass = Class.forName("dev.aurelium.auramobs.AuraMobsAPI");
+            }
             Method getMethod = apiClass.getMethod("get");
             this.auraMobsApi = getMethod.invoke(null);
 

@@ -1,7 +1,7 @@
 # ========================================
 # NaturalDungeon Configuration
 # ========================================
-config-version: 2.0.4
+config-version: 1
 
 # General Settings
 dungeon:
