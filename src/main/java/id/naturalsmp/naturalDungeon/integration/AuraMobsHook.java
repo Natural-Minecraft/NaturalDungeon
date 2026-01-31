@@ -31,20 +31,47 @@ public class AuraMobsHook {
             } catch (ClassNotFoundException e) {
                 apiClass = Class.forName("dev.aurelium.auramobs.AuraMobsAPI");
             }
-            Method getMethod = apiClass.getMethod("get");
+
+            // Try to find the singleton instance
+            Method getMethod;
+            try {
+                getMethod = apiClass.getMethod("get");
+            } catch (NoSuchMethodException e) {
+                try {
+                    getMethod = apiClass.getMethod("getInstance");
+                } catch (NoSuchMethodException e2) {
+                    getMethod = apiClass.getMethod("instance");
+                }
+            }
             this.auraMobsApi = getMethod.invoke(null);
 
             // Attempt to find setLevel or setMobLevel
             try {
                 this.setLevelMethod = apiClass.getMethod("setMobLevel", Entity.class, int.class);
             } catch (NoSuchMethodException e) {
-                this.setLevelMethod = apiClass.getMethod("setLevel", Entity.class, int.class);
+                try {
+                    this.setLevelMethod = apiClass.getMethod("setLevel", Entity.class, int.class);
+                } catch (NoSuchMethodException e2) {
+                    // Try to find any method with (Entity, int) signature
+                    for (Method m : apiClass.getMethods()) {
+                        if (m.getParameterCount() == 2 && m.getParameterTypes()[0].equals(Entity.class)
+                                && m.getParameterTypes()[1].equals(int.class)) {
+                            this.setLevelMethod = m;
+                            break;
+                        }
+                    }
+                }
             }
 
-            this.enabled = true;
-            plugin.getLogger().info("AuraMobs hooked for advanced mob leveling!");
+            if (this.auraMobsApi != null && this.setLevelMethod != null) {
+                this.enabled = true;
+                plugin.getLogger().info("AuraMobs hooked for advanced mob leveling!");
+            } else {
+                plugin.getLogger().warning("AuraMobs found but API methods not resolved correctly.");
+            }
         } catch (Exception e) {
-            plugin.getLogger().warning("AuraMobs found but failed to hook API: " + e.getMessage());
+            plugin.getLogger().warning(
+                    "AuraMobs found but failed to hook API: " + e.getClass().getSimpleName() + " - " + e.getMessage());
         }
     }
 
