@@ -43,7 +43,13 @@ public class AuraMobsHook {
                     getMethod = apiClass.getMethod("instance");
                 }
             }
-            this.auraMobsApi = getMethod.invoke(null);
+
+            if (getMethod != null) { // Check if a method was found before invoking
+                this.auraMobsApi = getMethod.invoke(null);
+            } else {
+                plugin.getLogger().warning("AuraMobs API singleton method not found.");
+                return; // Cannot proceed without the API instance
+            }
 
             // Attempt to find setLevel or setMobLevel
             try {
