@@ -25,30 +25,43 @@ public class AuraMobsHook {
             return;
 
         try {
-            Class<?> apiClass;
+            Class<?> apiClass = null;
             try {
                 apiClass = Class.forName("dev.aurelium.auramobs.api.AuraMobsAPI");
             } catch (ClassNotFoundException e) {
-                apiClass = Class.forName("dev.aurelium.auramobs.AuraMobsAPI");
-            }
-
-            // Try to find the singleton instance
-            Method getMethod;
-            try {
-                getMethod = apiClass.getMethod("get");
-            } catch (NoSuchMethodException e) {
                 try {
-                    getMethod = apiClass.getMethod("getInstance");
-                } catch (NoSuchMethodException e2) {
-                    getMethod = apiClass.getMethod("instance");
+                    apiClass = Class.forName("dev.aurelium.auramobs.AuraMobsAPI");
+                } catch (ClassNotFoundException ignored) {
                 }
             }
 
-            if (getMethod != null) { // Check if a method was found before invoking
-                this.auraMobsApi = getMethod.invoke(null);
-            } else {
-                plugin.getLogger().warning("AuraMobs API singleton method not found.");
-                return; // Cannot proceed without the API instance
+            // Try to find the singleton instance if class was found
+            if (apiClass != null) {
+                Method getMethod = null;
+                try {
+                    getMethod = apiClass.getMethod("get");
+                } catch (NoSuchMethodException e) {
+                    try {
+                        getMethod = apiClass.getMethod("getInstance");
+                    } catch (NoSuchMethodException e2) {
+                        try {
+                            getMethod = apiClass.getMethod("instance");
+                        } catch (NoSuchMethodException ignored) {
+                        }
+                    }
+                }
+
+                if (getMethod != null) {
+                    this.auraMobsApi = getMethod.invoke(null);
+                }
+            }
+
+            // Fallback: If no API instance found (or class not found), use the plugin
+            // instance itself
+            if (this.auraMobsApi == null) {
+                this.auraMobsApi = auraMobs;
+                apiClass = auraMobs.getClass();
+                plugin.getLogger().info("AuraMobs API singleton not found, using plugin instance as fallback.");
             }
 
             // Attempt to find setLevel or setMobLevel
