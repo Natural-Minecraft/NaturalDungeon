@@ -38,16 +38,14 @@ public class AuraMobsHook {
             // Try to find the singleton instance if class was found
             if (apiClass != null) {
                 Method getMethod = null;
-                try {
-                    getMethod = apiClass.getMethod("get");
-                } catch (NoSuchMethodException e) {
+                String[] methodNames = { "getApi", "getAPI", "get", "getInstance", "instance" };
+
+                for (String name : methodNames) {
                     try {
-                        getMethod = apiClass.getMethod("getInstance");
-                    } catch (NoSuchMethodException e2) {
-                        try {
-                            getMethod = apiClass.getMethod("instance");
-                        } catch (NoSuchMethodException ignored) {
-                        }
+                        getMethod = apiClass.getMethod(name);
+                        if (getMethod != null)
+                            break;
+                    } catch (NoSuchMethodException ignored) {
                     }
                 }
 

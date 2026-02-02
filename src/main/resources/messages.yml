@@ -69,13 +69,13 @@ dungeon:
 # --- GUI ---
 gui:
   dungeon:
-    title: "&#FF5555❂ &#FF5555ᴅᴜɴɢᴇᴏɴ &#FFAA00sᴇʟᴇᴄᴛ &#FFAA00❂"
+    title: "Dungeon Select"
   party:
-    title: "&#00AAFF❂ &#00AAFFᴘᴀʀᴛʏ &#55FF55ᴍᴀɴᴀɢᴇʀ &#55FF55❂"
+    title: "Party Manager"
   completion:
-    title: "&#55FF55❂ &#55FF55ᴅᴜɴɢᴇᴏɴ &#FFAA00ᴄᴏᴍᴘʟᴇᴛᴇ &#FFAA00❂"
+    title: "Dungeon Complete"
   admin:
-    title: "&#FF5555⚙ &#FF5555ᴀᴅᴍɪɴ &#AAAAAA❂"
+    title: "Admin Panel"
 
 # --- BROADCAST ---
 broadcast:
