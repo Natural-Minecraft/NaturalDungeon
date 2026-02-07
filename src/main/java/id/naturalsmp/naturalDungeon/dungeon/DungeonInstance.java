@@ -397,6 +397,13 @@ public class DungeonInstance {
             }
             lootManager.giveXpReward(participants, difficulty.getTotalStages());
 
+            // Fire custom event for Dungeon-Story Integration
+            Bukkit.getPluginManager().callEvent(
+                    new id.naturalsmp.naturaldungeon.event.DungeonCompleteEvent(
+                            dungeon.getId(),
+                            difficulty.getId(),
+                            new ArrayList<>(participants)));
+
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 for (UUID uuid : participants) {
                     Player player = Bukkit.getPlayer(uuid);
