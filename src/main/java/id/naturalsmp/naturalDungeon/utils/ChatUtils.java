@@ -43,6 +43,7 @@ public class ChatUtils {
         } else if (minutes > 0) {
             return String.format("%dm %ds", minutes, secs);
         } else {
+            return String.format("%ds", secs);
         }
     }
 
