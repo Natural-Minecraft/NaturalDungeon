@@ -94,7 +94,22 @@ public class DungeonManager implements Listener {
     }
 
     public void startDungeon(Player player, Dungeon dungeon) {
-        startDungeon(Collections.singletonList(player.getUniqueId()), dungeon, dungeon.getDifficulty("normal"));
+        List<UUID> participants = new ArrayList<>();
+        participants.add(player.getUniqueId());
+
+        Party party = plugin.getPartyManager().getParty(player.getUniqueId());
+        if (party != null) {
+            for (UUID memberId : party.getMembers()) {
+                if (memberId.equals(player.getUniqueId()))
+                    continue;
+                Player member = Bukkit.getPlayer(memberId);
+                if (member != null && member.isOnline()) {
+                    participants.add(memberId);
+                }
+            }
+        }
+
+        startDungeon(participants, dungeon, dungeon.getDifficulty("normal"));
     }
 
     public void startDungeon(List<UUID> participants, Dungeon dungeon, DungeonDifficulty difficulty) {

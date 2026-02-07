@@ -21,6 +21,7 @@ public class PartyGUI implements Listener {
 
     private final NaturalDungeon plugin;
     private final PartyManager manager;
+    private final Map<UUID, Long> lastClick = new HashMap<>();
 
     public PartyGUI(NaturalDungeon plugin, PartyManager manager) {
         this.plugin = plugin;
@@ -43,7 +44,7 @@ public class PartyGUI implements Listener {
             // No party - show create button
             inv.setItem(22, createItem(Material.LIME_DYE, "&#55FF55&l✚ BUAT PARTY",
                     "&7Klik untuk membuat party baru!",
-                    "&7Max: &f2 &7pemain (upgrade untuk &e4-6&7)"));
+                    "&7Max: &f2 &7pemain (upgrade untuk &e4-24&7)"));
         } else {
             // Show party members
             int[] memberSlots = { 10, 11, 12, 13, 14, 15, 16 };
@@ -77,13 +78,20 @@ public class PartyGUI implements Listener {
                     "&7Members: &f" + party.getMembers().size() + "/" + party.getMaxPlayers()));
 
             // Upgrade button (leader only)
-            if (party.isLeader(player.getUniqueId()) && party.getTier() < 3) {
+            if (party.isLeader(player.getUniqueId()) && party.getTier() < 5) {
                 int cost = party.getUpgradeCost();
+                int nextMax = switch (party.getTier()) {
+                    case 1 -> 4;
+                    case 2 -> 8;
+                    case 3 -> 16;
+                    case 4 -> 24;
+                    default -> 24;
+                };
                 inv.setItem(31, createItem(Material.GOLD_INGOT, "&#FFAA00&l⬆ UPGRADE",
                         "&7Upgrade ke Tier " + (party.getTier() + 1),
-                        "&7Max Players: &e" + (party.getTier() == 1 ? 4 : 6),
+                        "&7Max Players: &e" + nextMax,
                         "",
-                        "&6Harga: &f$" + cost));
+                        "&6Harga: &f$" + ChatUtils.formatLarge(cost)));
             }
 
             // Invite button
@@ -110,6 +118,14 @@ public class PartyGUI implements Listener {
         if (e.getCurrentItem() == null)
             return;
         Player player = (Player) e.getWhoClicked();
+
+        // Anti-spam click (1 second cooldown)
+        long now = System.currentTimeMillis();
+        if (lastClick.containsKey(player.getUniqueId()) && now - lastClick.get(player.getUniqueId()) < 1000) {
+            return;
+        }
+        lastClick.put(player.getUniqueId(), now);
+
         Party party = manager.getParty(player.getUniqueId());
         Material type = e.getCurrentItem().getType();
 

@@ -29,7 +29,9 @@ public class Party {
     public int getMaxPlayers() {
         return switch (tier) {
             case 2 -> 4;
-            case 3 -> 6;
+            case 3 -> 8;
+            case 4 -> 16;
+            case 5 -> 24;
             default -> 2;
         };
     }
@@ -75,7 +77,7 @@ public class Party {
     }
 
     public boolean upgradeTier() {
-        if (tier >= 3)
+        if (tier >= 5)
             return false;
         tier++;
         return true;
@@ -83,8 +85,10 @@ public class Party {
 
     public int getUpgradeCost() {
         return switch (tier) {
-            case 1 -> 5000;
-            case 2 -> 15000;
+            case 1 -> 15000;
+            case 2 -> 50000;
+            case 3 -> 150000;
+            case 4 -> 500000;
             default -> 0;
         };
     }

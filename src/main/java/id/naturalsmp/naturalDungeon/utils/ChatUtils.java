@@ -45,5 +45,13 @@ public class ChatUtils {
         } else {
             return String.format("%ds", secs);
         }
+
+    public static String formatLarge(double amount) {
+        if (amount >= 1000000) {
+            return String.format("%.1fM", amount / 1000000.0);
+        } else if (amount >= 1000) {
+            return String.format("%.1fk", amount / 1000.0);
+        }
+        return String.valueOf((int) amount);
     }
 }
