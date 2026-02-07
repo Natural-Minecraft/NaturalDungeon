@@ -67,7 +67,8 @@ public class AuraMobsHook {
             if (this.auraMobsApi == null) {
                 this.auraMobsApi = auraMobs;
                 apiClass = auraMobs.getClass();
-                plugin.getLogger().info("AuraMobs API singleton not found, using plugin instance as fallback.");
+                plugin.getLogger().info("AuraMobs API singleton not found, using plugin instance (" + apiClass.getName()
+                        + ") as fallback.");
             }
 
             // Attempt to find setLevel or setMobLevel
