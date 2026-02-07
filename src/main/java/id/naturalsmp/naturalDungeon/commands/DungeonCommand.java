@@ -1,12 +1,24 @@
 package id.naturalsmp.naturaldungeon.commands;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
+import id.naturalsmp.naturaldungeon.dungeon.DungeonType;
+import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
+import id.naturalsmp.naturaldungeon.utils.DungeonGenerator;
+import id.naturalsmp.naturaldungeon.utils.LootGenerator;
+import id.naturalsmp.naturaldungeon.utils.SpawnScanner;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class DungeonCommand implements CommandExecutor {
 
@@ -36,33 +48,32 @@ public class DungeonCommand implements CommandExecutor {
             }
 
             if (args.length < 3) {
-                player.sendMessage(ConfigUtils.colorize("&cUsage: /dg create <id> <type>"));
-                player.sendMessage(ConfigUtils.colorize("&7Types: &fBASIC, WAVE_DEFENSE, BOSS_RUSH"));
+                player.sendMessage(ChatUtils.colorize("&cUsage: /dg create <id> <type>"));
+                player.sendMessage(ChatUtils.colorize("&7Types: &fBASIC, WAVE_DEFENSE, BOSS_RUSH"));
                 return true;
             }
 
-            String id = args[1].toLowerCase();
+            String dungeonId = args[1].toLowerCase();
             String typeStr = args[2].toUpperCase();
-            id.naturalsmp.naturaldungeon.dungeon.DungeonType type;
+            DungeonType type;
 
             try {
-                type = id.naturalsmp.naturaldungeon.dungeon.DungeonType.valueOf(typeStr);
+                type = DungeonType.valueOf(typeStr);
             } catch (IllegalArgumentException e) {
-                player.sendMessage(ConfigUtils.colorize("&cInvalid Type! Available: &fBASIC, WAVE_DEFENSE, BOSS_RUSH"));
+                player.sendMessage(ChatUtils.colorize("&cInvalid Type! Available: &fBASIC, WAVE_DEFENSE, BOSS_RUSH"));
                 return true;
             }
 
-            id.naturalsmp.naturaldungeon.utils.DungeonGenerator generator = new id.naturalsmp.naturaldungeon.utils.DungeonGenerator(
-                    plugin);
-            if (generator.generate(id, type, player)) {
+            DungeonGenerator generator = new DungeonGenerator(plugin);
+            if (generator.generate(dungeonId, type, player)) {
                 player.sendMessage(
-                        ConfigUtils.colorize("&a&lSUCCESS! &fDungeon &e" + id + " &fgenerated successfully!"));
+                        ChatUtils.colorize("&a&lSUCCESS! &fDungeon &e" + dungeonId + " &fgenerated successfully!"));
                 player.sendMessage(
-                        ConfigUtils.colorize("&7Location set to your position. Edit &fplugins/NaturalDungeon/dungeons/"
-                                + id + ".yml &7to customize."));
+                        ChatUtils.colorize("&7Location set to your position. Edit &fplugins/NaturalDungeon/dungeons/"
+                                + dungeonId + ".yml &7to customize."));
             } else {
                 player.sendMessage(
-                        ConfigUtils.colorize("&cError! Dungeon ID &e" + id + " &calready exists or file error."));
+                        ChatUtils.colorize("&cError! Dungeon ID &e" + dungeonId + " &calready exists or file error."));
             }
             return true;
         }
@@ -75,29 +86,28 @@ public class DungeonCommand implements CommandExecutor {
             }
 
             if (args.length < 4) {
-                player.sendMessage(ConfigUtils.colorize("&cUsage: /dg loot autogen <id> <tier>"));
-                player.sendMessage(ConfigUtils.colorize("&7Tier: 1-10"));
+                player.sendMessage(ChatUtils.colorize("&cUsage: /dg loot autogen <id> <tier>"));
+                player.sendMessage(ChatUtils.colorize("&7Tier: 1-10"));
                 return true;
             }
 
-            String id = args[2].toLowerCase();
+            String dungeonId = args[2].toLowerCase();
             int tier;
             try {
                 tier = Integer.parseInt(args[3]);
                 if (tier < 1 || tier > 10)
                     throw new NumberFormatException();
             } catch (NumberFormatException e) {
-                player.sendMessage(ConfigUtils.colorize("&cInvalid Tier! Must be 1-10."));
+                player.sendMessage(ChatUtils.colorize("&cInvalid Tier! Must be 1-10."));
                 return true;
             }
 
-            id.naturalsmp.naturaldungeon.utils.LootGenerator generator = new id.naturalsmp.naturaldungeon.utils.LootGenerator(
-                    plugin);
-            if (generator.generate(id, tier, player)) {
-                player.sendMessage(ConfigUtils
-                        .colorize("&a&lSUCCESS! &fLoot table for &e" + id + " &fpopulated for Tier &b" + tier + "&f."));
+            LootGenerator generator = new LootGenerator(plugin);
+            if (generator.generate(dungeonId, tier, player)) {
+                player.sendMessage(ChatUtils.colorize(
+                        "&a&lSUCCESS! &fLoot table for &e" + dungeonId + " &fpopulated for Tier &b" + tier + "&f."));
             } else {
-                player.sendMessage(ConfigUtils.colorize("&cError! Dungeon ID &e" + id + " &cnot found."));
+                player.sendMessage(ChatUtils.colorize("&cError! Dungeon ID &e" + dungeonId + " &cnot found."));
             }
             return true;
         }
@@ -109,40 +119,38 @@ public class DungeonCommand implements CommandExecutor {
             }
 
             if (args.length < 2) {
-                player.sendMessage(ConfigUtils.colorize("&cUsage: /dg scan <dungeonId>"));
+                player.sendMessage(ChatUtils.colorize("&cUsage: /dg scan <dungeonId>"));
                 return true;
             }
 
             String dungeonId = args[1].toLowerCase();
-            java.io.File file = new java.io.File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
+            File file = new File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
             if (!file.exists()) {
-                player.sendMessage(ConfigUtils.colorize("&cDungeon not found: &e" + dungeonId));
+                player.sendMessage(ChatUtils.colorize("&cDungeon not found: &e" + dungeonId));
                 return true;
             }
 
-            java.util.List<org.bukkit.Location> spawnPoints = id.naturalsmp.naturaldungeon.utils.SpawnScanner
-                    .scanForSpawnPoints(player.getLocation(), 20);
+            List<Location> spawnPoints = SpawnScanner.scanForSpawnPoints(player.getLocation(), 20);
 
             if (spawnPoints.isEmpty()) {
-                player.sendMessage(ConfigUtils.colorize("&cNo valid spawn points found in radius."));
+                player.sendMessage(ChatUtils.colorize("&cNo valid spawn points found in radius."));
                 return true;
             }
 
             // Save to config
-            org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration
-                    .loadConfiguration(file);
-            java.util.List<String> mobSpawns = new java.util.ArrayList<>();
-            for (org.bukkit.Location loc : spawnPoints) {
-                mobSpawns.add(id.naturalsmp.naturaldungeon.utils.SpawnScanner.serializeLocation(loc));
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+            List<String> mobSpawns = new ArrayList<>();
+            for (Location loc : spawnPoints) {
+                mobSpawns.add(SpawnScanner.serializeLocation(loc));
             }
             config.set("difficulties.normal.stages.1.locations.1.mob-spawns", mobSpawns);
 
             try {
                 config.save(file);
-                player.sendMessage(ConfigUtils.colorize("&a&lSCAN COMPLETE! &fFound &e" + spawnPoints.size()
+                player.sendMessage(ChatUtils.colorize("&a&lSCAN COMPLETE! &fFound &e" + spawnPoints.size()
                         + " &fspawn points. Saved to &b" + dungeonId + ".yml"));
-            } catch (java.io.IOException e) {
-                player.sendMessage(ConfigUtils.colorize("&cError saving config!"));
+            } catch (IOException e) {
+                player.sendMessage(ChatUtils.colorize("&cError saving config!"));
             }
             return true;
         }
