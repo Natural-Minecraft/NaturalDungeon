@@ -51,6 +51,14 @@ public class AuraMobsHook {
 
                 if (getMethod != null) {
                     this.auraMobsApi = getMethod.invoke(null);
+                } else {
+                    // Try to find static field for singleton
+                    try {
+                        java.lang.reflect.Field field = apiClass.getDeclaredField("INSTANCE");
+                        field.setAccessible(true);
+                        this.auraMobsApi = field.get(null);
+                    } catch (Exception ignored) {
+                    }
                 }
             }
 
