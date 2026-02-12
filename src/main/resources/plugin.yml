@@ -5,7 +5,7 @@ api-version: '1.21'
 prefix: NaturalDungeon
 author: NaturalDev
 description: Instanced Dungeon System for NaturalSMP
-website: https://naturalsmp.my.id
+website: https://naturalsmp.net
 
 depend:
   - WorldGuard
