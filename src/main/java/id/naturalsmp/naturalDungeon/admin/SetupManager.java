@@ -283,7 +283,6 @@ public class SetupManager implements Listener {
         final int stage;
         final ItemStack[] savedInventory;
         final UUID playerUUID;
-        final UUID playerUUID;
         Location pos1, pos2; // Safezone
         Location arenaPos1, arenaPos2; // Arena
 
