@@ -148,6 +148,35 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             case "check" -> {
                 handleCheck(sender, args);
             }
+            case "set" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                if (args.length < 3) {
+                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd set <safezone|arena> <pos1|pos2>"));
+                    return true;
+                }
+                String type = args[1].toLowerCase();
+                String posStr = args[2].toLowerCase();
+                int posNum = posStr.equals("pos1") ? 1 : (posStr.equals("pos2") ? 2 : -1);
+
+                if (!type.equals("safezone") && !type.equals("arena") && !type.matches("stage\\d+")) {
+                    player.sendMessage(ChatUtils.colorize("&cInvalid type. Use 'safezone' or 'arena'."));
+                    return true;
+                }
+
+                // Allow "stage1", "stage2" aliases to map to "arena"
+                if (type.startsWith("stage"))
+                    type = "arena";
+
+                if (posNum == -1) {
+                    player.sendMessage(ChatUtils.colorize("&cInvalid pos. Use 'pos1' or 'pos2'."));
+                    return true;
+                }
+
+                setupManager.setPos(player, type, posNum, player.getLocation());
+            }
             default -> sendUsage(sender);
         }
         return true;
@@ -178,6 +207,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd forceend &7- Force end dungeon"));
         sender.sendMessage(ChatUtils.colorize("&e/nd list &7- List dungeons"));
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd set <safezone|arena> <pos1|pos2> &7- Set region points"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
     }
 
@@ -229,7 +259,11 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             String sub = args[0].toLowerCase();
             if (sub.equals("setup") || sub.equals("test") || sub.equals("info")) {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
+            } else if (sub.equals("set")) {
+                completions.addAll(Arrays.asList("safezone", "arena"));
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
+            completions.addAll(Arrays.asList("pos1", "pos2"));
         }
         return completions;
     }

@@ -181,9 +181,12 @@ public class DungeonInstance {
         }
 
         Dungeon.StageLocation loc = stage.getLocation(instanceId);
-        String safeZoneName = loc.getSafeZone();
-        Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, safeZoneName);
+        String regionName = loc.getArenaRegion(); // [NEW] Prioritize Arena Region
+        if (regionName == null || regionName.isEmpty()) {
+            regionName = loc.getSafeZone(); // Fallback to SafeZone
+        }
 
+        Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName);
         Location center = centerOpt.orElse(dungeonWorld.getSpawnLocation()).add(15, 0, 15);
 
         waveManager.spawnWave(wave, center, participants.size(), bloodMoon);
@@ -227,7 +230,12 @@ public class DungeonInstance {
             if (bossCoords != null && bossCoords.size() >= 3) {
                 bossVfxLoc = new Location(dungeonWorld, bossCoords.get(0), bossCoords.get(1), bossCoords.get(2));
             } else {
-                bossVfxLoc = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, bossLocDetails.getSafeZone())
+                // [NEW] Use Arena Region for Boss VFX fallback if spawn location not set
+                String regionName = bossLocDetails.getArenaRegion();
+                if (regionName == null || regionName.isEmpty())
+                    regionName = bossLocDetails.getSafeZone();
+
+                bossVfxLoc = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
                         .orElse(dungeonWorld.getSpawnLocation()).add(20, 0, 20);
             }
             dungeonWorld.strikeLightningEffect(bossVfxLoc);
@@ -239,7 +247,12 @@ public class DungeonInstance {
         if (bossLoc != null && bossLoc.size() >= 3) {
             spawn = new Location(dungeonWorld, bossLoc.get(0), bossLoc.get(1), bossLoc.get(2));
         } else {
-            spawn = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, loc.getSafeZone())
+            // [NEW] Prioritize Arena Region for Boss Spawn fallback
+            String regionName = loc.getArenaRegion();
+            if (regionName == null || regionName.isEmpty())
+                regionName = loc.getSafeZone();
+
+            spawn = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
                     .orElse(dungeonWorld.getSpawnLocation()).add(20, 0, 20);
         }
         waveManager.spawnBoss(stage.getBossId(), spawn, participants.size());

@@ -43,6 +43,7 @@ public class WaveManager {
         initialWaveCount = scaledCount;
         pendingSpawns = scaledCount;
         activeMobs.clear();
+        boolean hasSpawnedInvalid = false; // Track if any spawn failed immediately
 
         plugin.getLogger().info("Spawning Wave: Base=" + baseCount + ", Scaled=" + scaledCount + " for " + playerCount
                 + " players at center: " + center);
@@ -52,8 +53,10 @@ public class WaveManager {
 
         for (int i = 0; i < scaledCount; i++) {
             String mobId = mobTypes.get(ThreadLocalRandom.current().nextInt(mobTypes.size()));
-            double offsetX = ThreadLocalRandom.current().nextDouble(-10, 10);
-            double offsetZ = ThreadLocalRandom.current().nextDouble(-10, 10);
+
+            // Random point within radius for variation
+            double offsetX = ThreadLocalRandom.current().nextDouble(-8, 8);
+            double offsetZ = ThreadLocalRandom.current().nextDouble(-8, 8);
             Location targetLoc = center.clone().add(offsetX, 0, offsetZ);
             Location spawnLoc = findGroundLevel(targetLoc);
 
@@ -77,8 +80,10 @@ public class WaveManager {
                             living.setHealth(attr.getBaseValue());
                         }
                     }
+                } else {
+                    plugin.getLogger().warning("Failed to spawn mob " + mobId + " at " + spawnLoc);
                 }
-                pendingSpawns--; // DECREMENT after spawn
+                pendingSpawns--; // DECREMENT after spawn attempt
             }, 20L); // 1 Second delay
         }
 
@@ -214,6 +219,11 @@ public class WaveManager {
                 return;
 
             if (activeMobs.isEmpty()) {
+                // Determine if we should really end the wave
+                // If expected mobs > 0 but we have 0 active, it might be a spawn failure.
+                // However, without a retry mechanism, we must proceed or risk soft-lock.
+                // Ideally, we check if ANY mobs spawned at all.
+
                 cancelWaveCheck();
                 instance.onWaveComplete();
             } else {

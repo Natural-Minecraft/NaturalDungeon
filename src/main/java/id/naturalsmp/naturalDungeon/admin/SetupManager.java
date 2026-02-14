@@ -82,10 +82,17 @@ public class SetupManager implements Listener {
 
     private void giveEditorTools(Player player) {
         player.getInventory().setItem(0,
-                createTool(Material.BLAZE_ROD, "&6Region Wand", "REGION_WAND", "&7L-Click: Pos 1", "&7R-Click: Pos 2"));
+                createTool(Material.BLAZE_ROD, "&aSafezone Wand", "REGION_WAND", "&7L-Click: Pos 1",
+                        "&7R-Click: Pos 2"));
         player.getInventory().setItem(1,
-                createTool(Material.EMERALD_BLOCK, "&aSave Safezone", "SAVE_REGION", "&7Click to confirm safezone"));
-        player.getInventory().setItem(2, createTool(Material.WITHER_SKELETON_SKULL, "&cSet Boss Spawn", "SET_BOSS",
+                createTool(Material.EMERALD, "&aSave Safezone", "SAVE_REGION", "&7Click to confirm safezone"));
+
+        player.getInventory().setItem(3,
+                createTool(Material.STICK, "&cArena Wand", "ARENA_WAND", "&7L-Click: Pos 1", "&7R-Click: Pos 2"));
+        player.getInventory().setItem(4,
+                createTool(Material.REDSTONE_BLOCK, "&cSave Arena", "SAVE_ARENA", "&7Click to confirm arena region"));
+
+        player.getInventory().setItem(6, createTool(Material.WITHER_SKELETON_SKULL, "&eSet Boss Spawn", "SET_BOSS",
                 "&7R-Click on block to set"));
         player.getInventory().setItem(8, createTool(Material.BARRIER, "&cBack to Dashboard", "EXIT", "&7Save & Exit"));
     }
@@ -120,8 +127,10 @@ public class SetupManager implements Listener {
         e.setCancelled(true);
 
         switch (toolId) {
-            case "REGION_WAND" -> handleWand(p, session, e);
+            case "REGION_WAND" -> handleWand(p, session, e, "safezone");
             case "SAVE_REGION" -> saveSafeZone(p, session);
+            case "ARENA_WAND" -> handleWand(p, session, e, "arena");
+            case "SAVE_ARENA" -> saveArenaRegion(p, session);
             case "SET_BOSS" -> {
                 if (e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR) {
                     Location loc = e.getClickedBlock() != null ? e.getClickedBlock().getLocation().add(0.5, 1, 0.5)
@@ -137,40 +146,73 @@ public class SetupManager implements Listener {
         }
     }
 
-    private void handleWand(Player p, EditorSession session, PlayerInteractEvent e) {
+    private void handleWand(Player p, EditorSession session, PlayerInteractEvent e, String type) {
         if (e.getClickedBlock() == null)
             return;
         Location loc = e.getClickedBlock().getLocation();
         if (e.getAction() == Action.LEFT_CLICK_BLOCK) {
-            session.pos1 = loc;
-            p.sendMessage(ChatUtils.colorize("&aPos 1 Set: &7" + formatLoc(loc)));
+            setPos(p, type, 1, loc);
         } else if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            session.pos2 = loc;
-            p.sendMessage(ChatUtils.colorize("&aPos 2 Set: &7" + formatLoc(loc)));
+            setPos(p, type, 2, loc);
+        }
+    }
+
+    public void setPos(Player p, String type, int posNum, Location loc) {
+        EditorSession session = sessions.get(p.getUniqueId());
+        if (session == null) {
+            p.sendMessage(ChatUtils.colorize("&cYou are not in setup mode!"));
+            return;
+        }
+
+        if (type.equalsIgnoreCase("safezone")) {
+            if (posNum == 1)
+                session.pos1 = loc;
+            else
+                session.pos2 = loc;
+            p.sendMessage(ChatUtils.colorize("&aSafezone Pos " + posNum + " Set: &7" + formatLoc(loc)));
+        } else if (type.equalsIgnoreCase("arena")) {
+            if (posNum == 1)
+                session.arenaPos1 = loc;
+            else
+                session.arenaPos2 = loc;
+            p.sendMessage(ChatUtils.colorize("&cArena Pos " + posNum + " Set: &7" + formatLoc(loc)));
         }
     }
 
     private void saveSafeZone(Player p, EditorSession session) {
         if (session.pos1 == null || session.pos2 == null) {
-            p.sendMessage(ChatUtils.colorize("&cError: Set both Pos 1 and Pos 2 first!"));
+            p.sendMessage(ChatUtils.colorize("&cError: Set both Safezone Pos 1 and Pos 2 first!"));
             return;
         }
 
         String regionName = session.dungeon.getId() + "_stage" + session.stage + "_safe";
 
-        // Attempt to create region automatically
         boolean created = plugin.getWorldGuardHook().createRegion(regionName, session.pos1, session.pos2);
-
         saveConfig(session.dungeon.getId(), "stages." + session.stage + ".safe-zone", regionName);
 
-        p.sendMessage(ChatUtils.colorize("&aSafezone Config Updated! &7(Region ID: " + regionName + ")"));
-        if (created) {
-            p.sendMessage(ChatUtils.colorize("&a✔ WorldGuard Region created successfully!"));
-        } else {
-            p.sendMessage(ChatUtils.colorize(
-                    "&c⚠ Failed to create WorldGuard region automatically. Check console or create manually!"));
+        p.sendMessage(ChatUtils.colorize("&aSafezone Config Updated! &7(Region: " + regionName + ")"));
+        if (created)
+            p.sendMessage(ChatUtils.colorize("&a✔ WG Region created!"));
+        else
+            p.sendMessage(ChatUtils.colorize("&c⚠ WG Region creation failed (may already exist)."));
+    }
+
+    private void saveArenaRegion(Player p, EditorSession session) {
+        if (session.arenaPos1 == null || session.arenaPos2 == null) {
+            p.sendMessage(ChatUtils.colorize("&cError: Set both Arena Pos 1 and Pos 2 first!"));
+            return;
         }
-        p.sendMessage(ChatUtils.colorize("&ePos1: " + formatLoc(session.pos1) + " | Pos2: " + formatLoc(session.pos2)));
+
+        String regionName = session.dungeon.getId() + "_stage" + session.stage + "_arena";
+
+        boolean created = plugin.getWorldGuardHook().createRegion(regionName, session.arenaPos1, session.arenaPos2);
+        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".arena-region", regionName);
+
+        p.sendMessage(ChatUtils.colorize("&cArena Config Updated! &7(Region: " + regionName + ")"));
+        if (created)
+            p.sendMessage(ChatUtils.colorize("&a✔ WG Region created!"));
+        else
+            p.sendMessage(ChatUtils.colorize("&c⚠ WG Region creation failed."));
     }
 
     private void saveBossSpawn(Player p, EditorSession session, Location loc) {
@@ -212,6 +254,11 @@ public class SetupManager implements Listener {
                 if (session.pos2 != null)
                     drawParticle(p, session.pos2, Color.BLUE);
 
+                if (session.arenaPos1 != null)
+                    drawParticle(p, session.arenaPos1, Color.RED);
+                if (session.arenaPos2 != null)
+                    drawParticle(p, session.arenaPos2, Color.ORANGE);
+
                 // Draw Box interaction if valid
                 if (session.pos1 != null && session.pos2 != null) {
                     // Simple line drawing logic could go here
@@ -236,7 +283,9 @@ public class SetupManager implements Listener {
         final int stage;
         final ItemStack[] savedInventory;
         final UUID playerUUID;
-        Location pos1, pos2;
+        final UUID playerUUID;
+        Location pos1, pos2; // Safezone
+        Location arenaPos1, arenaPos2; // Arena
 
         public EditorSession(Dungeon dungeon, int stage, ItemStack[] savedInventory) {
             this.dungeon = dungeon;

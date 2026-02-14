@@ -1,6 +1,12 @@
-# NaturalDungeon v1.0.0
+# NaturalDungeon v2.0.7 (Arena Update)
 
 Eksplorasi dungeon yang mendebarkan di **NaturalSMP**. Hadapi monster mematikan dan temukan harta karun tersembunyi.
+
+## ✨ Fitur Baru v2.0.7 (Arena Update)
+*   **Arena Region**: Pemisahan area "Combat" dan "SafeZone" untuk kontrol spawn monster yang lebih baik.
+*   **Setup Tools**: Penambahan wand baru (`/nd setup`) khusus untuk mengatur wilayah Arena.
+*   **Manual Setup Command**: Command `/nd set` untuk pengaturan posisi region secara presisi via koordinat.
+*   **Spawn Fix**: Perbaikan logika spawning wave untuk mencegah bug "Skip to Boss".
 
 ## ✨ Fitur Utama
 

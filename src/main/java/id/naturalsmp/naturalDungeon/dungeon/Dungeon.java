@@ -168,6 +168,7 @@ public class Dungeon {
 
     public static class StageLocation {
         private final String safeZone;
+        private final String arenaRegion; // [NEW]
         private final List<Double> bossSpawnLocation;
 
         public StageLocation(ConfigurationSection config) {
@@ -176,6 +177,7 @@ public class Dungeon {
 
         public StageLocation(ConfigurationSection config, boolean legacy) {
             this.safeZone = config.getString("safe-zone", "");
+            this.arenaRegion = config.getString("arena-region", ""); // [NEW]
             if (legacy) {
                 this.bossSpawnLocation = config.getDoubleList("boss.spawn-location");
             } else {
@@ -185,6 +187,10 @@ public class Dungeon {
 
         public String getSafeZone() {
             return safeZone;
+        }
+
+        public String getArenaRegion() {
+            return arenaRegion;
         }
 
         public List<Double> getBossSpawnLocation() {
