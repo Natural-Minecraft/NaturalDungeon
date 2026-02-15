@@ -35,25 +35,53 @@ public class WaveManager {
     public void spawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon) {
         active = true;
         double scaleFactor = ConfigUtils.getDouble("scaling.hp-per-player");
-        int baseCount = wave.getCount();
-        int scaledCount = (int) Math.ceil(baseCount * (1 + (playerCount - 1) * (scaleFactor - 1)));
+
+        // Calculate total mobs to spawn
+        Map<String, Integer> counts = wave.getMobCounts();
         List<String> mobTypes = wave.getMobs();
 
         // ATOMIC RESET
-        initialWaveCount = scaledCount;
-        pendingSpawns = scaledCount;
         activeMobs.clear();
-        boolean hasSpawnedInvalid = false; // Track if any spawn failed immediately
-
-        plugin.getLogger().info("Spawning Wave: Base=" + baseCount + ", Scaled=" + scaledCount + " for " + playerCount
-                + " players at center: " + center);
+        boolean hasSpawnedInvalid = false;
 
         // [PREMIUM] Wave Sound
         instance.playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f);
 
-        for (int i = 0; i < scaledCount; i++) {
-            String mobId = mobTypes.get(ThreadLocalRandom.current().nextInt(mobTypes.size()));
+        int totalExpected = 0;
 
+        if (!counts.isEmpty()) {
+            // New Logic: Specific Counts
+            for (Map.Entry<String, Integer> entry : counts.entrySet()) {
+                String mobId = entry.getKey();
+                int base = entry.getValue();
+                int scaled = (int) Math.ceil(base * (1 + (playerCount - 1) * (scaleFactor - 1)));
+                totalExpected += scaled;
+
+                spawnSpecificMobs(mobId, scaled, center, playerCount, bloodMoon);
+            }
+        } else {
+            // Legacy Logic: Random from pool
+            int baseCount = wave.getCount();
+            int scaledCount = (int) Math.ceil(baseCount * (1 + (playerCount - 1) * (scaleFactor - 1)));
+            totalExpected = scaledCount;
+
+            for (int i = 0; i < scaledCount; i++) {
+                String mobId = mobTypes.get(ThreadLocalRandom.current().nextInt(mobTypes.size()));
+                spawnSpecificMobs(mobId, 1, center, playerCount, bloodMoon);
+            }
+        }
+
+        this.initialWaveCount = totalExpected;
+        this.pendingSpawns = totalExpected;
+
+        instance.updateBossBar(ChatUtils.colorize("&eWave " + (instance.getCurrentWave()) + " &f- &7Spawning..."), 1.0,
+                org.bukkit.boss.BarColor.YELLOW);
+
+        startWaveCheck();
+    }
+
+    private void spawnSpecificMobs(String mobId, int count, Location center, int playerCount, boolean bloodMoon) {
+        for (int i = 0; i < count; i++) {
             // Random point within radius for variation
             double offsetX = ThreadLocalRandom.current().nextDouble(-8, 8);
             double offsetZ = ThreadLocalRandom.current().nextDouble(-8, 8);
@@ -66,7 +94,7 @@ public class WaveManager {
             spawnLoc.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, spawnLoc.clone().add(0, 0.5, 0), 10, 0.2,
                     0.3, 0.2, 0.02);
 
-            // Spawn with 1s delay for telegraphing to be visible
+            // Spawn with 1s delay
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Entity spawned = spawnMob(mobId, spawnLoc, playerCount);
                 if (spawned != null) {
@@ -83,14 +111,9 @@ public class WaveManager {
                 } else {
                     plugin.getLogger().warning("Failed to spawn mob " + mobId + " at " + spawnLoc);
                 }
-                pendingSpawns--; // DECREMENT after spawn attempt
-            }, 20L); // 1 Second delay
+                pendingSpawns--;
+            }, 20L);
         }
-
-        instance.updateBossBar(ChatUtils.colorize("&eWave " + (instance.getCurrentWave()) + " &f- &7Spawning..."), 1.0,
-                org.bukkit.boss.BarColor.YELLOW);
-
-        startWaveCheck();
     }
 
     public void spawnBoss(String bossId, Location location, int playerCount) {

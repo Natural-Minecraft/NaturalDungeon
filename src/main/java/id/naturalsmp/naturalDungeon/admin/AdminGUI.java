@@ -34,6 +34,7 @@ public class AdminGUI implements Listener {
         inv.setItem(13, createItem(Material.PAPER, "&bActive Instances", "&7Monitor running dungeons",
                 "&7Currently Active: &f" + getActiveCount()));
         inv.setItem(15, createItem(Material.BOOK, "&dItem Browser", "&7View MMOItems and Recipes"));
+        inv.setItem(17, createItem(Material.COMMAND_BLOCK, "&cSetup & Editor", "&7Edit Dungeon Locations")); // NEW
 
         // Fillers
         ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
@@ -64,6 +65,9 @@ public class AdminGUI implements Listener {
         } else if (e.getCurrentItem().getType() == Material.PAPER) {
             // Open Instances List
             player.sendMessage(ChatUtils.colorize("&eFeature coming soon."));
+        } else if (e.getCurrentItem().getType() == Material.COMMAND_BLOCK) {
+            // Open Setup GUI
+            new DungeonSetupGUI(plugin).openSelector(player);
         } else if (e.getCurrentItem().getType() == Material.BOOK) {
             // Open Item Browser
             if (plugin.hasMMOItems()) {

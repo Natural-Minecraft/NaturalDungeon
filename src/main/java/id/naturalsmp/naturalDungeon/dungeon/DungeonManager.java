@@ -112,9 +112,29 @@ public class DungeonManager implements Listener {
         startDungeon(participants, dungeon, dungeon.getDifficulty("normal"));
     }
 
+    private final Map<UUID, Integer> pendingStarts = new HashMap<>();
+
+    @EventHandler
+    public void onPlayerChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
+        if (pendingStarts.containsKey(e.getPlayer().getUniqueId())) {
+            if (e.getMessage().equalsIgnoreCase("cancel")) {
+                e.setCancelled(true); // Don't show "cancel" in chat
+                cancelPendingStart(e.getPlayer(), true);
+            }
+        }
+    }
+
+    public void cancelPendingStart(Player player, boolean msg) {
+        Integer taskId = pendingStarts.remove(player.getUniqueId());
+        if (taskId != null) {
+            Bukkit.getScheduler().cancelTask(taskId);
+            if (msg)
+                player.sendMessage(ChatUtils.colorize("&c&lDungeon Start Cancelled!"));
+        }
+    }
+
     public void startDungeon(List<UUID> participants, Dungeon dungeon, DungeonDifficulty difficulty) {
         if (difficulty == null) {
-            // Fallback if difficulty optional or missing
             difficulty = dungeon.getDifficulty("normal");
             if (difficulty == null) {
                 plugin.getLogger()
@@ -123,7 +143,15 @@ public class DungeonManager implements Listener {
             }
         }
 
-        // SMART ROUTER: Find the first available instance (1, 2, or 3)
+        // Validation moved to *before* delay
+        for (UUID uuid : participants) {
+            if (activeInstances.containsKey(uuid) || pendingStarts.containsKey(uuid)) {
+                // Already busy
+                return;
+            }
+        }
+
+        // SMART ROUTER (Check instance availability early)
         int instanceId = -1;
         Set<Integer> occupiedIds = new HashSet<>();
         for (DungeonInstance active : activeInstances.values()) {
@@ -131,15 +159,12 @@ public class DungeonManager implements Listener {
                 occupiedIds.add(active.getInstanceId());
             }
         }
-
-        // Try instances 1 to 3
         for (int i = 1; i <= 3; i++) {
             if (!occupiedIds.contains(i)) {
                 instanceId = i;
                 break;
             }
         }
-
         if (instanceId == -1) {
             String msg = ChatUtils
                     .colorize("&6&lNaturalDungeon &8» &cMaaf, semua arena (1, 2, 3) sedang digunakan. Silakan antri!");
@@ -151,23 +176,62 @@ public class DungeonManager implements Listener {
             return;
         }
 
-        // [ATOMIC] Consume key now that instance is confirmed
-        Player leader = Bukkit.getPlayer(participants.get(0));
-        if (leader != null) {
-            if (!checkKey(leader, difficulty)) {
-                leader.sendMessage(ConfigUtils.getMessage("dungeon.key-required", "%key%", difficulty.getKeyReq()));
-                return;
+        final int finalInstanceId = instanceId;
+        final DungeonDifficulty finalDifficulty = difficulty;
+
+        // Broadcast Warmup
+        for (UUID uuid : participants) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                p.sendMessage(ChatUtils
+                        .colorize("&6&lNaturalDungeon &8» &eTeleporting in 5 seconds... &7(Type 'cancel' to abort)"));
+                p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1f);
             }
-            consumeKey(leader, difficulty);
         }
 
-        plugin.getLogger().info("Starting dungeon " + dungeon.getId() + " (Instance " + instanceId + ") for "
-                + participants.size() + " players.");
-        DungeonInstance instance = new DungeonInstance(plugin, dungeon, difficulty, instanceId, participants);
+        int taskId = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            // Remove from pending map first
+            for (UUID uuid : participants)
+                pendingStarts.remove(uuid);
+
+            // Re-validate Players & Key
+            List<UUID> validParticipants = new ArrayList<>();
+            for (UUID uuid : participants) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && p.isOnline())
+                    validParticipants.add(uuid);
+            }
+
+            if (validParticipants.isEmpty())
+                return;
+
+            Player leader = Bukkit.getPlayer(validParticipants.get(0));
+            if (leader == null)
+                return;
+
+            // Consume Key just before start
+            if (!checkKey(leader, finalDifficulty)) {
+                leader.sendMessage(
+                        ConfigUtils.getMessage("dungeon.key-required", "%key%", finalDifficulty.getKeyReq()));
+                return; // Abort
+            }
+            consumeKey(leader, finalDifficulty);
+
+            // START
+            plugin.getLogger().info("Starting dungeon " + dungeon.getId() + " (Instance " + finalInstanceId + ") for "
+                    + validParticipants.size() + " players.");
+            DungeonInstance instance = new DungeonInstance(plugin, dungeon, finalDifficulty, finalInstanceId,
+                    validParticipants);
+            for (UUID uuid : validParticipants) {
+                activeInstances.put(uuid, instance);
+            }
+            instance.start();
+
+        }, 100L).getTaskId();
+
         for (UUID uuid : participants) {
-            activeInstances.put(uuid, instance);
+            pendingStarts.put(uuid, taskId);
         }
-        instance.start();
     }
 
     private boolean checkKey(Player player, DungeonDifficulty diff) {
@@ -226,6 +290,10 @@ public class DungeonManager implements Listener {
             instance.forceEnd();
         }
         activeInstances.clear();
+        // Clear pending
+        for (Integer taskId : pendingStarts.values())
+            Bukkit.getScheduler().cancelTask(taskId);
+        pendingStarts.clear();
     }
 
     public void openDungeonGUI(Player player) {
@@ -235,6 +303,7 @@ public class DungeonManager implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
+        cancelPendingStart(player, false); // Cancel if they were waiting
         DungeonInstance instance = activeInstances.get(player.getUniqueId());
         if (instance != null) {
             instance.handlePlayerLeave(player);

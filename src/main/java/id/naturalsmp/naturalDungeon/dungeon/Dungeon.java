@@ -199,16 +199,34 @@ public class Dungeon {
     }
 
     public static class Wave {
-        private final List<String> mobs;
+        private final List<String> mobs; // Legacy
+        private final Map<String, Integer> mobCounts = new HashMap<>(); // New
         private final int count;
         private final int delay;
 
         public Wave(ConfigurationSection config) {
-            this.mobs = config.getStringList("mobs");
-            this.count = config.getInt("count", 5);
             this.delay = config.getInt("delay", 5);
+
+            if (config.isConfigurationSection("mobs")) {
+                // New Format: precise counts
+                this.mobs = new ArrayList<>();
+                ConfigurationSection mobSection = config.getConfigurationSection("mobs");
+                int total = 0;
+                for (String key : mobSection.getKeys(false)) {
+                    int amount = mobSection.getInt(key);
+                    mobCounts.put(key, amount);
+                    mobs.add(key); // Add to list for reference
+                    total += amount;
+                }
+                this.count = total;
+            } else {
+                // Legacy Format
+                this.mobs = config.getStringList("mobs");
+                this.count = config.getInt("count", 5);
+            }
         }
 
+        // Constructor for code-created waves
         public Wave(List<String> mobs, int count, int delay) {
             this.mobs = mobs;
             this.count = count;
@@ -217,6 +235,10 @@ public class Dungeon {
 
         public List<String> getMobs() {
             return mobs;
+        }
+
+        public Map<String, Integer> getMobCounts() {
+            return mobCounts;
         }
 
         public int getCount() {

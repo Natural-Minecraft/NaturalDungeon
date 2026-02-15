@@ -29,12 +29,8 @@ public class DungeonListener implements Listener {
         Player player = e.getEntity();
         DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
         if (instance != null) {
-            savedInventories.put(player.getUniqueId(), player.getInventory().getContents().clone());
-            e.getDrops().clear();
-            e.setDroppedExp(0);
-            e.setKeepInventory(true);
-            e.setKeepLevel(true);
-            instance.handlePlayerDeath(player);
+            e.setCancelled(true); // Prevent vanilla death screen and respawn logic
+            instance.handleFakeDeath(player);
         }
     }
 

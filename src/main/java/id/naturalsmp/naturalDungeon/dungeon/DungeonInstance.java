@@ -331,36 +331,38 @@ public class DungeonInstance {
         }, 20L, 20L);
     }
 
-    public void handlePlayerDeath(Player player) {
+    public void handleFakeDeath(Player player) {
         if (!active)
             return;
         totalDeaths++;
         int remaining = lives.getOrDefault(player.getUniqueId(), 0) - 1;
         lives.put(player.getUniqueId(), remaining);
+
+        // Effects
+        player.setHealth(player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+        player.setFoodLevel(20);
+        player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
+        player.playSound(player.getLocation(), Sound.ENTITY_WITHER_HURT, 1f, 1f);
+        player.sendTitle(ChatUtils.colorize("&c&lYOU DIED"), ChatUtils.colorize("&7Respawning..."), 5, 40, 5);
+
         broadcast(ConfigUtils.getMessage("dungeon.player-died", "%player%", player.getName(), "%lives%",
                 String.valueOf(Math.max(0, remaining))));
-        playSound(Sound.ENTITY_WITHER_HURT, 1f);
 
         if (remaining <= 0) {
             player.sendMessage(ConfigUtils.getMessage("dungeon.no-more-lives"));
             Location returnLoc = returnLocations.get(player.getUniqueId());
             if (returnLoc != null)
-                Bukkit.getScheduler().runTaskLater(plugin, () -> player.teleport(returnLoc), 60L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> player.teleport(returnLoc), 10L);
             participants.remove(player.getUniqueId());
         } else {
-            player.sendMessage(ConfigUtils.getMessage("dungeon.respawning", "%seconds%", "3"));
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!active || !player.isOnline())
-                    return;
-                Dungeon.Stage stage = getStage(currentStage);
-                if (stage != null) {
-                    Optional<Location> spawnOpt = plugin.getWorldGuardHook().getRegionSpawnPoint(dungeonWorld,
-                            stage.getLocation(instanceId).getSafeZone());
-                    player.teleport(spawnOpt.orElse(dungeonWorld.getSpawnLocation()));
-                    inSafeZone.put(player.getUniqueId(), true);
-                    player.setHealth(player.getMaxHealth());
-                }
-            }, 60L);
+            // Teleport to Safe Zone immediately
+            Dungeon.Stage stage = getStage(currentStage);
+            if (stage != null) {
+                Optional<Location> spawnOpt = plugin.getWorldGuardHook().getRegionSpawnPoint(dungeonWorld,
+                        stage.getLocation(instanceId).getSafeZone());
+                player.teleport(spawnOpt.orElse(dungeonWorld.getSpawnLocation()));
+                inSafeZone.put(player.getUniqueId(), true);
+            }
         }
 
         boolean allDead = participants.isEmpty()
@@ -392,25 +394,36 @@ public class DungeonInstance {
         String timeStr = ChatUtils.formatTime(duration / 1000);
 
         if (victory) {
-            broadcast(ConfigUtils.getMessage("dungeon.dungeon-complete", "%time%", timeStr));
+            broadcastTitle("&6&lVICTORY", "&7Dungeon Completed in " + timeStr, 10, 60, 20);
             playSound(Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f);
 
-            // Use loot section from difficulty
+            // 1. Spawn Chest & Drops
+            Player lead = Bukkit.getPlayer(participants.get(0));
+            Location center = lead != null ? lead.getLocation() : dungeonWorld.getSpawnLocation(); // Fallback
+
+            // Try to find a good center point (Arena Center) if possible
+            Dungeon.Stage lastStage = getStage(currentStage > 1 ? currentStage - 1 : 1);
+            if (lastStage != null) {
+                String region = lastStage.getLocation(instanceId).getArenaRegion();
+                Optional<Location> regCenter = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, region);
+                if (regCenter.isPresent())
+                    center = regCenter.get();
+            }
+
+            this.lootChestLocation = center;
+            this.lootChestLocation.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
+            dungeonWorld.strikeLightningEffect(center);
+
+            // 2. Drop Loot
             if (difficulty.getLootSection() != null) {
                 collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false);
-
-                // Spawn physical chest at the "last" player's location or center
-                Player last = Bukkit.getPlayer(participants.get(0));
-                if (last != null) {
-                    this.lootChestLocation = last.getLocation();
-                    lootManager.spawnLootChest(this.lootChestLocation, collectedLoot);
-                    // [NEW] Victory VFX
-                    last.getWorld().strikeLightningEffect(this.lootChestLocation);
+                for (ItemStack item : collectedLoot) {
+                    dungeonWorld.dropItemNaturally(center.clone().add(0, 1, 0), item);
                 }
             }
             lootManager.giveXpReward(participants, difficulty.getTotalStages());
 
-            // Fire custom event for Dungeon-Story Integration
+            // 3. Open GUI & Events
             Bukkit.getPluginManager().callEvent(
                     new id.naturalsmp.naturaldungeon.event.DungeonCompleteEvent(
                             dungeon.getId(),
@@ -423,7 +436,11 @@ public class DungeonInstance {
                     if (player != null)
                         new DungeonCompletionGUI(plugin).open(player, this, true);
                 }
-            }, 40L);
+            }, 40L); // 2s delay for GUI
+
+            // 4. Cleanup Sequence (10s delay as requested)
+            Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 200L);
+
         } else {
             broadcast(ConfigUtils.getMessage("dungeon.dungeon-failed"));
             playSound(Sound.ENTITY_WITHER_DEATH, 0.5f);
@@ -433,28 +450,30 @@ public class DungeonInstance {
                     if (player != null)
                         new DungeonCompletionGUI(plugin).open(player, this, false);
                 }
-            }, 40L);
+            }, 20L);
+            Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 100L); // 5s for fail
         }
+    }
 
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            for (UUID uuid : new ArrayList<>(participants)) {
-                Player player = Bukkit.getPlayer(uuid);
-                if (player != null) {
-                    Location returnLoc = returnLocations.get(uuid);
-                    if (returnLoc != null)
-                        player.teleport(returnLoc);
-
-                    // [PREMIUM] Hard Inventory Wipe
-                    player.closeInventory();
-                    player.setItemOnCursor(null);
-                }
+    private void cleanupAndTeleport() {
+        for (UUID uuid : new ArrayList<>(participants)) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                Location returnLoc = returnLocations.get(uuid);
+                if (returnLoc != null)
+                    player.teleport(returnLoc);
+                player.closeInventory();
+                player.setItemOnCursor(null);
+                player.sendMessage(ChatUtils.colorize("&a&lNaturalDungeon &8» &7Thank you for playing!"));
             }
-            // Cleanup loot chest
-            if (lootChestLocation != null
-                    && lootChestLocation.getBlock().getType() == org.bukkit.Material.ENDER_CHEST) {
-                lootChestLocation.getBlock().setType(org.bukkit.Material.AIR);
-            }
-        }, 200L);
+        }
+        // Cleanup loot chest
+        if (lootChestLocation != null && lootChestLocation.getBlock().getType() == org.bukkit.Material.ENDER_CHEST) {
+            lootChestLocation.getBlock().setType(org.bukkit.Material.AIR);
+        }
+        // Kill any dropped items in the area (optional, to verify)
+        // dungeonWorld.getEntitiesByClass(Item.class).forEach(Entity::remove);
+        // Better to rely on WorldGuard or just let them despawn/be picked up.
     }
 
     public void forceEnd() {
