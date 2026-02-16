@@ -105,6 +105,14 @@ public class PartyCommand implements CommandExecutor, TabCompleter {
                 }
                 plugin.getPartyManager().kickPlayer(party, target);
             }
+            case "chat" -> {
+                if (args.length < 2) {
+                    player.sendMessage(ConfigUtils.getMessage("party.chat-usage"));
+                    return true;
+                }
+                String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
+                plugin.getPartyManager().chatToParty(player, message);
+            }
             default -> plugin.getPartyManager().openPartyGUI(player);
         }
         return true;
@@ -115,7 +123,7 @@ public class PartyCommand implements CommandExecutor, TabCompleter {
             @NotNull String label, @NotNull String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            completions.addAll(Arrays.asList("create", "invite", "accept", "leave", "kick"));
+            completions.addAll(Arrays.asList("create", "invite", "accept", "leave", "kick", "chat"));
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("invite") || args[0].equalsIgnoreCase("kick"))) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 completions.add(p.getName());

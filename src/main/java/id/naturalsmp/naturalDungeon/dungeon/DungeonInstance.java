@@ -25,14 +25,16 @@ public class DungeonInstance {
     private final NaturalDungeon plugin;
     private final Dungeon dungeon;
     private final DungeonDifficulty difficulty;
-    private final int instanceId; // [NEW]
+    private final int instanceId;
     private final List<UUID> participants;
     private final Map<UUID, Integer> lives = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Boolean> inSafeZone = new HashMap<>();
+    private final Set<UUID> invulnerable = new HashSet<>(); // Respawn invulnerability
 
     private WaveManager waveManager;
     private LootManager lootManager;
+    private BuffChoiceGUI buffChoiceGUI; // Singleton reference
     private World dungeonWorld;
 
     private int currentStage = 0;
@@ -41,6 +43,8 @@ public class DungeonInstance {
     private boolean active = false;
     private boolean bossSpawned = false;
     private BukkitTask safeZoneCheckTask;
+    private BukkitTask hudTask; // Fixed: now tracked for proper cancellation
+    private BukkitTask timerTask; // Dungeon time limit task
     private BossBar bossBar;
 
     private int totalDeaths = 0;
@@ -55,6 +59,7 @@ public class DungeonInstance {
         this.instanceId = instanceId;
         this.participants = new ArrayList<>(participants);
         this.lootManager = new LootManager(plugin);
+        this.buffChoiceGUI = plugin.getBuffChoiceGUI();
 
         int maxLives = difficulty.getMaxDeaths();
         if (maxLives <= 0)
@@ -101,8 +106,27 @@ public class DungeonInstance {
             playSound(Sound.ENTITY_WITHER_SPAWN, 1f);
             startSafeZoneCheck();
             startHUDTask();
+            startTimerLimit();
             Bukkit.getScheduler().runTaskLater(plugin, () -> startStage(currentStage), 60L);
         }, 100L);
+    }
+
+    /**
+     * Start a configurable time limit for the dungeon.
+     * If time runs out, dungeon is force-ended.
+     */
+    private void startTimerLimit() {
+        int timeLimitSeconds = ConfigUtils.getInt("dungeon.time-limit", 0);
+        if (timeLimitSeconds <= 0)
+            return; // 0 = no limit
+        timerTask = Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!active)
+                return;
+            broadcast(ConfigUtils.getMessage("dungeon.force-ended"));
+            broadcastTitle("&c&lTIME'S UP", "&7Dungeon time limit reached!", 10, 60, 20);
+            playSound(Sound.ENTITY_WITHER_DEATH, 0.5f);
+            plugin.getDungeonManager().endDungeon(this, false);
+        }, timeLimitSeconds * 20L);
     }
 
     private void teleportToStage(int stageNum) {
@@ -138,11 +162,10 @@ public class DungeonInstance {
         playSound(Sound.EVENT_RAID_HORN, 0.6f);
 
         // Open Buff Choice for all players
-        BuffChoiceGUI buffGUI = new BuffChoiceGUI(plugin, this);
         for (UUID uuid : participants) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null)
-                buffGUI.open(p);
+                buffChoiceGUI.open(p, this);
         }
 
         currentWave = 0;
@@ -181,7 +204,7 @@ public class DungeonInstance {
         }
 
         Dungeon.StageLocation loc = stage.getLocation(instanceId);
-        String regionName = loc.getArenaRegion(); // [NEW] Prioritize Arena Region
+        String regionName = loc.getArenaRegion(); // Prioritize Arena Region
         if (regionName == null || regionName.isEmpty()) {
             regionName = loc.getSafeZone(); // Fallback to SafeZone
         }
@@ -204,8 +227,25 @@ public class DungeonInstance {
 
         if (currentWave < stage.getWaves().size()) {
             int delay = stage.getWaves().get(currentWave).getDelay();
-            Bukkit.getScheduler().runTaskLater(plugin, this::startNextWave, delay > 0 ? delay * 20L : 60L);
+            int delaySec = delay > 0 ? delay : 3;
+            long delayTicks = delaySec * 20L;
+
+            // Wave countdown timer for players
+            for (int i = delaySec; i >= 1; i--) {
+                int sec = i;
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (!active)
+                        return;
+                    String color = sec <= 2 ? "&c" : "&e";
+                    broadcastTitle(color + "Wave " + (currentWave + 1) + " in " + sec + "s", "&7Prepare yourself!", 0,
+                            25, 5);
+                }, (delaySec - i) * 20L);
+            }
+
+            Bukkit.getScheduler().runTaskLater(plugin, this::startNextWave, delayTicks);
         } else if (stage.hasBoss() && !bossSpawned) {
+            // Boss countdown
+            broadcastTitle("&d&lBOSS INCOMING", "&7Prepare for battle!", 10, 40, 10);
             Bukkit.getScheduler().runTaskLater(plugin, () -> spawnBoss(stage), 60L);
         } else {
             playSound(Sound.ENTITY_PLAYER_LEVELUP, 1f);
@@ -222,7 +262,7 @@ public class DungeonInstance {
         playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1f);
         updateBossBar("&d&lBOSS HP", 1.0, org.bukkit.boss.BarColor.PURPLE);
 
-        // [NEW] Ultimate VFX
+        // Boss VFX
         if (dungeonWorld != null) {
             Dungeon.StageLocation bossLocDetails = stage.getLocation(instanceId);
             List<Double> bossCoords = bossLocDetails.getBossSpawnLocation();
@@ -230,7 +270,6 @@ public class DungeonInstance {
             if (bossCoords != null && bossCoords.size() >= 3) {
                 bossVfxLoc = new Location(dungeonWorld, bossCoords.get(0), bossCoords.get(1), bossCoords.get(2));
             } else {
-                // [NEW] Use Arena Region for Boss VFX fallback if spawn location not set
                 String regionName = bossLocDetails.getArenaRegion();
                 if (regionName == null || regionName.isEmpty())
                     regionName = bossLocDetails.getSafeZone();
@@ -247,7 +286,6 @@ public class DungeonInstance {
         if (bossLoc != null && bossLoc.size() >= 3) {
             spawn = new Location(dungeonWorld, bossLoc.get(0), bossLoc.get(1), bossLoc.get(2));
         } else {
-            // [NEW] Prioritize Arena Region for Boss Spawn fallback
             String regionName = loc.getArenaRegion();
             if (regionName == null || regionName.isEmpty())
                 regionName = loc.getSafeZone();
@@ -305,9 +343,16 @@ public class DungeonInstance {
     }
 
     private void startHUDTask() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!active)
+        // Cancel previous HUD task if any (safety)
+        if (hudTask != null) {
+            hudTask.cancel();
+        }
+        hudTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!active) {
+                hudTask.cancel();
+                hudTask = null;
                 return;
+            }
 
             String time = ChatUtils.formatTime(getDuration() / 1000);
             String rank = getPerformanceRank();
@@ -338,7 +383,7 @@ public class DungeonInstance {
         int remaining = lives.getOrDefault(player.getUniqueId(), 0) - 1;
         lives.put(player.getUniqueId(), remaining);
 
-        // Effects
+        // Heal and clear effects
         player.setHealth(player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
         player.setFoodLevel(20);
         player.getActivePotionEffects().forEach(effect -> player.removePotionEffect(effect.getType()));
@@ -355,13 +400,52 @@ public class DungeonInstance {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> player.teleport(returnLoc), 10L);
             participants.remove(player.getUniqueId());
         } else {
-            // Teleport to Safe Zone immediately
+            // Respawn with invulnerability
             Dungeon.Stage stage = getStage(currentStage);
             if (stage != null) {
                 Optional<Location> spawnOpt = plugin.getWorldGuardHook().getRegionSpawnPoint(dungeonWorld,
                         stage.getLocation(instanceId).getSafeZone());
-                player.teleport(spawnOpt.orElse(dungeonWorld.getSpawnLocation()));
-                inSafeZone.put(player.getUniqueId(), true);
+                Location safeSpawn = spawnOpt.orElse(dungeonWorld.getSpawnLocation());
+
+                // Countdown before respawn teleport
+                for (int i = 3; i >= 1; i--) {
+                    int sec = i;
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (player.isOnline()) {
+                            player.sendTitle(ChatUtils.colorize("&c&lYOU DIED"),
+                                    ChatUtils.colorize("&7Respawn in &f" + sec + "s"), 0, 25, 0);
+                        }
+                    }, (3 - i) * 20L);
+                }
+
+                // Teleport after 3 second delay
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (!player.isOnline() || !active)
+                        return;
+                    player.teleport(safeSpawn);
+                    inSafeZone.put(player.getUniqueId(), true);
+
+                    // Grant 3 seconds of invulnerability
+                    invulnerable.add(player.getUniqueId());
+                    player.sendTitle(ChatUtils.colorize("&a&lRESPAWNED"),
+                            ChatUtils.colorize("&7Invulnerable for 3s"), 5, 30, 10);
+                    player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.5f);
+
+                    // Visual invulnerability indicator
+                    player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                            org.bukkit.potion.PotionEffectType.GLOWING, 60, 0, true, false));
+
+                    // Re-apply chosen buff
+                    buffChoiceGUI.reapplyBuff(player);
+
+                    // Remove invulnerability after 3 seconds
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        invulnerable.remove(player.getUniqueId());
+                        if (player.isOnline()) {
+                            player.sendMessage(ChatUtils.colorize("&e&lInvulnerability expired! &7Be careful!"));
+                        }
+                    }, 60L);
+                }, 60L);
             }
         }
 
@@ -371,10 +455,15 @@ public class DungeonInstance {
             plugin.getDungeonManager().endDungeon(this, false);
     }
 
+    public boolean isInvulnerable(UUID uuid) {
+        return invulnerable.contains(uuid);
+    }
+
     public void handlePlayerLeave(Player player) {
         participants.remove(player.getUniqueId());
         lives.remove(player.getUniqueId());
         inSafeZone.remove(player.getUniqueId());
+        invulnerable.remove(player.getUniqueId());
         Location returnLoc = returnLocations.remove(player.getUniqueId());
         if (returnLoc != null && player.isOnline())
             player.teleport(returnLoc);
@@ -385,8 +474,7 @@ public class DungeonInstance {
 
     public void end(boolean victory) {
         this.active = false;
-        if (safeZoneCheckTask != null)
-            safeZoneCheckTask.cancel();
+        cancelAllTasks();
         if (waveManager != null)
             waveManager.shutdown();
 
@@ -397,48 +485,81 @@ public class DungeonInstance {
             broadcastTitle("&6&lVICTORY", "&7Dungeon Completed in " + timeStr, 10, 60, 20);
             playSound(Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f);
 
-            // 1. Spawn Chest & Drops
-            Player lead = Bukkit.getPlayer(participants.get(0));
-            Location center = lead != null ? lead.getLocation() : dungeonWorld.getSpawnLocation(); // Fallback
+            // 1. Determine loot center location
+            Location center = dungeonWorld.getSpawnLocation(); // Fallback
+            if (!participants.isEmpty()) {
+                Player lead = Bukkit.getPlayer(participants.get(0));
+                if (lead != null) {
+                    center = lead.getLocation();
+                }
+            }
 
-            // Try to find a good center point (Arena Center) if possible
+            // Try to find a good center point (Arena Center)
             Dungeon.Stage lastStage = getStage(currentStage > 1 ? currentStage - 1 : 1);
             if (lastStage != null) {
                 String region = lastStage.getLocation(instanceId).getArenaRegion();
-                Optional<Location> regCenter = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, region);
-                if (regCenter.isPresent())
-                    center = regCenter.get();
+                if (region != null && !region.isEmpty()) {
+                    Optional<Location> regCenter = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, region);
+                    if (regCenter.isPresent())
+                        center = regCenter.get();
+                }
             }
 
+            // 2. Spawn Loot Chest with premium VFX
             this.lootChestLocation = center;
-            this.lootChestLocation.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
-            dungeonWorld.strikeLightningEffect(center);
-
-            // 2. Drop Loot
             if (difficulty.getLootSection() != null) {
                 collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false);
-                for (ItemStack item : collectedLoot) {
-                    dungeonWorld.dropItemNaturally(center.clone().add(0, 1, 0), item);
-                }
+                lootManager.spawnLootChest(center, collectedLoot);
+            } else {
+                // No loot configured, just place chest
+                center.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
+                dungeonWorld.strikeLightningEffect(center);
             }
             lootManager.giveXpReward(participants, difficulty.getTotalStages());
 
-            // 3. Open GUI & Events
+            // 3. Events & Announcement
             Bukkit.getPluginManager().callEvent(
                     new id.naturalsmp.naturaldungeon.event.DungeonCompleteEvent(
                             dungeon.getId(),
                             difficulty.getId(),
                             new ArrayList<>(participants)));
 
+            // No-death bonus: Flawless Clear
+            if (totalDeaths == 0) {
+                broadcastTitle("&d&l✦ FLAWLESS CLEAR ✦", "&7No deaths! Bonus rewards!", 10, 60, 20);
+                playSound(Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.5f);
+                for (UUID uuid : participants) {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null) {
+                        p.sendMessage(ChatUtils.colorize(
+                                "&d&l✦ &fFlawless Clear! &7Kamu mendapat bonus XP & loot!"));
+                    }
+                }
+                // Give bonus XP for flawless clear
+                lootManager.giveXpReward(participants, 2); // extra 2 stages worth of XP
+            }
+
+            // Server-wide completion announcement
+            if (ConfigUtils.getBoolean("dungeon.announce-completion")) {
+                Player announcePlayer = !participants.isEmpty() ? Bukkit.getPlayer(participants.get(0)) : null;
+                String playerName = announcePlayer != null ? announcePlayer.getName() : "Unknown";
+                String announcement = ConfigUtils.getMessage("broadcast.completion",
+                        "%player%", playerName,
+                        "%dungeon%", dungeon.getDisplayName(),
+                        "%time%", timeStr);
+                Bukkit.broadcastMessage(announcement);
+            }
+
+            // 4. Open Completion GUI
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 for (UUID uuid : participants) {
                     Player player = Bukkit.getPlayer(uuid);
                     if (player != null)
                         new DungeonCompletionGUI(plugin).open(player, this, true);
                 }
-            }, 40L); // 2s delay for GUI
+            }, 40L);
 
-            // 4. Cleanup Sequence (10s delay as requested)
+            // 5. Cleanup Sequence (10s delay)
             Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 200L);
 
         } else {
@@ -451,8 +572,11 @@ public class DungeonInstance {
                         new DungeonCompletionGUI(plugin).open(player, this, false);
                 }
             }, 20L);
-            Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 100L); // 5s for fail
+            Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 100L);
         }
+
+        // Clear buffs
+        buffChoiceGUI.clearBuffs(participants);
     }
 
     private void cleanupAndTeleport() {
@@ -471,15 +595,11 @@ public class DungeonInstance {
         if (lootChestLocation != null && lootChestLocation.getBlock().getType() == org.bukkit.Material.ENDER_CHEST) {
             lootChestLocation.getBlock().setType(org.bukkit.Material.AIR);
         }
-        // Kill any dropped items in the area (optional, to verify)
-        // dungeonWorld.getEntitiesByClass(Item.class).forEach(Entity::remove);
-        // Better to rely on WorldGuard or just let them despawn/be picked up.
     }
 
     public void forceEnd() {
         this.active = false;
-        if (safeZoneCheckTask != null)
-            safeZoneCheckTask.cancel();
+        cancelAllTasks();
         if (waveManager != null)
             waveManager.shutdown();
         for (UUID uuid : participants) {
@@ -489,12 +609,28 @@ public class DungeonInstance {
                 if (returnLoc != null)
                     player.teleport(returnLoc);
                 player.sendMessage(ConfigUtils.getMessage("dungeon.force-ended"));
-
-                // [PREMIUM] Hard Inventory Wipe on force end
                 player.closeInventory();
                 player.setItemOnCursor(null);
             }
         }
+        // Clear buffs
+        buffChoiceGUI.clearBuffs(participants);
+    }
+
+    private void cancelAllTasks() {
+        if (safeZoneCheckTask != null) {
+            safeZoneCheckTask.cancel();
+            safeZoneCheckTask = null;
+        }
+        if (hudTask != null) {
+            hudTask.cancel();
+            hudTask = null;
+        }
+        if (timerTask != null) {
+            timerTask.cancel();
+            timerTask = null;
+        }
+        removeBossBar();
     }
 
     private Dungeon.Stage getStage(int stageNum) {

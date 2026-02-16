@@ -121,7 +121,14 @@ public class PartyManager implements Listener {
             return;
         }
         if (party.isLeader(player.getUniqueId())) {
-            disbandParty(party);
+            // Try to transfer leadership first
+            List<UUID> others = party.getMembers().stream()
+                    .filter(u -> !u.equals(player.getUniqueId())).toList();
+            if (others.isEmpty()) {
+                disbandParty(party);
+            } else {
+                transferAndRemove(party, player, others.get(0));
+            }
         } else {
             party.removeMember(player.getUniqueId());
             playerPartyMap.remove(player.getUniqueId());
@@ -157,7 +164,41 @@ public class PartyManager implements Listener {
         return true;
     }
 
-    private void broadcastToParty(Party party, String message) {
+    /**
+     * Transfer leader and remove old leader from party.
+     */
+    private void transferAndRemove(Party party, Player oldLeader, UUID newLeaderUUID) {
+        // Update maps: remove old party entry, transfer leader, add new
+        parties.remove(party.getLeader());
+        party.transferLeader(newLeaderUUID);
+        party.removeMember(oldLeader.getUniqueId());
+        playerPartyMap.remove(oldLeader.getUniqueId());
+        parties.put(newLeaderUUID, party);
+        // Update all member mappings to point to new leader
+        for (UUID member : party.getMembers()) {
+            playerPartyMap.put(member, newLeaderUUID);
+        }
+        Player newLeader = Bukkit.getPlayer(newLeaderUUID);
+        String newLeaderName = newLeader != null ? newLeader.getName() : "Unknown";
+        oldLeader.sendMessage(ConfigUtils.getMessage("party.you-left"));
+        broadcastToParty(party,
+                ConfigUtils.getMessage("party.leader-transferred", "%player%", newLeaderName));
+    }
+
+    /**
+     * Send a chat message to all party members.
+     */
+    public void chatToParty(Player sender, String message) {
+        Party party = getParty(sender.getUniqueId());
+        if (party == null) {
+            sender.sendMessage(ConfigUtils.getMessage("party.not-in-party"));
+            return;
+        }
+        String formattedMsg = ChatUtils.colorize("&6&l[PARTY] &f" + sender.getName() + "&7: &f" + message);
+        broadcastToParty(party, formattedMsg);
+    }
+
+    public void broadcastToParty(Party party, String message) {
         for (UUID uuid : party.getMembers()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null)
@@ -166,7 +207,7 @@ public class PartyManager implements Listener {
     }
 
     public void openPartyGUI(Player player) {
-        new PartyGUI(plugin, this).open(player);
+        plugin.getPartyGUI().open(player);
     }
 
     @EventHandler
@@ -175,7 +216,14 @@ public class PartyManager implements Listener {
         Party party = getParty(player.getUniqueId());
         if (party != null) {
             if (party.isLeader(player.getUniqueId())) {
-                disbandParty(party);
+                // Transfer leadership instead of disbanding
+                List<UUID> others = party.getMembers().stream()
+                        .filter(u -> !u.equals(player.getUniqueId())).toList();
+                if (others.isEmpty()) {
+                    disbandParty(party);
+                } else {
+                    transferAndRemove(party, player, others.get(0));
+                }
             } else {
                 party.removeMember(player.getUniqueId());
                 playerPartyMap.remove(player.getUniqueId());

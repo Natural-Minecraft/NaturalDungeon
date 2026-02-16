@@ -26,7 +26,7 @@ public class PartyGUI implements Listener {
     public PartyGUI(NaturalDungeon plugin, PartyManager manager) {
         this.plugin = plugin;
         this.manager = manager;
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        // Listener registered as singleton in NaturalDungeon.registerListeners()
     }
 
     public void open(Player player) {

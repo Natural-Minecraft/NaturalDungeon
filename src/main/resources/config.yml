@@ -6,11 +6,13 @@ config-version: 1
 # General Settings
 dungeon:
   # Cooldown in seconds between dungeon runs (per player)
-  cooldown: 180
+  cooldown: 3600
   # Default lives per dungeon run
   default-lives: 3
   # Announce dungeon completion to server
   announce-completion: true
+  # Time limit in seconds (0 = no limit)
+  time-limit: 0
 
 # Party System
 party:

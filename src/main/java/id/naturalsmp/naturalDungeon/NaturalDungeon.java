@@ -1,6 +1,7 @@
 package id.naturalsmp.naturaldungeon;
 
 import id.naturalsmp.naturaldungeon.party.PartyManager;
+import id.naturalsmp.naturaldungeon.party.PartyGUI;
 import id.naturalsmp.naturaldungeon.party.PartyConfirmationGUI;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonManager;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonListener;
@@ -19,7 +20,19 @@ import id.naturalsmp.naturaldungeon.integration.AuraMobsHook;
 import id.naturalsmp.naturaldungeon.commands.DungeonCommand;
 import id.naturalsmp.naturaldungeon.commands.PartyCommand;
 import id.naturalsmp.naturaldungeon.commands.AdminCommand;
-import id.naturalsmp.naturaldungeon.admin.AdminGUI;
+import id.naturalsmp.naturaldungeon.dungeon.DungeonGUI;
+import id.naturalsmp.naturaldungeon.dungeon.BuffChoiceGUI;
+import id.naturalsmp.naturaldungeon.dungeon.DungeonCompletionGUI;
+import id.naturalsmp.naturaldungeon.leaderboard.LeaderboardGUI;
+import id.naturalsmp.naturaldungeon.leaderboard.SQLiteStorage;
+import id.naturalsmp.naturaldungeon.stats.PlayerStatsManager;
+import id.naturalsmp.naturaldungeon.stats.StatsGUI;
+import id.naturalsmp.naturaldungeon.editor.*;
+import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
+import id.naturalsmp.naturaldungeon.mob.CustomMobSpawner;
+import id.naturalsmp.naturaldungeon.skill.SkillRegistry;
+import id.naturalsmp.naturaldungeon.skill.SkillExecutor;
+import id.naturalsmp.naturaldungeon.queue.DungeonQueue;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class NaturalDungeon extends JavaPlugin {
@@ -31,6 +44,15 @@ public final class NaturalDungeon extends JavaPlugin {
     private DungeonManager dungeonManager;
     private LootManager lootManager;
     private id.naturalsmp.naturaldungeon.leaderboard.LeaderboardManager leaderboardManager;
+    private PlayerStatsManager playerStatsManager;
+    private SQLiteStorage sqliteStorage;
+    private StatsGUI statsGUI;
+    private CustomMobManager customMobManager;
+    private CustomMobSpawner customMobSpawner;
+    private ChatInputHandler editorChatInput;
+    private SkillRegistry skillRegistry;
+    private SkillExecutor skillExecutor;
+    private DungeonQueue dungeonQueue;
 
     // Hooks
     private VaultHook vaultHook;
@@ -40,6 +62,13 @@ public final class NaturalDungeon extends JavaPlugin {
     private AuraSkillsHook auraSkillsHook;
     private NaturalCoreHook naturalCoreHook;
     private AuraMobsHook auraMobsHook;
+
+    // Singleton GUI Listeners
+    private DungeonGUI dungeonGUI;
+    private BuffChoiceGUI buffChoiceGUI;
+    private DungeonCompletionGUI dungeonCompletionGUI;
+    private LeaderboardGUI leaderboardGUI;
+    private PartyGUI partyGUI;
 
     private static final int CONFIG_VERSION = 1;
 
@@ -71,6 +100,15 @@ public final class NaturalDungeon extends JavaPlugin {
         this.dungeonManager = new DungeonManager(this);
         this.lootManager = new LootManager(this);
         this.leaderboardManager = new id.naturalsmp.naturaldungeon.leaderboard.LeaderboardManager(this);
+        this.playerStatsManager = new PlayerStatsManager(this);
+        this.sqliteStorage = new SQLiteStorage(this);
+        this.statsGUI = new StatsGUI(this);
+        this.customMobManager = new CustomMobManager(this);
+        this.customMobSpawner = new CustomMobSpawner(this);
+        this.editorChatInput = new ChatInputHandler();
+        this.skillRegistry = new SkillRegistry(this);
+        this.skillExecutor = new SkillExecutor(this, skillRegistry);
+        this.dungeonQueue = new DungeonQueue(this);
 
         // 4. Register Commands
         registerCommands();
@@ -98,6 +136,15 @@ public final class NaturalDungeon extends JavaPlugin {
     public void onDisable() {
         if (dungeonManager != null) {
             dungeonManager.shutdown();
+        }
+        if (playerStatsManager != null) {
+            playerStatsManager.saveAll();
+        }
+        if (sqliteStorage != null) {
+            sqliteStorage.close();
+        }
+        if (customMobManager != null) {
+            customMobManager.saveAll();
         }
         getLogger().info(ChatUtils.colorize("&6&lNaturalDungeon &cDisabled!"));
     }
@@ -135,7 +182,9 @@ public final class NaturalDungeon extends JavaPlugin {
     }
 
     private void registerCommands() {
-        getCommand("dungeon").setExecutor(new DungeonCommand(this));
+        DungeonCommand dungeonCommand = new DungeonCommand(this);
+        getCommand("dungeon").setExecutor(dungeonCommand);
+        getCommand("dungeon").setTabCompleter(dungeonCommand);
         PartyCommand partyCommand = new PartyCommand(this);
         getCommand("party").setExecutor(partyCommand);
         getCommand("party").setTabCompleter(partyCommand);
@@ -148,9 +197,38 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(partyManager, this);
         getServer().getPluginManager().registerEvents(dungeonManager, this);
         getServer().getPluginManager().registerEvents(new DungeonListener(this), this);
+
+        // Singleton GUI listeners (registered ONCE to prevent listener leak)
+        this.dungeonGUI = new DungeonGUI(this);
+        this.buffChoiceGUI = new BuffChoiceGUI(this);
+        this.dungeonCompletionGUI = new DungeonCompletionGUI(this);
+        this.leaderboardGUI = new LeaderboardGUI(this);
+        this.partyGUI = new PartyGUI(this, partyManager);
+        getServer().getPluginManager().registerEvents(dungeonGUI, this);
         getServer().getPluginManager().registerEvents(new DifficultyGUI(this), this);
+        getServer().getPluginManager().registerEvents(buffChoiceGUI, this);
+        getServer().getPluginManager().registerEvents(dungeonCompletionGUI, this);
+        getServer().getPluginManager().registerEvents(leaderboardGUI, this);
+        getServer().getPluginManager().registerEvents(partyGUI, this);
         getServer().getPluginManager().registerEvents(new PartyConfirmationGUI(this), this);
-        getServer().getPluginManager().registerEvents(new AdminGUI(this), this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.AdminGUI(this), this);
+        getServer().getPluginManager().registerEvents(statsGUI, this);
+
+        // Editor GUI listeners
+        getServer().getPluginManager().registerEvents(editorChatInput, this);
+        getServer().getPluginManager().registerEvents(new DungeonListEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new DungeonMainEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new BasicInfoEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new DifficultyEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new DifficultyConfigGUI(this), this);
+        getServer().getPluginManager().registerEvents(new StageEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new WaveEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new WaveConfigGUI(this), this);
+        getServer().getPluginManager().registerEvents(new BossConfigGUI(this), this);
+        getServer().getPluginManager().registerEvents(new RewardEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new LootEntryEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new ArenaSetupGUI(this), this);
+        getServer().getPluginManager().registerEvents(new MobEditorGUI(this), this);
     }
 
     public void reload() {
@@ -244,5 +322,61 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public AuraMobsHook getAuraMobsHook() {
         return auraMobsHook;
+    }
+
+    public DungeonGUI getDungeonGUI() {
+        return dungeonGUI;
+    }
+
+    public BuffChoiceGUI getBuffChoiceGUI() {
+        return buffChoiceGUI;
+    }
+
+    public DungeonCompletionGUI getDungeonCompletionGUI() {
+        return dungeonCompletionGUI;
+    }
+
+    public LeaderboardGUI getLeaderboardGUI() {
+        return leaderboardGUI;
+    }
+
+    public PartyGUI getPartyGUI() {
+        return partyGUI;
+    }
+
+    public PlayerStatsManager getPlayerStatsManager() {
+        return playerStatsManager;
+    }
+
+    public SQLiteStorage getSqliteStorage() {
+        return sqliteStorage;
+    }
+
+    public StatsGUI getStatsGUI() {
+        return statsGUI;
+    }
+
+    public CustomMobManager getCustomMobManager() {
+        return customMobManager;
+    }
+
+    public CustomMobSpawner getCustomMobSpawner() {
+        return customMobSpawner;
+    }
+
+    public ChatInputHandler getEditorChatInput() {
+        return editorChatInput;
+    }
+
+    public SkillRegistry getSkillRegistry() {
+        return skillRegistry;
+    }
+
+    public SkillExecutor getSkillExecutor() {
+        return skillExecutor;
+    }
+
+    public DungeonQueue getDungeonQueue() {
+        return dungeonQueue;
     }
 }

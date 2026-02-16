@@ -42,6 +42,18 @@ public class DungeonListener implements Listener {
             player.getInventory().setContents(saved);
     }
 
+    // Invulnerability check — cancel damage if player just respawned
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onPlayerDamage(EntityDamageEvent e) {
+        if (!(e.getEntity() instanceof Player player))
+            return;
+
+        DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
+        if (instance != null && instance.isInvulnerable(player.getUniqueId())) {
+            e.setCancelled(true);
+        }
+    }
+
     @EventHandler
     public void onMobDamage(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof LivingEntity living))
@@ -51,7 +63,7 @@ public class DungeonListener implements Listener {
 
         // Find if this mob belongs to any dungeon
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
-            if (instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
+            if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
                 // Update name tag immediately after damage
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (living.isDead())
@@ -60,6 +72,15 @@ public class DungeonListener implements Listener {
                             + living.getType().name() + " &c❤ " + (int) living.getHealth() + "/"
                             + (int) living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue());
                     living.setCustomName(name);
+
+                    // Update boss bar with boss HP if this is the boss
+                    if (instance.getWaveManager().isBossMob(living.getUniqueId())) {
+                        double maxHp = living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue();
+                        double currentHp = living.getHealth();
+                        double progress = currentHp / maxHp;
+                        instance.updateBossBar("&d&lBOSS HP &f" + (int) currentHp + "/" + (int) maxHp,
+                                progress, org.bukkit.boss.BarColor.PURPLE);
+                    }
                 }, 1L);
                 break;
             }

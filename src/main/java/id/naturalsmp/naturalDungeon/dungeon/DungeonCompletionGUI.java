@@ -23,7 +23,6 @@ public class DungeonCompletionGUI implements Listener {
 
     public DungeonCompletionGUI(NaturalDungeon plugin) {
         this.plugin = plugin;
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
     public void open(Player player, DungeonInstance instance, boolean victory) {

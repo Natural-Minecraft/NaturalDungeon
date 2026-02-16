@@ -7,6 +7,7 @@ import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -75,7 +76,7 @@ public class DungeonManager implements Listener {
     }
 
     public boolean isOnCooldown(Player player, Dungeon dungeon) {
-        if (player.hasPermission("natural.dungeon.cooldown.bypass"))
+        if (player.hasPermission("naturaldungeon.bypass.cooldown"))
             return false;
 
         Long lastRun = cooldowns.get(player.getUniqueId());
@@ -297,7 +298,7 @@ public class DungeonManager implements Listener {
     }
 
     public void openDungeonGUI(Player player) {
-        new DungeonGUI(plugin).open(player);
+        plugin.getDungeonGUI().open(player);
     }
 
     @EventHandler
@@ -307,6 +308,148 @@ public class DungeonManager implements Listener {
         DungeonInstance instance = activeInstances.get(player.getUniqueId());
         if (instance != null) {
             instance.handlePlayerLeave(player);
+        }
+    }
+
+    // ============ EDITOR UTILITY METHODS ============
+
+    private File getDungeonFile(String dungeonId) {
+        return new File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
+    }
+
+    private YamlConfiguration loadDungeonConfig(String dungeonId) {
+        File file = getDungeonFile(dungeonId);
+        if (!file.exists())
+            return new YamlConfiguration();
+        return YamlConfiguration.loadConfiguration(file);
+    }
+
+    private void saveDungeonConfig(String dungeonId, YamlConfiguration config) {
+        try {
+            config.save(getDungeonFile(dungeonId));
+        } catch (Exception e) {
+            plugin.getLogger().warning("Failed to save dungeon config: " + dungeonId + " - " + e.getMessage());
+        }
+    }
+
+    public void setDungeonConfig(String dungeonId, String path, Object value) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set(path, value);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void createEmptyDungeon(String dungeonId) {
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("display-name", dungeonId);
+        config.set("description", "A new dungeon");
+        config.set("world", "world");
+        config.set("max-players", 4);
+        config.set("cooldown", 300);
+        config.set("material", "DIAMOND_SWORD");
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void createDifficulty(String dungeonId, String diffId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("difficulties." + diffId + ".display-name", diffId);
+        config.set("difficulties." + diffId + ".min-tier", 0);
+        config.set("difficulties." + diffId + ".reward-multiplier", 1.0);
+        config.set("difficulties." + diffId + ".max-deaths", 5);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void deleteDifficulty(String dungeonId, String diffId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("difficulties." + diffId, null);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public int getStageCount(String dungeonId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        ConfigurationSection sec = config.getConfigurationSection("stages");
+        return sec == null ? 0 : sec.getKeys(false).size();
+    }
+
+    public void addStage(String dungeonId) {
+        int nextStage = getStageCount(dungeonId) + 1;
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("stages." + nextStage + ".waves.1.mobs", new ArrayList<>());
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void deleteStage(String dungeonId, int stageNum) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("stages." + stageNum, null);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public int getWaveCount(String dungeonId, int stageNum) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        ConfigurationSection sec = config.getConfigurationSection("stages." + stageNum + ".waves");
+        return sec == null ? 0 : sec.getKeys(false).size();
+    }
+
+    public void addWave(String dungeonId, int stageNum) {
+        int nextWave = getWaveCount(dungeonId, stageNum) + 1;
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("stages." + stageNum + ".waves." + nextWave + ".mobs", new ArrayList<>());
+        config.set("stages." + stageNum + ".waves." + nextWave + ".delay", 0);
+        config.set("stages." + stageNum + ".waves." + nextWave + ".count", 1);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void deleteWave(String dungeonId, int stageNum, int waveNum) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("stages." + stageNum + ".waves." + waveNum, null);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public void addWaveMob(String dungeonId, int stageNum, int waveNum, String mobId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        List<String> mobs = config.getStringList("stages." + stageNum + ".waves." + waveNum + ".mobs");
+        mobs.add(mobId);
+        config.set("stages." + stageNum + ".waves." + waveNum + ".mobs", mobs);
+        saveDungeonConfig(dungeonId, config);
+        reloadDungeon(dungeonId);
+    }
+
+    public List<String> getLootEntries(String dungeonId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        ConfigurationSection sec = config.getConfigurationSection("loot");
+        if (sec == null)
+            return new ArrayList<>();
+        return new ArrayList<>(sec.getKeys(false));
+    }
+
+    public void addLootEntry(String dungeonId) {
+        int nextEntry = getLootEntries(dungeonId).size() + 1;
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("loot." + nextEntry + ".type", "VANILLA");
+        config.set("loot." + nextEntry + ".material", "DIAMOND");
+        config.set("loot." + nextEntry + ".amount", 1);
+        config.set("loot." + nextEntry + ".chance", 100.0);
+        saveDungeonConfig(dungeonId, config);
+    }
+
+    public void deleteLootEntry(String dungeonId, int entryIndex) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        config.set("loot." + entryIndex, null);
+        saveDungeonConfig(dungeonId, config);
+    }
+
+    private void reloadDungeon(String dungeonId) {
+        File file = getDungeonFile(dungeonId);
+        if (file.exists()) {
+            YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+            dungeons.put(dungeonId, new Dungeon(dungeonId, config));
         }
     }
 }

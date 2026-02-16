@@ -27,7 +27,6 @@ public class DifficultyGUI implements Listener {
     public DifficultyGUI(NaturalDungeon plugin) {
         this.plugin = plugin;
         this.diffKey = new NamespacedKey(plugin, "difficulty_id");
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
     public void open(Player player, String dungeonId) {

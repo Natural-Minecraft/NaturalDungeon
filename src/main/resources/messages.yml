@@ -40,6 +40,8 @@ party:
   upgrade-success: "%prefix%&aParty berhasil di-upgrade ke &bTier %tier%&a! Max &f%max% &aplayer."
   upgrade-not-enough: "%prefix%&cUang tidak cukup! Butuh &6$%cost%&c."
   upgrade-max: "%prefix%&cParty sudah mencapai tier maksimum!"
+  leader-transferred: "%prefix%&e%player% &7sekarang menjadi leader party!"
+  chat-usage: "%prefix%&cGunakan: /party chat <pesan>"
 
 # --- DUNGEON ---
 dungeon:
@@ -54,24 +56,28 @@ dungeon:
   dungeon-failed: "%prefix%&c&lDUNGEON GAGAL! &7Semua nyawa habis."
   player-died: "%prefix%&f%player% &7tewas! Sisa nyawa: &c%lives%"
   respawning: "%prefix%&7Respawn dalam &f%seconds% &7detik..."
-  no-more-lives: "%prefix%&cSemua nyawa habis! Kamu akan jadi penonton."
-  on-cooldown: "%prefix%&cDungeon masih cooldown! Tunggu &f%time% &clagi."
-  tier-required: "%prefix%&cButuh tier &f%tier% &catau lebih tinggi untuk masuk!"
+  no-more-lives: '%prefix% &c&lNyawa habis! &7Kamu dikeluarkan dari dungeon.'
+  on-cooldown: '%prefix% &cDungeon ini masih dalam cooldown! &eSisa: %time%'
+  tier-required: '%prefix% &cMinimum tier &e%tier% &cdibutuhkan!'
+  tier-too-low: '%prefix% &cMinimum tier &e%tier% &cdibutuhkan!'
+  key-required: '%prefix% &cKamu membutuhkan &e%key% &cuntuk masuk dungeon ini!'
   not-in-dungeon: "%prefix%&cKamu tidak sedang dalam dungeon!"
   already-in-dungeon: "%prefix%&cKamu sudah berada dalam dungeon!"
-  safe-zone-exit: "%prefix%&eMeninggalkan safe zone. Hati-hati!"
+  safe-zone-exit: '%prefix% &e⚠ Kamu meninggalkan safe zone!'
   cannot-enter-safe-zone: "%prefix%&cKamu tidak bisa kembali ke safe zone!"
   stage-start: "%prefix%&6&lSTAGE %stage% &eDimulai!"
-  force-ended: "%prefix%&cDungeon di-force end oleh sistem."
+  force-ended: '%prefix% &cDungeon telah di-force end oleh admin.'
   world-not-found: "%prefix%&cWorld dungeon tidak ditemukan: %world%"
   player-left: "%prefix%&f%player% &7meninggalkan dungeon."
 
 # --- GUI ---
 gui:
   dungeon:
-    title: "Dungeon Select"
+    title: '&#FFBB00&lDUNGEON SELECT'
+  difficulty:
+    title: '&#FFBB00&lPILIH DIFFICULTY'
   party:
-    title: "Party Manager"
+    title: '&6&lPARTY MANAGEMENT'
   completion:
     title: "Dungeon Complete"
   admin:
@@ -79,4 +85,6 @@ gui:
 
 # --- BROADCAST ---
 broadcast:
-  completion: "&8[&6&#FF5555⚔&8] &f%player% &7dan partynya menyelesaikan &c%dungeon% &7dalam &e%time%&7!"
+  completion: '&#FFBB00&l⚔ %prefix% &f%player% &7telah menyelesaikan Dungeon &e%dungeon% &7dalam waktu &a%time%&7! GG!'
+  first-clear: '%prefix% &#FFD700&l★ FIRST CLEAR! &f%player% &7menjadi yang pertama menyelesaikan &e%dungeon%&7!'
+  flawless-clear: '%prefix% &d&l✦ FLAWLESS CLEAR! &f%player% &7menyelesaikan &e%dungeon% &7tanpa mati! &d✦'

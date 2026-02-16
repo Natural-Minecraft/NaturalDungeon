@@ -28,7 +28,6 @@ public class DungeonGUI implements Listener {
     public DungeonGUI(NaturalDungeon plugin) {
         this.plugin = plugin;
         this.buttonKey = new NamespacedKey(plugin, "button_id");
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
     public void open(Player player) {
@@ -156,8 +155,13 @@ public class DungeonGUI implements Listener {
             return;
         }
 
-        // Start dungeon
-        plugin.getDungeonManager().startDungeon(player, dungeon);
+        // If dungeon has multiple difficulties, open difficulty selector
+        if (dungeon.getDifficulties().size() > 1) {
+            new DifficultyGUI(plugin).open(player, dungeon.getId());
+        } else {
+            // Single difficulty — go straight to confirmation/start
+            plugin.getDungeonManager().startDungeon(player, dungeon);
+        }
     }
 
     private ItemStack createItem(Material mat, String name, String... lore) {

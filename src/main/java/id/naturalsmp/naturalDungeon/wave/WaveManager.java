@@ -21,6 +21,7 @@ public class WaveManager {
     private final DungeonInstance instance;
     private final World dungeonWorld;
     private final Set<UUID> activeMobs = new HashSet<>();
+    private UUID bossUUID = null; // Track boss entity for HP bar
     private int initialWaveCount = 0;
     private int pendingSpawns = 0; // [NEW] Track mobs in telegraphing phase
     private BukkitTask waveCheckTask;
@@ -121,6 +122,7 @@ public class WaveManager {
         Entity boss = spawnMob(bossId, location, playerCount);
         if (boss != null) {
             activeMobs.add(boss.getUniqueId());
+            bossUUID = boss.getUniqueId();
             if (boss instanceof LivingEntity living)
                 living.setGlowing(true);
         }
@@ -286,5 +288,10 @@ public class WaveManager {
     public void shutdown() {
         active = false;
         killAllMobs();
+        bossUUID = null;
+    }
+
+    public boolean isBossMob(UUID uuid) {
+        return bossUUID != null && bossUUID.equals(uuid);
     }
 }

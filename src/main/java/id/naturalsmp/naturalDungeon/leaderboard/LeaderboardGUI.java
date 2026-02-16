@@ -23,7 +23,7 @@ public class LeaderboardGUI implements Listener {
 
     public LeaderboardGUI(NaturalDungeon plugin) {
         this.plugin = plugin;
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        // Listener registered as singleton in NaturalDungeon.registerListeners()
     }
 
     public void open(Player player, String dungeonId) {

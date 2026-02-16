@@ -1,10 +1,12 @@
 package id.naturalsmp.naturaldungeon.party;
 
+import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
+
 import java.util.*;
 
 public class Party {
 
-    private final UUID leader;
+    private UUID leader;
     private final List<UUID> members = new ArrayList<>();
     private final Set<UUID> pendingInvites = new HashSet<>();
     private int tier = 1;
@@ -18,6 +20,18 @@ public class Party {
         return leader;
     }
 
+    /**
+     * Transfer leadership to another member.
+     * 
+     * @return true if transfer was successful
+     */
+    public boolean transferLeader(UUID newLeader) {
+        if (!members.contains(newLeader) || newLeader.equals(leader))
+            return false;
+        this.leader = newLeader;
+        return true;
+    }
+
     public List<UUID> getMembers() {
         return new ArrayList<>(members);
     }
@@ -27,6 +41,10 @@ public class Party {
     }
 
     public int getMaxPlayers() {
+        // Read from config if available, fallback to hardcoded
+        int configMax = ConfigUtils.getInt("party.upgrades.tier" + tier + ".max-size", -1);
+        if (configMax > 0)
+            return configMax;
         return switch (tier) {
             case 2 -> 4;
             case 3 -> 8;
@@ -84,6 +102,10 @@ public class Party {
     }
 
     public int getUpgradeCost() {
+        // Read from config if available, fallback to hardcoded
+        int configCost = ConfigUtils.getInt("party.upgrades.tier" + (tier + 1) + ".cost", -1);
+        if (configCost >= 0)
+            return configCost;
         return switch (tier) {
             case 1 -> 15000;
             case 2 -> 50000;

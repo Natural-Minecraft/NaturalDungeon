@@ -10,6 +10,7 @@ public class DungeonDifficulty {
     private final int minTier;
     private final String keyReq; // Format: TYPE:ID:AMOUNT (e.g., MMOITEMS:MATERIAL:KEY:1)
     private final int maxDeaths;
+    private final double rewardMultiplier;
     private final List<Dungeon.Stage> stages;
     private final ConfigurationSection lootSection;
 
@@ -19,6 +20,7 @@ public class DungeonDifficulty {
         this.minTier = config.getInt("min-tier", 1);
         this.keyReq = config.getString("key-req", null);
         this.maxDeaths = config.getInt("max-deaths", 3);
+        this.rewardMultiplier = config.getDouble("reward-multiplier", 1.0);
         this.lootSection = config.getConfigurationSection("loot");
         this.stages = new ArrayList<>();
 
@@ -57,6 +59,10 @@ public class DungeonDifficulty {
 
     public ConfigurationSection getLootSection() {
         return lootSection;
+    }
+
+    public double getRewardMultiplier() {
+        return rewardMultiplier;
     }
 
     public int getTotalStages() {

@@ -18,9 +18,11 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class DungeonCommand implements CommandExecutor {
+public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCompleter {
 
     private final NaturalDungeon plugin;
 
@@ -157,5 +159,67 @@ public class DungeonCommand implements CommandExecutor {
 
         plugin.getDungeonManager().openDungeonGUI(player);
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label,
+            @NotNull String[] args) {
+        List<String> completions = new ArrayList<>();
+
+        if (!sender.hasPermission("naturaldungeon.admin"))
+            return completions;
+
+        if (args.length == 1) {
+            completions.addAll(Arrays.asList("create", "loot", "scan"));
+            return filter(completions, args[0]);
+        }
+
+        if (args.length == 2) {
+            if (args[0].equalsIgnoreCase("create")) {
+                completions.add("<id>");
+            } else if (args[0].equalsIgnoreCase("scan")) {
+                completions.addAll(getDungeonIds());
+            } else if (args[0].equalsIgnoreCase("loot")) {
+                completions.add("autogen");
+            }
+            return filter(completions, args[1]);
+        }
+
+        if (args.length == 3) {
+            if (args[0].equalsIgnoreCase("create")) {
+                completions.addAll(Arrays.asList("BASIC", "WAVE_DEFENSE", "BOSS_RUSH"));
+            } else if (args[0].equalsIgnoreCase("loot") && args[1].equalsIgnoreCase("autogen")) {
+                completions.addAll(getDungeonIds());
+            }
+            return filter(completions, args[2]);
+        }
+
+        if (args.length == 4 && args[0].equalsIgnoreCase("loot") && args[1].equalsIgnoreCase("autogen")) {
+            for (int i = 1; i <= 10; i++)
+                completions.add(String.valueOf(i));
+            return filter(completions, args[3]);
+        }
+
+        return completions;
+    }
+
+    private List<String> getDungeonIds() {
+        List<String> ids = new ArrayList<>();
+        File dungeonDir = new File(plugin.getDataFolder(), "dungeons");
+        if (dungeonDir.exists() && dungeonDir.isDirectory()) {
+            File[] files = dungeonDir.listFiles((dir, name) -> name.endsWith(".yml"));
+            if (files != null) {
+                for (File f : files) {
+                    ids.add(f.getName().replace(".yml", ""));
+                }
+            }
+        }
+        return ids;
+    }
+
+    private List<String> filter(List<String> list, String prefix) {
+        return list.stream()
+                .filter(s -> s.toLowerCase().startsWith(prefix.toLowerCase()))
+                .collect(Collectors.toList());
     }
 }

@@ -53,6 +53,10 @@ public class ConfigUtils {
         return plugin.getConfig().getInt(path, 0);
     }
 
+    public static int getInt(String path, int def) {
+        return plugin.getConfig().getInt(path, def);
+    }
+
     public static double getDouble(String path) {
         return plugin.getConfig().getDouble(path, 0.0);
     }

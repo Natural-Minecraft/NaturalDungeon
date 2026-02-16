@@ -22,18 +22,17 @@ import java.util.*;
 public class BuffChoiceGUI implements Listener {
 
     private final NaturalDungeon plugin;
-    private final DungeonInstance instance;
     private final NamespacedKey buffKey;
+    // Track which player chose which buff (for re-apply on respawn)
+    private final Map<UUID, String> chosenBuffs = new HashMap<>();
 
-    public BuffChoiceGUI(NaturalDungeon plugin, DungeonInstance instance) {
+    public BuffChoiceGUI(NaturalDungeon plugin) {
         this.plugin = plugin;
-        this.instance = instance;
         this.buffKey = new NamespacedKey(plugin, "buff_id");
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(new BuffHolder(), 27,
+    public void open(Player player, DungeonInstance instance) {
+        Inventory inv = Bukkit.createInventory(new BuffHolder(instance), 27,
                 ChatUtils.colorize("&#FFBB00&lPILIH BUFF DUNGEON"));
 
         ItemStack filler = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
@@ -60,7 +59,7 @@ public class BuffChoiceGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!(e.getInventory().getHolder() instanceof BuffHolder))
+        if (!(e.getInventory().getHolder() instanceof BuffHolder holder))
             return;
         e.setCancelled(true);
 
@@ -75,17 +74,41 @@ public class BuffChoiceGUI implements Listener {
 
         String buffType = meta.getPersistentDataContainer().get(buffKey, PersistentDataType.STRING);
 
+        chosenBuffs.put(p.getUniqueId(), buffType);
         applyBuff(p, buffType);
         p.closeInventory();
         p.sendMessage(ChatUtils.colorize("&aAnda telah memilih buff: " + item.getItemMeta().getDisplayName()));
     }
 
-    private void applyBuff(Player player, String type) {
+    public void applyBuff(Player player, String type) {
         switch (type) {
             case "STRENGTH" -> player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 180, 1));
             case "REGENERATION" -> player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 20 * 180, 1));
             case "SPEED" -> player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 180, 1));
         }
+    }
+
+    /**
+     * Re-apply chosen buff after respawn.
+     */
+    public void reapplyBuff(Player player) {
+        String buffType = chosenBuffs.get(player.getUniqueId());
+        if (buffType != null) {
+            applyBuff(player, buffType);
+        }
+    }
+
+    /**
+     * Clear stored buff choices (call on dungeon end).
+     */
+    public void clearBuffs(Collection<UUID> players) {
+        for (UUID uuid : players) {
+            chosenBuffs.remove(uuid);
+        }
+    }
+
+    public String getChosenBuff(UUID player) {
+        return chosenBuffs.get(player);
     }
 
     private ItemStack createBuffItem(Material mat, String name, String lore, String id) {
@@ -99,6 +122,16 @@ public class BuffChoiceGUI implements Listener {
     }
 
     public static class BuffHolder implements InventoryHolder {
+        private final DungeonInstance instance;
+
+        public BuffHolder(DungeonInstance instance) {
+            this.instance = instance;
+        }
+
+        public DungeonInstance getInstance() {
+            return instance;
+        }
+
         @Override
         public Inventory getInventory() {
             return null;
