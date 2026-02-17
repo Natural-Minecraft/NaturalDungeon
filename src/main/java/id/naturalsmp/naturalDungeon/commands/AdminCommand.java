@@ -4,6 +4,7 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.admin.SetupManager;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonInstance;
+import id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
 import org.bukkit.Bukkit;
@@ -138,6 +139,13 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 }
                 openAdminGUI(player);
             }
+            case "editor" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                new DungeonListEditorGUI(plugin).open(player);
+            }
             case "debugspawn" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
@@ -208,6 +216,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd list &7- List dungeons"));
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
         sender.sendMessage(ChatUtils.colorize("&e/nd set <safezone|arena> <pos1|pos2> &7- Set region points"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd editor &7- Open dungeon editor GUI"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
     }
 
@@ -254,7 +263,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             completions
-                    .addAll(Arrays.asList("reload", "version", "setup", "test", "forceend", "list", "info", "admin"));
+                    .addAll(Arrays.asList("reload", "version", "setup", "test", "forceend", "list", "info", "admin",
+                            "editor"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("setup") || sub.equals("test") || sub.equals("info")) {
