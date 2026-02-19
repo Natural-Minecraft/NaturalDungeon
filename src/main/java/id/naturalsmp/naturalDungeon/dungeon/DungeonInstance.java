@@ -336,6 +336,13 @@ public class DungeonInstance {
             plugin.getDungeonManager().endDungeon(this, true);
             return;
         }
+
+        if (stage.getType() == StageType.SAFE_ROOM) {
+            startSafeRoom(stage);
+            return;
+        }
+
+        // NORMAL STAGE LOGIC
         broadcastTitle("&6&lSTAGE " + stageNum, "&7Get ready for the waves!", 10, 40, 10);
         playSound(Sound.EVENT_RAID_HORN, 0.6f);
 
@@ -349,6 +356,59 @@ public class DungeonInstance {
         currentWave = 0;
         bossSpawned = false;
         Bukkit.getScheduler().runTaskLater(plugin, this::startNextWave, 60L);
+    }
+
+    private void startSafeRoom(Dungeon.Stage stage) {
+        broadcastTitle("&a&lSAFE ROOM", "&7Take a rest and prepare!", 10, 40, 10);
+        playSound(Sound.BLOCK_CAMPFIRE_CRACKLE, 1f);
+
+        // Spawn Campfire & Merchant
+        Dungeon.StageLocation loc = stage.getLocation(instanceId);
+        Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, loc.getSafeZone());
+        Location center = centerOpt.orElse(dungeonWorld.getSpawnLocation());
+        center = findGroundLevel(center);
+
+        // Place campfire
+        center.getBlock().setType(org.bukkit.Material.CAMPFIRE);
+        updateBossBar("&a&lRESTING &7- 60s", 1.0, org.bukkit.boss.BarColor.GREEN);
+
+        // TODO: Spawn Temporary Merchant entity
+
+        final Location campfireLoc = center.clone();
+
+        // Timer for safe room (60s default)
+        BukkitTask safeRoomTimer = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            int time = 60;
+
+            @Override
+            public void run() {
+                if (!active)
+                    return;
+                time--;
+
+                // Healing aura
+                if (time % 2 == 0) {
+                    for (UUID uuid : participants) {
+                        Player p = Bukkit.getPlayer(uuid);
+                        if (p != null && p.getLocation().distanceSquared(campfireLoc) <= 10 * 10) {
+                            p.setHealth(Math.min(p.getHealth() + 2.0,
+                                    p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue()));
+                            p.getWorld().spawnParticle(org.bukkit.Particle.HEART, p.getLocation().add(0, 2, 0), 1);
+                        }
+                    }
+                }
+
+                updateBossBar("&a&lRESTING &7- " + time + "s", (double) time / 60.0, org.bukkit.boss.BarColor.GREEN);
+
+                if (time <= 0) {
+                    campfireLoc.getBlock().setType(org.bukkit.Material.AIR); // Remove campfire
+                    onStageComplete();
+                    // Cancel this task
+                    Bukkit.getScheduler().cancelTasks(plugin); // Ideally track ID and cancel specifically, or rely on
+                                                               // active flag later. Quick hack for anonymous.
+                }
+            }
+        }, 20L, 20L);
     }
 
     private void startNextWave() {

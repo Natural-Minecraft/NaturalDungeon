@@ -99,12 +99,14 @@ public class Dungeon {
 
     public static class Stage {
         private final int number;
+        private final StageType type;
         private final List<Wave> waves;
         private final String bossId;
         private final Map<Integer, StageLocation> locations = new HashMap<>();
 
         public Stage(int number, ConfigurationSection config) {
             this.number = number;
+            this.type = StageType.fromString(config.getString("type", "WAVE_DEFENSE"));
             this.bossId = config.getString("boss.id", null);
             this.waves = new ArrayList<>();
 
@@ -143,6 +145,10 @@ public class Dungeon {
 
         public int getNumber() {
             return number;
+        }
+
+        public StageType getType() {
+            return type;
         }
 
         public List<Wave> getWaves() {

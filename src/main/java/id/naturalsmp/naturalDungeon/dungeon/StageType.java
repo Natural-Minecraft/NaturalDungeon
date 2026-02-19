@@ -5,6 +5,7 @@ package id.naturalsmp.naturaldungeon.dungeon;
  */
 public enum StageType {
     WAVE_DEFENSE,
+    SAFE_ROOM,
     TRAP,
     PUZZLE,
     PARKOUR;
