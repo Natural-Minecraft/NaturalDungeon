@@ -314,7 +314,7 @@ public class WaveManager {
                     living.setInvulnerable(false);
                     instance.broadcastTitle("&a&lSHIELD BROKEN", "&7Finish it off!", 10, 40, 10);
                     instance.playSound(Sound.BLOCK_BEACON_DEACTIVATE, 1.2f);
-                    living.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE,
+                    living.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_NORMAL,
                             living.getLocation().add(0, 1, 0), 2, 0.5, 0.5, 0.5, 0);
                 }
             }
