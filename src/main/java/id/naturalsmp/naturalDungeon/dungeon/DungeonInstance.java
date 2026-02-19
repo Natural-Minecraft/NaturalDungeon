@@ -45,7 +45,10 @@ public class DungeonInstance {
     private BukkitTask safeZoneCheckTask;
     private BukkitTask hudTask; // Fixed: now tracked for proper cancellation
     private BukkitTask timerTask; // Dungeon time limit task
+    private BukkitTask mutatorTask; // Background task for active mutators
     private BossBar bossBar;
+
+    private final List<MutatorType> activeMutators = new ArrayList<>();
 
     private int totalDeaths = 0;
     private List<ItemStack> collectedLoot = new ArrayList<>();
@@ -102,13 +105,120 @@ public class DungeonInstance {
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             teleportToStage(currentStage);
-            broadcastTitle("&a&lDUNGEON STARTED", "&7Good luck, stay alive!", 10, 40, 20);
-            playSound(Sound.ENTITY_WITHER_SPAWN, 1f);
+
+            // Randomly select 1-2 mutators
+            rollMutators();
+
+            if (activeMutators.isEmpty()) {
+                broadcastTitle("&a&lDUNGEON STARTED", "&7Good luck, stay alive!", 10, 40, 20);
+                playSound(Sound.ENTITY_WITHER_SPAWN, 1f);
+            } else {
+                StringJoiner joiner = new StringJoiner(", ");
+                for (MutatorType type : activeMutators) {
+                    joiner.add(type.name());
+                }
+                broadcastTitle("&e&lWARNING: MUTATED", "&c" + joiner.toString(), 10, 60, 20);
+                playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.2f);
+                startMutatorTask();
+            }
+
             startSafeZoneCheck();
             startHUDTask();
             startTimerLimit();
             Bukkit.getScheduler().runTaskLater(plugin, () -> startStage(currentStage), 60L);
         }, 100L);
+    }
+
+    private void rollMutators() {
+        activeMutators.clear();
+        double chance = ConfigUtils.getDouble("dungeon.mutator-chance"); // Default maybe 0.3
+        if (chance <= 0)
+            chance = 0.3; // Fallback
+
+        if (Math.random() <= chance) {
+            List<MutatorType> types = new ArrayList<>(Arrays.asList(
+                    MutatorType.EXPLOSIVE, MutatorType.VAMPIRIC, MutatorType.TOXIC_FLOOR));
+            Collections.shuffle(types);
+            activeMutators.add(types.get(0));
+            // 30% chance for a second mutator
+            if (Math.random() <= 0.3) {
+                activeMutators.add(types.get(1));
+            }
+        }
+    }
+
+    private void startMutatorTask() {
+        if (!activeMutators.contains(MutatorType.TOXIC_FLOOR))
+            return;
+
+        mutatorTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!active || currentStage <= 0)
+                return;
+            Dungeon.Stage stage = getStage(currentStage);
+            if (stage == null)
+                return;
+
+            // Periodically spawn poison clouds near players
+            for (UUID uuid : participants) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && p.isValid() && getLives(uuid) > 0) {
+                    if (Math.random() < 0.2) { // 20% chance per second per player
+                        Location hazardLoc = p.getLocation().clone().add(
+                                (Math.random() - 0.5) * 6,
+                                0,
+                                (Math.random() - 0.5) * 6);
+                        hazardLoc = findGroundLevel(hazardLoc);
+
+                        // Spawning Hazard
+                        spawnToxicHazard(hazardLoc);
+                    }
+                }
+            }
+        }, 20L, 20L); // run every second
+    }
+
+    private Location findGroundLevel(Location loc) {
+        World world = loc.getWorld();
+        if (world == null)
+            return loc;
+        for (int y = loc.getBlockY() + 3; y > loc.getBlockY() - 3; y--) {
+            Location check = new Location(world, loc.getX(), y, loc.getZ());
+            if (world.getBlockAt(check).getType().isSolid()) {
+                if (!world.getBlockAt(check.clone().add(0, 1, 0)).getType().isSolid()) {
+                    return check.add(0, 1, 0);
+                }
+            }
+        }
+        return loc;
+    }
+
+    private void spawnToxicHazard(Location loc) {
+        World world = loc.getWorld();
+        if (world == null)
+            return;
+
+        // Telegraph
+        world.spawnParticle(org.bukkit.Particle.SCULK_SOUL, loc, 20, 1.0, 0.1, 1.0, 0.05);
+        world.playSound(loc, Sound.BLOCK_BREWING_STAND_BREW, 1f, 0.5f);
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!active)
+                return;
+            // Erupt
+            world.spawnParticle(org.bukkit.Particle.SLIME, loc, 50, 1.5, 0.5, 1.5, 0.1);
+            world.playSound(loc, Sound.ENTITY_PUFFER_FISH_BLOW_OUT, 1f, 0.8f);
+
+            // Damage
+            double radiusSq = 2.5 * 2.5;
+            for (UUID uuid : participants) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null && !isInvulnerable(uuid) && p.getLocation().distanceSquared(loc) <= radiusSq) {
+                    p.damage(4.0); // 2 hearts
+                    p.addPotionEffect(
+                            new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 60, 0));
+                }
+            }
+        }, 30L); // 1.5s delay
     }
 
     /**
@@ -630,6 +740,10 @@ public class DungeonInstance {
             timerTask.cancel();
             timerTask = null;
         }
+        if (mutatorTask != null) {
+            mutatorTask.cancel();
+            mutatorTask = null;
+        }
         removeBossBar();
     }
 
@@ -671,6 +785,10 @@ public class DungeonInstance {
 
     public int getCurrentWave() {
         return currentWave;
+    }
+
+    public boolean hasMutator(MutatorType type) {
+        return activeMutators.contains(type);
     }
 
     public boolean isActive() {

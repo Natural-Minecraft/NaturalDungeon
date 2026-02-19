@@ -15,6 +15,10 @@ import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 
 import java.util.*;
 
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import id.naturalsmp.naturaldungeon.dungeon.MutatorType;
+
 public class DungeonListener implements Listener {
 
     private final NaturalDungeon plugin;
@@ -61,6 +65,24 @@ public class DungeonListener implements Listener {
         if (living instanceof Player)
             return;
 
+        // Mutator: VAMPIRIC
+        if (e instanceof EntityDamageByEntityEvent damageEvent) {
+            if (damageEvent.getDamager() instanceof LivingEntity damager && damager != player) {
+                // Mob hit player
+                DungeonInstance inst = plugin.getDungeonManager().getActiveInstance(player);
+                if (inst != null && inst.hasMutator(MutatorType.VAMPIRIC)) {
+                    double healAmount = damageEvent.getFinalDamage() * 0.5; // heal 50% of damage dealt
+                    double newHp = Math.min(damager.getHealth() + healAmount,
+                            damager.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
+                    damager.setHealth(newHp);
+
+                    // VFX
+                    damager.getWorld().spawnParticle(org.bukkit.Particle.HEART, damager.getLocation().add(0, 1, 0), 3,
+                            0.3, 0.3, 0.3, 0);
+                }
+            }
+        }
+
         // Find if this mob belongs to any dungeon
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
             if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
@@ -82,6 +104,42 @@ public class DungeonListener implements Listener {
                                 progress, org.bukkit.boss.BarColor.PURPLE);
                     }
                 }, 1L);
+                break;
+            }
+        }
+    }
+
+    @EventHandler
+    public void onMobDeath(EntityDeathEvent e) {
+        LivingEntity living = e.getEntity();
+        if (living instanceof Player)
+            return;
+
+        for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
+            if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
+                if (instance.hasMutator(MutatorType.EXPLOSIVE)) {
+                    // Drop primed TNT basically
+                    org.bukkit.Location loc = living.getLocation();
+                    loc.getWorld().spawnParticle(org.bukkit.Particle.FLAME, loc.clone().add(0, 1, 0), 15, 0.5, 0.5, 0.5,
+                            0.1);
+                    loc.getWorld().playSound(loc, org.bukkit.Sound.ENTITY_CREEPER_PRIMED, 1f, 1f);
+
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (!instance.isActive())
+                            return;
+                        loc.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE, loc, 1, 0, 0, 0, 0);
+                        loc.getWorld().playSound(loc, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
+
+                        // Damage nearby players
+                        for (UUID uuid : instance.getParticipants()) {
+                            Player p = Bukkit.getPlayer(uuid);
+                            if (p != null && !instance.isInvulnerable(uuid)
+                                    && p.getLocation().distanceSquared(loc) <= 3 * 3) {
+                                p.damage(6.0); // 3 hearts
+                            }
+                        }
+                    }, 30L); // 1.5s delay
+                }
                 break;
             }
         }
