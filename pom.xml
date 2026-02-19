@@ -18,6 +18,7 @@
     </properties>
 
     <build>
+        <finalName>NaturalDungeon</finalName>
         <defaultGoal>clean package</defaultGoal>
         <plugins>
             <plugin>
