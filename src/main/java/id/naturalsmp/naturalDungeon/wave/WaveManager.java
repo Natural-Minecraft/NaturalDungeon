@@ -27,6 +27,13 @@ public class WaveManager {
     private BukkitTask waveCheckTask;
     private boolean active = false;
 
+    // Wave specific metadata
+    private Dungeon.Wave currentWaveObj;
+    private int objectiveTimer = 0; // seconds remaining or captured
+    private Entity targetEntity = null; // for DEFEND_TARGET
+    private Location captureCenter = null; // for CAPTURE_ZONE
+    private double captureRadius = 5.0;
+
     public WaveManager(NaturalDungeon plugin, DungeonInstance instance, World dungeonWorld) {
         this.plugin = plugin;
         this.instance = instance;
@@ -35,6 +42,10 @@ public class WaveManager {
 
     public void spawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon) {
         active = true;
+        this.currentWaveObj = wave;
+        this.objectiveTimer = wave.getTargetTime();
+        this.captureCenter = center;
+
         double scaleFactor = ConfigUtils.getDouble("scaling.hp-per-player");
 
         // Calculate total mobs to spawn
@@ -75,10 +86,72 @@ public class WaveManager {
         this.initialWaveCount = totalExpected;
         this.pendingSpawns = totalExpected;
 
-        instance.updateBossBar(ChatUtils.colorize("&eWave " + (instance.getCurrentWave()) + " &f- &7Spawning..."), 1.0,
-                org.bukkit.boss.BarColor.YELLOW);
+        // Wave specific setup
+        if (wave.getType() == WaveType.DEFEND_TARGET) {
+            setupDefendTarget(wave.getTargetName(), center);
+        } else if (wave.getType() == WaveType.CAPTURE_ZONE) {
+            this.objectiveTimer = 0; // Starts at 0, captures up to targetTime
+        }
+
+        updateWaveHUD();
 
         startWaveCheck();
+    }
+
+    private void setupDefendTarget(String targetName, Location center) {
+        // Spawn an iron golem or villager as the defend target
+        targetEntity = dungeonWorld.spawn(center, org.bukkit.entity.Villager.class,
+                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM);
+        if (targetEntity instanceof LivingEntity living) {
+            living.setCustomName(ChatUtils.colorize("&a&l" + targetName));
+            living.setCustomNameVisible(true);
+            try {
+                org.bukkit.attribute.AttributeInstance attr = living
+                        .getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                if (attr != null) {
+                    attr.setBaseValue(100.0);
+                }
+            } catch (Exception ignored) {
+            }
+            living.setHealth(100.0);
+
+            // Apply Slowness to keep it mostly stationary
+            living.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOW,
+                    Integer.MAX_VALUE, 10, false, false));
+        }
+    }
+
+    private void updateWaveHUD() {
+        if (!active || currentWaveObj == null)
+            return;
+
+        String title = "";
+        double progress = 1.0;
+
+        switch (currentWaveObj.getType()) {
+            case KILL_ALL:
+                progress = initialWaveCount > 0 ? (double) activeMobs.size() / initialWaveCount : 0;
+                title = "&eWave " + instance.getCurrentWave() + " &7- &f" + activeMobs.size() + " Mobs left";
+                break;
+            case HUNT_TARGET:
+                progress = initialWaveCount > 0 ? (double) activeMobs.size() / initialWaveCount : 0;
+                title = "&c&lHUNT &c" + currentWaveObj.getTargetName() + " &7- &f" + activeMobs.size() + " left";
+                break;
+            case DEFEND_TARGET:
+                if (targetEntity instanceof LivingEntity living) {
+                    double hp = living.getHealth();
+                    progress = hp / 100.0;
+                    title = "&a&lDEFEND &a" + currentWaveObj.getTargetName() + " &7- Time left: " + objectiveTimer
+                            + "s";
+                }
+                break;
+            case CAPTURE_ZONE:
+                progress = (double) objectiveTimer / currentWaveObj.getTargetTime();
+                title = "&b&lCAPTURE ZONE &7- " + (int) (progress * 100) + "%";
+                break;
+        }
+
+        instance.updateBossBar(title, progress, org.bukkit.boss.BarColor.YELLOW);
     }
 
     private void spawnSpecificMobs(String mobId, int count, Location center, int playerCount, boolean bloodMoon) {
@@ -99,9 +172,19 @@ public class WaveManager {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 Entity spawned = spawnMob(mobId, spawnLoc, playerCount);
                 if (spawned != null) {
+
+                    // Mark targets for HUNT_TARGET explicitly
+                    if (currentWaveObj != null && currentWaveObj.getType() == WaveType.HUNT_TARGET) {
+                        if (spawned instanceof LivingEntity living) {
+                            living.setGlowing(true);
+                        }
+                    }
+
                     activeMobs.add(spawned.getUniqueId());
                     if (bloodMoon && spawned instanceof LivingEntity living) {
-                        living.setGlowing(true);
+                        if (currentWaveObj == null || currentWaveObj.getType() != WaveType.HUNT_TARGET) {
+                            living.setGlowing(true);
+                        }
                         org.bukkit.attribute.AttributeInstance attr = living
                                 .getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
                         if (attr != null) {
@@ -239,25 +322,120 @@ public class WaveManager {
                 return entity == null || entity.isDead();
             });
 
-            // RECRUITMENT LOCK: Don't clear wave if spawns are still pending
-            if (pendingSpawns > 0)
-                return;
+            // Process Objective Mechanics
+            if (currentWaveObj != null) {
+                boolean endWave = false;
 
-            if (activeMobs.isEmpty()) {
-                // Determine if we should really end the wave
-                // If expected mobs > 0 but we have 0 active, it might be a spawn failure.
-                // However, without a retry mechanism, we must proceed or risk soft-lock.
-                // Ideally, we check if ANY mobs spawned at all.
+                switch (currentWaveObj.getType()) {
+                    case KILL_ALL:
+                    case HUNT_TARGET:
+                        if (pendingSpawns <= 0 && activeMobs.isEmpty()) {
+                            endWave = true;
+                        }
+                        break;
+                    case DEFEND_TARGET:
+                        if (targetEntity == null || targetEntity.isDead()) {
+                            // FAILED DEFENSE
+                            instance.broadcastTitle("&c&lDEFENSE FAILED", "&7The target was destroyed!", 10, 40, 10);
+                            instance.forceEnd();
+                            return;
+                        }
+                        objectiveTimer--;
+                        if (objectiveTimer <= 0) {
+                            endWave = true;
+                        } else if (objectiveTimer % 5 == 0 && pendingSpawns <= 0
+                                && activeMobs.size() < initialWaveCount) {
+                            // Respawn mobs to maintain pressure
+                            int toSpawn = 1 + (instance.getParticipants().size() / 2);
+                            spawnRandomActiveMobType(toSpawn);
+                        }
+                        break;
+                    case CAPTURE_ZONE:
+                        // Check players in zone
+                        boolean anyoneInZone = false;
+                        if (captureCenter != null) {
+                            // Draw boundary
+                            drawCaptureRing(captureCenter, captureRadius);
+                            for (UUID pId : instance.getParticipants()) {
+                                Player p = Bukkit.getPlayer(pId);
+                                if (p != null && p.getLocation().distanceSquared(captureCenter) <= captureRadius
+                                        * captureRadius) {
+                                    anyoneInZone = true;
+                                    break;
+                                }
+                            }
+                        }
 
-                cancelWaveCheck();
-                instance.onWaveComplete();
+                        if (anyoneInZone) {
+                            objectiveTimer++;
+                            instance.playSound(Sound.BLOCK_NOTE_BLOCK_HAT, 1f);
+                        } else if (objectiveTimer > 0) {
+                            objectiveTimer--; // Degrade if no one is inside
+                        }
+
+                        if (objectiveTimer >= currentWaveObj.getTargetTime()) {
+                            endWave = true;
+                        } else if (objectiveTimer % 5 == 0 && pendingSpawns <= 0
+                                && activeMobs.size() < initialWaveCount) {
+                            // Keep pressure up
+                            spawnRandomActiveMobType(1);
+                        }
+                        break;
+                }
+
+                updateWaveHUD();
+
+                if (endWave) {
+                    completeWave();
+                    return;
+                }
             } else {
-                double progress = initialWaveCount > 0 ? (double) activeMobs.size() / initialWaveCount : 0;
-                instance.updateBossBar(
-                        "&eWave " + instance.getCurrentWave() + " &7- &f" + activeMobs.size() + " Mobs left", progress,
-                        org.bukkit.boss.BarColor.YELLOW);
+                // Fallback Legacy
+                if (pendingSpawns <= 0 && activeMobs.isEmpty()) {
+                    completeWave();
+                    return;
+                }
+                updateWaveHUD();
             }
+
         }, 20L, 20L);
+    }
+
+    private void drawCaptureRing(Location center, double radius) {
+        World world = center.getWorld();
+        if (world == null)
+            return;
+        double progress = (double) objectiveTimer / currentWaveObj.getTargetTime();
+        org.bukkit.Particle particle = progress >= 1.0 ? org.bukkit.Particle.VILLAGER_HAPPY
+                : org.bukkit.Particle.SPELL_WITCH;
+
+        for (int i = 0; i < 360; i += 10) {
+            double angle = i * Math.PI / 180;
+            double x = center.getX() + radius * Math.cos(angle);
+            double z = center.getZ() + radius * Math.sin(angle);
+            world.spawnParticle(particle, new Location(world, x, center.getY() + 0.1, z), 1, 0, 0, 0, 0);
+        }
+    }
+
+    private void spawnRandomActiveMobType(int count) {
+        if (currentWaveObj != null && !currentWaveObj.getMobs().isEmpty()) {
+            List<String> types = currentWaveObj.getMobs();
+            String type = types.get(ThreadLocalRandom.current().nextInt(types.size()));
+            spawnSpecificMobs(type, count, captureCenter != null ? captureCenter
+                    : instance.getParticipants().stream()
+                            .map(Bukkit::getPlayer).filter(Objects::nonNull).findFirst().map(Player::getLocation)
+                            .orElse(dungeonWorld.getSpawnLocation()),
+                    instance.getParticipants().size(), false);
+        }
+    }
+
+    private void completeWave() {
+        if (targetEntity != null && !targetEntity.isDead()) {
+            targetEntity.remove(); // Cleanup defend target
+        }
+        killAllMobs(); // Clean up existing mobs
+        cancelWaveCheck();
+        instance.onWaveComplete();
     }
 
     private void cancelWaveCheck() {

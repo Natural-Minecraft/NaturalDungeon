@@ -1,5 +1,6 @@
 package id.naturalsmp.naturaldungeon.dungeon;
 
+import id.naturalsmp.naturaldungeon.wave.WaveType;
 import org.bukkit.configuration.ConfigurationSection;
 import java.util.*;
 
@@ -199,6 +200,9 @@ public class Dungeon {
     }
 
     public static class Wave {
+        private final WaveType type;
+        private final int targetTime; // Time in seconds for DEFEND_TARGET and CAPTURE_ZONE
+        private final String targetName; // Target name for HUNT_TARGET or DEFEND_TARGET
         private final List<String> mobs; // Legacy
         private final Map<String, Integer> mobCounts = new HashMap<>(); // New
         private final int count;
@@ -206,6 +210,18 @@ public class Dungeon {
 
         public Wave(ConfigurationSection config) {
             this.delay = config.getInt("delay", 5);
+
+            // Parse Objective
+            String typeStr = config.getString("type", "KILL_ALL").toUpperCase();
+            WaveType parsedType = WaveType.KILL_ALL;
+            try {
+                parsedType = WaveType.valueOf(typeStr);
+            } catch (IllegalArgumentException e) {
+                // Ignore and use default
+            }
+            this.type = parsedType;
+            this.targetTime = config.getInt("target-time", 60);
+            this.targetName = config.getString("target-name", "Target");
 
             if (config.isConfigurationSection("mobs")) {
                 // New Format: precise counts
@@ -228,9 +244,24 @@ public class Dungeon {
 
         // Constructor for code-created waves
         public Wave(List<String> mobs, int count, int delay) {
+            this.type = WaveType.KILL_ALL;
+            this.targetTime = 60;
+            this.targetName = "Target";
             this.mobs = mobs;
             this.count = count;
             this.delay = delay;
+        }
+
+        public WaveType getType() {
+            return type;
+        }
+
+        public int getTargetTime() {
+            return targetTime;
+        }
+
+        public String getTargetName() {
+            return targetName;
         }
 
         public List<String> getMobs() {
