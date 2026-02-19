@@ -55,22 +55,14 @@ public class DungeonListener implements Listener {
         DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
         if (instance != null && instance.isInvulnerable(player.getUniqueId())) {
             e.setCancelled(true);
+            return;
         }
-    }
-
-    @EventHandler
-    public void onMobDamage(EntityDamageEvent e) {
-        if (!(e.getEntity() instanceof LivingEntity living))
-            return;
-        if (living instanceof Player)
-            return;
 
         // Mutator: VAMPIRIC
-        if (e instanceof EntityDamageByEntityEvent damageEvent) {
+        if (!e.isCancelled() && e instanceof EntityDamageByEntityEvent damageEvent) {
             if (damageEvent.getDamager() instanceof LivingEntity damager && damager != player) {
                 // Mob hit player
-                DungeonInstance inst = plugin.getDungeonManager().getActiveInstance(player);
-                if (inst != null && inst.hasMutator(MutatorType.VAMPIRIC)) {
+                if (instance != null && instance.hasMutator(MutatorType.VAMPIRIC)) {
                     double healAmount = damageEvent.getFinalDamage() * 0.5; // heal 50% of damage dealt
                     double newHp = Math.min(damager.getHealth() + healAmount,
                             damager.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
@@ -82,6 +74,14 @@ public class DungeonListener implements Listener {
                 }
             }
         }
+    }
+
+    @EventHandler
+    public void onMobDamage(EntityDamageEvent e) {
+        if (!(e.getEntity() instanceof LivingEntity living))
+            return;
+        if (living instanceof Player)
+            return;
 
         // Find if this mob belongs to any dungeon
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
@@ -127,7 +127,7 @@ public class DungeonListener implements Listener {
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (!instance.isActive())
                             return;
-                        loc.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE, loc, 1, 0, 0, 0, 0);
+                        loc.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, loc, 1, 0, 0, 0, 0);
                         loc.getWorld().playSound(loc, org.bukkit.Sound.ENTITY_GENERIC_EXPLODE, 1f, 1f);
 
                         // Damage nearby players

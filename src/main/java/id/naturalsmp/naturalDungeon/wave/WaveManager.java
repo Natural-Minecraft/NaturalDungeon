@@ -314,7 +314,7 @@ public class WaveManager {
                     living.setInvulnerable(false);
                     instance.broadcastTitle("&a&lSHIELD BROKEN", "&7Finish it off!", 10, 40, 10);
                     instance.playSound(Sound.BLOCK_BEACON_DEACTIVATE, 1.2f);
-                    living.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_NORMAL,
+                    living.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION,
                             living.getLocation().add(0, 1, 0), 2, 0.5, 0.5, 0.5, 0);
                 }
             }
@@ -515,8 +515,8 @@ public class WaveManager {
         if (world == null)
             return;
         double progress = (double) objectiveTimer / currentWaveObj.getTargetTime();
-        org.bukkit.Particle particle = progress >= 1.0 ? org.bukkit.Particle.VILLAGER_HAPPY
-                : org.bukkit.Particle.SPELL_WITCH;
+        org.bukkit.Particle particle = progress >= 1.0 ? org.bukkit.Particle.HAPPY_VILLAGER
+                : org.bukkit.Particle.WITCH;
 
         for (int i = 0; i < 360; i += 10) {
             double angle = i * Math.PI / 180;
