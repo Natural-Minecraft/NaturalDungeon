@@ -25,6 +25,7 @@ public class WaveManager {
     private int initialWaveCount = 0;
     private int pendingSpawns = 0; // [NEW] Track mobs in telegraphing phase
     private BukkitTask waveCheckTask;
+    private BukkitTask bossMechanicsTask; // [NEW] Track boss mechanics
     private boolean active = false;
 
     // Wave specific metadata
@@ -33,6 +34,11 @@ public class WaveManager {
     private Entity targetEntity = null; // for DEFEND_TARGET
     private Location captureCenter = null; // for CAPTURE_ZONE
     private double captureRadius = 5.0;
+
+    // Boss specific metadata
+    private boolean bossShielded = false;
+    private int bossTimer = 0;
+    private List<UUID> bossCrystals = new ArrayList<>();
 
     public WaveManager(NaturalDungeon plugin, DungeonInstance instance, World dungeonWorld) {
         this.plugin = plugin;
@@ -208,8 +214,111 @@ public class WaveManager {
             bossUUID = boss.getUniqueId();
             if (boss instanceof LivingEntity living)
                 living.setGlowing(true);
+
+            startBossMechanicsTask();
         }
         startWaveCheck();
+    }
+
+    private void startBossMechanicsTask() {
+        if (bossMechanicsTask != null)
+            bossMechanicsTask.cancel();
+        bossTimer = 0;
+        bossShielded = false;
+        bossCrystals.clear();
+
+        bossMechanicsTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!active || bossUUID == null) {
+                if (bossMechanicsTask != null)
+                    bossMechanicsTask.cancel();
+                return;
+            }
+
+            Entity boss = Bukkit.getEntity(bossUUID);
+            if (boss == null || boss.isDead() || !(boss instanceof LivingEntity living)) {
+                if (bossMechanicsTask != null)
+                    bossMechanicsTask.cancel();
+                return;
+            }
+
+            bossTimer++;
+
+            // Enrage Mechanic
+            if (bossTimer == 120) { // Enrage at 120 seconds
+                instance.broadcastTitle("&c&lENRAGED", "&7The boss grows stronger!", 10, 40, 10);
+                instance.playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f);
+                living.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                        org.bukkit.potion.PotionEffectType.INCREASE_DAMAGE, Integer.MAX_VALUE, 4, false, false));
+                living.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SPEED,
+                        Integer.MAX_VALUE, 1, false, false));
+                living.getWorld().spawnParticle(org.bukkit.Particle.LAVA, living.getLocation().add(0, 2, 0), 30, 0.5,
+                        0.5, 0.5, 0.1);
+            }
+
+            // Shield Phase at 50% HP
+            double maxHp = living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
+            if (!bossShielded && living.getHealth() <= maxHp * 0.5) {
+                bossShielded = true;
+                living.setInvulnerable(true); // Bukkit built-in invuln
+                instance.broadcastTitle("&b&lSHIELD PHASE", "&7Destroy the crystals to deal damage!", 10, 40, 10);
+                instance.playSound(Sound.BLOCK_BEACON_ACTIVATE, 1.2f);
+
+                // Spawn crystals
+                Location center = living.getLocation();
+                double radius = 6.0;
+                for (int i = 0; i < 4; i++) {
+                    double angle = i * Math.PI / 2;
+                    double x = center.getX() + radius * Math.cos(angle);
+                    double z = center.getZ() + radius * Math.sin(angle);
+                    Location cLoc = findGroundLevel(new Location(dungeonWorld, x, center.getY(), z));
+
+                    org.bukkit.entity.EnderCrystal crystal = dungeonWorld.spawn(cLoc,
+                            org.bukkit.entity.EnderCrystal.class);
+                    crystal.setShowingBottom(true);
+                    crystal.setCustomName(ChatUtils.colorize("&b&lSHIELD CRYSTAL"));
+                    crystal.setCustomNameVisible(true);
+                    bossCrystals.add(crystal.getUniqueId());
+
+                    // Particle beam to boss (visual)
+                    Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+                        @Override
+                        public void run() {
+                            if (crystal.isDead() || living.isDead()) {
+                                Bukkit.getScheduler().cancelTasks(plugin); // Hacky, better to use BukkitRunnable or
+                                                                           // specific ID
+                                return;
+                            }
+                            // Draw beam
+                            Location p1 = crystal.getLocation().add(0, 0.5, 0);
+                            Location p2 = living.getLocation().add(0, 1, 0);
+                            org.bukkit.util.Vector dir = p2.toVector().subtract(p1.toVector());
+                            double dist = dir.length();
+                            dir.normalize().multiply(0.5);
+                            for (double d = 0; d < dist; d += 0.5) {
+                                p1.add(dir);
+                                dungeonWorld.spawnParticle(org.bukkit.Particle.END_ROD, p1, 1, 0, 0, 0, 0);
+                            }
+                        }
+                    }, 0L, 5L);
+                }
+            }
+
+            // Check if shielded and crystals are dead
+            if (bossShielded && living.isInvulnerable()) {
+                bossCrystals.removeIf(uuid -> {
+                    Entity e = Bukkit.getEntity(uuid);
+                    return e == null || e.isDead();
+                });
+
+                if (bossCrystals.isEmpty()) {
+                    living.setInvulnerable(false);
+                    instance.broadcastTitle("&a&lSHIELD BROKEN", "&7Finish it off!", 10, 40, 10);
+                    instance.playSound(Sound.BLOCK_BEACON_DEACTIVATE, 1.2f);
+                    living.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION_LARGE,
+                            living.getLocation().add(0, 1, 0), 2, 0.5, 0.5, 0.5, 0);
+                }
+            }
+        }, 20L, 20L);
     }
 
     private Entity spawnMob(String mobId, Location location, int playerCount) {
@@ -443,6 +552,10 @@ public class WaveManager {
             waveCheckTask.cancel();
             waveCheckTask = null;
         }
+        if (bossMechanicsTask != null) {
+            bossMechanicsTask.cancel();
+            bossMechanicsTask = null;
+        }
     }
 
     public void killAllMobs() {
@@ -451,6 +564,12 @@ public class WaveManager {
             if (entity != null && !entity.isDead())
                 entity.remove();
         }
+        for (UUID uuid : bossCrystals) {
+            Entity entity = Bukkit.getEntity(uuid);
+            if (entity != null && !entity.isDead())
+                entity.remove();
+        }
+        bossCrystals.clear();
         activeMobs.clear();
         cancelWaveCheck();
     }
