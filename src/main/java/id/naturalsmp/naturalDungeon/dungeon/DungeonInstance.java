@@ -207,7 +207,7 @@ public class DungeonInstance {
             if (!active)
                 return;
             // Erupt
-            world.spawnParticle(org.bukkit.Particle.VILLAGER_HAPPY, loc, 50, 1.5, 0.5, 1.5, 0.1);
+            world.spawnParticle(org.bukkit.Particle.HAPPY_VILLAGER, loc, 50, 1.5, 0.5, 1.5, 0.1);
             world.playSound(loc, Sound.ENTITY_PUFFER_FISH_BLOW_OUT, 1f, 0.8f);
 
             // Damage

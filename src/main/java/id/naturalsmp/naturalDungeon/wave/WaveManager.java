@@ -122,7 +122,7 @@ public class WaveManager {
             living.setHealth(100.0);
 
             // Apply Slowness to keep it mostly stationary
-            living.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOW,
+            living.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS,
                     Integer.MAX_VALUE, 10, false, false));
         }
     }
@@ -248,7 +248,7 @@ public class WaveManager {
                 instance.broadcastTitle("&c&lENRAGED", "&7The boss grows stronger!", 10, 40, 10);
                 instance.playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f);
                 living.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                        org.bukkit.potion.PotionEffectType.INCREASE_DAMAGE, Integer.MAX_VALUE, 4, false, false));
+                        org.bukkit.potion.PotionEffectType.STRENGTH, Integer.MAX_VALUE, 4, false, false));
                 living.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SPEED,
                         Integer.MAX_VALUE, 1, false, false));
                 living.getWorld().spawnParticle(org.bukkit.Particle.LAVA, living.getLocation().add(0, 2, 0), 30, 0.5,
