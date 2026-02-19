@@ -17,65 +17,56 @@ max-players: 4
 # Dungeon world name
 world: dungeon_forest_cave
 
-# Cooldown in seconds (1 Hour)
-cooldown: 3600
-
 # Stages configuration
 stages:
   1:
+    # WorldGuard region name for safe zone
     safe-zone: "forest_cave_stage1_safe"
-    arena-region: "forest_cave_stage1_arena"
     waves:
-      # Wave 1: 25 Zombies
-      - mobs:
-          ZOMBIE: 25
-        delay: 5
-      # Wave 2: 30 Zombies, 15 Skeletons
-      - mobs:
-          ZOMBIE: 30
-          SKELETON: 15
-        delay: 5
-    # Boss for Stage 1
-    boss:
-      id: "ZOMBIE_KING" # Make sure this MythicMob exists or use Vanilla like GIANT
-      spawn-location: [0.5, 65, 0.5] # Relative or absolute? Code assumes absolute. Admin setup will fix this.
+      - mobs: ["ZOMBIE", "SKELETON"]
+        count: 5
+        delay: 0
+      - mobs: ["ZOMBIE", "SPIDER"]
+        count: 8
+        delay: 10
+    boss: null
 
   2:
     safe-zone: "forest_cave_stage2_safe"
-    arena-region: "forest_cave_stage2_arena"
     waves:
-      - mobs:
-          SPIDER: 15
-          CAVE_SPIDER: 10
-        delay: 5
-      - mobs:
-          WITCH: 5
-          VINDICATOR: 5
-        delay: 10
-    # Final Boss
+      - mobs: ["SPIDER", "CREEPER"]
+        count: 10
+        delay: 0
+      - mobs: ["VINDICATOR"]
+        count: 5
+        delay: 15
     boss:
-      id: "FOREST_GUARDIAN"
-      spawn-location: [100.5, 65, 100.5]
+      id: "WITHER_SKELETON"
+      spawn-location: [100, 50, 100]
 
 # Loot configuration
 loot:
-  # Rewards for completing dungeon (Win GUI)
+  # Rewards for completing dungeon
   completion:
-    - type: COMMAND
-      command: "auraskills xp add %player% fighting 1000"
-      chance: 100
-    - type: VANILLA
-      material: DIAMOND
-      amount: 5-10
-      chance: 100
-    - type: VANILLA
-      material: EMERALD
-      amount: 10-20
-      chance: 100
     - type: MMOITEMS
       id: "MATERIAL:FOREST_CRYSTAL"
       amount: 1-3
+      chance: 100
+    - type: COMMAND
+      command: "auraskills xp add %player% fighting 500"
+      chance: 100
+    - type: VANILLA
+      material: DIAMOND
+      amount: 1-2
       chance: 50
 
-  # Boss-specific directly dropped on death (handled by MythicMobs usually, but here for extra)
-  boss: []
+  # Boss-specific drops
+  boss:
+    - type: MMOITEMS
+      id: "SWORD:FOREST_BLADE"
+      amount: 1
+      chance: 15
+    - type: MMOITEMS
+      id: "ARMOR:FOREST_CHESTPLATE"
+      amount: 1
+      chance: 10

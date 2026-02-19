@@ -110,12 +110,23 @@ public class Dungeon {
             this.bossId = config.getString("boss.id", null);
             this.waves = new ArrayList<>();
 
-            List<?> wavesList = config.getList("waves");
-            if (wavesList != null) {
-                for (int i = 0; i < wavesList.size(); i++) {
-                    ConfigurationSection waveSection = config.getConfigurationSection("waves." + i);
-                    if (waveSection != null)
-                        waves.add(new Wave(waveSection));
+            if (config.isList("waves")) {
+                List<Map<?, ?>> waveMaps = config.getMapList("waves");
+                for (Map<?, ?> map : waveMaps) {
+                    org.bukkit.configuration.MemoryConfiguration mem = new org.bukkit.configuration.MemoryConfiguration();
+                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                        mem.set(entry.getKey().toString(), entry.getValue());
+                    }
+                    waves.add(new Wave(mem));
+                }
+            } else if (config.isConfigurationSection("waves")) {
+                ConfigurationSection wavesSec = config.getConfigurationSection("waves");
+                if (wavesSec != null) {
+                    for (String key : wavesSec.getKeys(false)) {
+                        ConfigurationSection waveSec = wavesSec.getConfigurationSection(key);
+                        if (waveSec != null)
+                            waves.add(new Wave(waveSec));
+                    }
                 }
             }
 
@@ -186,10 +197,28 @@ public class Dungeon {
             this.safeZone = config.getString("safe-zone", "");
             this.arenaRegion = config.getString("arena-region", ""); // [NEW]
             if (legacy) {
-                this.bossSpawnLocation = config.getDoubleList("boss.spawn-location");
+                this.bossSpawnLocation = parseDoubleList(config, "boss.spawn-location");
             } else {
-                this.bossSpawnLocation = config.getDoubleList("boss-spawn");
+                this.bossSpawnLocation = parseDoubleList(config, "boss-spawn");
             }
+        }
+
+        private List<Double> parseDoubleList(ConfigurationSection config, String path) {
+            List<Double> list = new ArrayList<>();
+            List<?> raw = config.getList(path);
+            if (raw != null) {
+                for (Object o : raw) {
+                    if (o instanceof Number) {
+                        list.add(((Number) o).doubleValue());
+                    } else {
+                        try {
+                            list.add(Double.parseDouble(o.toString()));
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+            return list;
         }
 
         public String getSafeZone() {
