@@ -46,6 +46,7 @@ public class DungeonInstance {
     private BukkitTask hudTask; // Fixed: now tracked for proper cancellation
     private BukkitTask timerTask; // Dungeon time limit task
     private BukkitTask mutatorTask; // Background task for active mutators
+    private BukkitTask hazardTask; // Environmental hazards task
     private BossBar bossBar;
 
     private final List<MutatorType> activeMutators = new ArrayList<>();
@@ -125,6 +126,7 @@ public class DungeonInstance {
             startSafeZoneCheck();
             startHUDTask();
             startTimerLimit();
+            startHazardTask();
             Bukkit.getScheduler().runTaskLater(plugin, () -> startStage(currentStage), 60L);
         }, 100L);
     }
@@ -219,6 +221,72 @@ public class DungeonInstance {
                 }
             }
         }, 30L); // 1.5s delay
+    }
+
+    private void startHazardTask() {
+        if (hazardTask != null)
+            hazardTask.cancel();
+
+        hazardTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (!active || currentStage <= 0)
+                return;
+
+            // 15% chance to spawn a lava geyser every 2 seconds
+            if (Math.random() < 0.15 && !participants.isEmpty()) {
+                // Pick a random player
+                UUID randomTarget = participants.get(new Random().nextInt(participants.size()));
+                Player p = Bukkit.getPlayer(randomTarget);
+                if (p != null && p.isValid() && getLives(randomTarget) > 0) {
+                    Location hazardLoc = p.getLocation().clone().add(
+                            (Math.random() - 0.5) * 8, // Wider range than mutator
+                            0,
+                            (Math.random() - 0.5) * 8);
+                    hazardLoc = findGroundLevel(hazardLoc);
+                    spawnLavaGeyser(hazardLoc);
+                }
+            }
+        }, 40L, 40L); // run every 2 seconds
+    }
+
+    private void spawnLavaGeyser(Location loc) {
+        World world = loc.getWorld();
+        if (world == null)
+            return;
+
+        // Telegraph phase
+        for (int i = 0; i < 3; i++) { // 1.5s telegraph
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!active)
+                    return;
+                world.spawnParticle(org.bukkit.Particle.LAVA, loc, 5, 0.5, 0.1, 0.5);
+                world.spawnParticle(org.bukkit.Particle.FLAME, loc, 10, 0.5, 0.1, 0.5, 0.05);
+                world.playSound(loc, Sound.BLOCK_LAVA_AMBIENT, 1f, 1f);
+            }, i * 10L);
+        }
+
+        // Eruption phase
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!active)
+                return;
+            // Erupt particles
+            world.spawnParticle(org.bukkit.Particle.CAMPFIRE_COSY_SMOKE, loc, 30, 0.5, 3.0, 0.5, 0.1);
+            world.spawnParticle(org.bukkit.Particle.FLAME, loc, 50, 0.5, 3.0, 0.5, 0.1);
+            world.playSound(loc, Sound.ENTITY_GENERIC_BURN, 1f, 0.8f);
+
+            // Damage check (Pillar of fire)
+            double radiusSq = 2.0 * 2.0;
+            for (UUID uuid : participants) {
+                Player p = Bukkit.getPlayer(uuid);
+                // Check if player is near and not flying too high (within 4 blocks Y)
+                if (p != null && !isInvulnerable(uuid) &&
+                        p.getLocation().distanceSquared(loc) <= radiusSq &&
+                        Math.abs(p.getLocation().getY() - loc.getY()) < 4.0) {
+
+                    p.damage(6.0); // 3 hearts burst
+                    p.setFireTicks(60); // 3 seconds of fire
+                }
+            }
+        }, 40L); // 2s delay total before eruption
     }
 
     /**
@@ -743,6 +811,10 @@ public class DungeonInstance {
         if (mutatorTask != null) {
             mutatorTask.cancel();
             mutatorTask = null;
+        }
+        if (hazardTask != null) {
+            hazardTask.cancel();
+            hazardTask = null;
         }
         removeBossBar();
     }
