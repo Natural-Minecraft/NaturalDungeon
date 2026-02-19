@@ -23,23 +23,39 @@ stages:
     # WorldGuard region name for safe zone
     safe-zone: "forest_cave_stage1_safe"
     waves:
-      - mobs: ["ZOMBIE", "SKELETON"]
-        count: 5
-        delay: 0
-      - mobs: ["ZOMBIE", "SPIDER"]
-        count: 8
+      # Wave 1: Habisi semua monster normal
+      - type: KILL_ALL
+        mobs: 
+          ZOMBIE: 12
+          SKELETON: 5
+        delay: 5
+      # Wave 2: Objective HUNT_TARGET (Cari & bunuh Alpha Mobs yang bersinar)
+      - type: HUNT_TARGET
+        target-name: "&cAlpha Spider"
+        mobs: 
+          SPIDER: 8
+          ZOMBIE: 5
         delay: 10
     boss: null
 
   2:
     safe-zone: "forest_cave_stage2_safe"
     waves:
-      - mobs: ["SPIDER", "CREEPER"]
-        count: 10
-        delay: 0
-      - mobs: ["VINDICATOR"]
-        count: 5
-        delay: 15
+      # Wave 1: Objective DEFEND_TARGET (Lindungi NPC selama 45 detik)
+      - type: DEFEND_TARGET
+        target-name: "&aForest Ranger"
+        target-time: 45
+        mobs: 
+          SPIDER: 10
+          CREEPER: 3
+        delay: 5
+      # Wave 2: Objective CAPTURE_ZONE (Berdiri di dalam ring untuk charge progress)
+      - type: CAPTURE_ZONE
+        target-time: 20
+        mobs: 
+          VINDICATOR: 5
+          SKELETON: 8
+        delay: 10
     boss:
       id: "WITHER_SKELETON"
       spawn-location: [100, 50, 100]
