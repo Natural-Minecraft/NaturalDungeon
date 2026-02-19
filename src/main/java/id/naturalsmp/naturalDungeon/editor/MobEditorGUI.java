@@ -62,11 +62,21 @@ public class MobEditorGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!(e.getInventory().getHolder() instanceof MobEditorHolder holder))
-            return;
-        e.setCancelled(true);
-        if (e.getCurrentItem() == null)
-            return;
+        InventoryHolder holder = e.getInventory().getHolder();
+        if (holder instanceof MobConfigHolder) {
+            e.setCancelled(true);
+            if (e.getCurrentItem() == null)
+                return;
+            handleConfigClick(e, (MobConfigHolder) holder);
+        } else if (holder instanceof MobEditorHolder) {
+            e.setCancelled(true);
+            if (e.getCurrentItem() == null)
+                return;
+            handleEditorClick(e, (MobEditorHolder) holder);
+        }
+    }
+
+    private void handleEditorClick(InventoryClickEvent e, MobEditorHolder holder) {
         Player player = (Player) e.getWhoClicked();
 
         if (e.getSlot() == 45) {
@@ -105,7 +115,93 @@ public class MobEditorGUI implements Listener {
         }
     }
 
-    private void openMobConfig(Player player, String dungeonId, String mobId) {
+    private void handleConfigClick(InventoryClickEvent e, MobConfigHolder holder) {
+        Player player = (Player) e.getWhoClicked();
+        String mobId = holder.mobId;
+        CustomMob mob = plugin.getCustomMobManager().getMob(mobId);
+        if (mob == null) {
+            player.sendMessage(ChatUtils.colorize("&cMob tidak ditemukan!"));
+            player.closeInventory();
+            return;
+        }
+
+        switch (e.getSlot()) {
+            case 10: // Name
+                plugin.getEditorChatInput().requestInput(player, "&eMasukkan nama baru:", input -> {
+                    mob.setName(input);
+                    plugin.getCustomMobManager().updateMob(mob);
+                    player.sendMessage(ChatUtils.colorize("&aNama diubah!"));
+                    openMobConfig(player, holder.dungeonId, mobId);
+                });
+                break;
+            case 11: // HP
+                plugin.getEditorChatInput().requestInput(player, "&eMasukkan HP baru:", input -> {
+                    try {
+                        double val = Double.parseDouble(input);
+                        mob.setHealth(val);
+                        plugin.getCustomMobManager().updateMob(mob);
+                        openMobConfig(player, holder.dungeonId, mobId);
+                    } catch (NumberFormatException ex) {
+                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
+                    }
+                });
+                break;
+            case 12: // Damage
+                plugin.getEditorChatInput().requestInput(player, "&eMasukkan Damage baru:", input -> {
+                    try {
+                        double val = Double.parseDouble(input);
+                        mob.setDamage(val);
+                        plugin.getCustomMobManager().updateMob(mob);
+                        openMobConfig(player, holder.dungeonId, mobId);
+                    } catch (NumberFormatException ex) {
+                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
+                    }
+                });
+                break;
+            case 13: // Speed
+                plugin.getEditorChatInput().requestInput(player, "&eMasukkan Speed baru (default 0.23):", input -> {
+                    try {
+                        double val = Double.parseDouble(input);
+                        mob.setSpeed(val);
+                        plugin.getCustomMobManager().updateMob(mob);
+                        openMobConfig(player, holder.dungeonId, mobId);
+                    } catch (NumberFormatException ex) {
+                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
+                    }
+                });
+                break;
+            case 14: // Entity Type
+                plugin.getEditorChatInput().requestInput(player, "&eMasukkan EntityType (misal ZOMBIE, SKELETON):",
+                        input -> {
+                            try {
+                                org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType
+                                        .valueOf(input.toUpperCase());
+                                mob.setEntityType(type);
+                                plugin.getCustomMobManager().updateMob(mob);
+                                openMobConfig(player, holder.dungeonId, mobId);
+                            } catch (IllegalArgumentException ex) {
+                                player.sendMessage(ChatUtils.colorize("&cTipe entity tidak valid!"));
+                            }
+                        });
+                break;
+            case 15: // Boss Toggle
+                mob.setBoss(!mob.isBoss());
+                plugin.getCustomMobManager().updateMob(mob);
+                openMobConfig(player, holder.dungeonId, mobId);
+                break;
+            case 16: // Skills
+                // For now, simple message or placeholder. Boss Editor will have "more complex"
+                // skill editor.
+                player.sendMessage(
+                        ChatUtils.colorize("&eSkill management will be available in Boss Editor or next update!"));
+                break;
+            case 22: // Back
+                open(player, holder.dungeonId);
+                break;
+        }
+    }
+
+    public void openMobConfig(Player player, String dungeonId, String mobId) {
         CustomMob mob = plugin.getCustomMobManager().getMob(mobId);
         if (mob == null)
             return;

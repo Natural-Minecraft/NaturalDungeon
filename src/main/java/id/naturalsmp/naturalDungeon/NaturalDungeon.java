@@ -229,6 +229,8 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LootEntryEditorGUI(this), this);
         getServer().getPluginManager().registerEvents(new ArenaSetupGUI(this), this);
         getServer().getPluginManager().registerEvents(new MobEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new BossEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new MobSkillEditorGUI(this), this);
     }
 
     public void reload() {

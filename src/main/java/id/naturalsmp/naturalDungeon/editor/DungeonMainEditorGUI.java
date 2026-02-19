@@ -47,6 +47,9 @@ public class DungeonMainEditorGUI implements Listener {
         inv.setItem(16, createItem(Material.GOLDEN_AXE, "&6&lArena Setup",
                 "&7Set region & spawn points"));
 
+        inv.setItem(13, createItem(Material.WITHER_SKELETON_SKULL, "&4&lBoss Editor",
+                "&7Complex Editor & All Skills"));
+
         inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
 
         player.openInventory(inv);
@@ -69,6 +72,7 @@ public class DungeonMainEditorGUI implements Listener {
             case 14 -> new RewardEditorGUI(plugin).open(player, dungeonId);
             case 15 -> new MobEditorGUI(plugin).open(player, dungeonId);
             case 16 -> new ArenaSetupGUI(plugin).open(player, dungeonId);
+            case 13 -> new BossEditorGUI(plugin).open(player, dungeonId);
             case 22 -> new DungeonListEditorGUI(plugin).open(player);
         }
     }
