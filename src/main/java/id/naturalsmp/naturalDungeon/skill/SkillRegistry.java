@@ -140,6 +140,12 @@ public class SkillRegistry {
         register(new GenericSkill("blood_sacrifice", "Blood Sacrifice", SkillCategory.SPECIAL, 180, 12, 0.0));
         register(new GenericSkill("soul_harvest", "Soul Harvest", SkillCategory.SPECIAL, 200, 15, 8.0));
 
+        // ============ ELEMENTAL MASTERIES (4 skills) ============
+        register(new ElementalMasterySkill("meteor", "Meteor", 300, 25, 25.0));
+        register(new ElementalMasterySkill("tsunami", "Tsunami", 200, 15, 12.0));
+        register(new ElementalMasterySkill("earth_spikes", "Earth Spikes", 150, 12, 10.0));
+        register(new ElementalMasterySkill("thunder_strike", "Thunder Strike", 250, 20, 18.0));
+
         // ============ BOSS (5 skills) ============
         register(new GenericSkill("arena_lockdown", "Arena Lockdown", SkillCategory.BOSS, 400, 20, 0.0));
         register(new GenericSkill("death_ray", "Death Ray", SkillCategory.BOSS, 300, 25, 25.0));
