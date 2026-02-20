@@ -146,6 +146,12 @@ public class SkillRegistry {
         register(new ElementalMasterySkill("earth_spikes", "Earth Spikes", 150, 12, 10.0));
         register(new ElementalMasterySkill("thunder_strike", "Thunder Strike", 250, 20, 18.0));
 
+        // ============ CROWD CONTROL (4 skills) ============
+        register(new CrowdControlSkill("gravity_vortex", "Gravity Vortex", 400, 15, 0.0));
+        register(new CrowdControlSkill("time_dilation", "Time Dilation", 500, 10, 0.0));
+        register(new CrowdControlSkill("blind_fog", "Blind Fog", 300, 20, 0.0));
+        register(new CrowdControlSkill("phantom_possession", "Phantom Possession", 600, 8, 4.0));
+
         // ============ BOSS (5 skills) ============
         register(new GenericSkill("arena_lockdown", "Arena Lockdown", SkillCategory.BOSS, 400, 20, 0.0));
         register(new GenericSkill("death_ray", "Death Ray", SkillCategory.BOSS, 300, 25, 25.0));
