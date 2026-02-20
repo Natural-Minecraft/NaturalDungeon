@@ -80,10 +80,9 @@ public class AchievementManager {
         config.set(player.getUniqueId().toString() + "." + id + ".date", System.currentTimeMillis());
         save();
 
-        // Award Money via NaturalCore VaultManager if available
-        if (plugin.getCore() != null && plugin.getCore().getVaultManager() != null
-                && plugin.getCore().getVaultManager().getEconomy() != null) {
-            plugin.getCore().getVaultManager().getEconomy().depositPlayer(player, achievement.getRewardMoney());
+        // Award Money via NaturalDungeon VaultHook if available
+        if (plugin.getVaultHook() != null && plugin.getVaultHook().isEnabled()) {
+            plugin.getVaultHook().deposit(player, achievement.getRewardMoney());
         }
 
         // Send visual effects
