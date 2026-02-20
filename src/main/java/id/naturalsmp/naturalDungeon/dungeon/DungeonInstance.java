@@ -55,6 +55,11 @@ public class DungeonInstance {
     private List<ItemStack> collectedLoot = new ArrayList<>();
     private Location lootChestLocation;
 
+    // MVP Stats Tracking
+    private final Map<UUID, Double> damageDealt = new HashMap<>();
+    private final Map<UUID, Double> damageTaken = new HashMap<>();
+    private final Map<UUID, Integer> mobsKilled = new HashMap<>();
+
     public DungeonInstance(NaturalDungeon plugin, Dungeon dungeon, DungeonDifficulty difficulty, int instanceId,
             List<UUID> participants) {
         this.plugin = plugin;
@@ -952,6 +957,51 @@ public class DungeonInstance {
         if (deaths <= 3)
             return "B";
         return "C";
+    }
+
+    // MVP Tracking Methods
+    public void addDamageDealt(UUID uuid, double damage) {
+        damageDealt.put(uuid, damageDealt.getOrDefault(uuid, 0.0) + damage);
+    }
+
+    public void addDamageTaken(UUID uuid, double damage) {
+        damageTaken.put(uuid, damageTaken.getOrDefault(uuid, 0.0) + damage);
+    }
+
+    public void addMobKill(UUID uuid) {
+        mobsKilled.put(uuid, mobsKilled.getOrDefault(uuid, 0) + 1);
+    }
+
+    public double getDamageDealt(UUID uuid) {
+        return damageDealt.getOrDefault(uuid, 0.0);
+    }
+
+    public double getDamageTaken(UUID uuid) {
+        return damageTaken.getOrDefault(uuid, 0.0);
+    }
+
+    public int getMobsKilled(UUID uuid) {
+        return mobsKilled.getOrDefault(uuid, 0);
+    }
+
+    public UUID getMVP() {
+        if (participants.isEmpty())
+            return null;
+        if (participants.size() == 1)
+            return participants.get(0);
+
+        UUID mvp = null;
+        double highestScore = -1;
+
+        for (UUID uuid : participants) {
+            // Formula: (Damage Dealt * 1.5) + (Mobs Killed * 20) - (Damage Taken * 0.5)
+            double score = (getDamageDealt(uuid) * 1.5) + (getMobsKilled(uuid) * 20) - (getDamageTaken(uuid) * 0.5);
+            if (score > highestScore) {
+                highestScore = score;
+                mvp = uuid;
+            }
+        }
+        return mvp;
     }
 
     public int getInstanceId() {

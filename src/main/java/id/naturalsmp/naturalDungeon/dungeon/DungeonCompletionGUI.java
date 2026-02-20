@@ -44,6 +44,32 @@ public class DungeonCompletionGUI implements Listener {
                     "",
                     "&#FFBB00&lRANK: &f&n" + instance.getPerformanceRank()));
 
+            // Display MVP
+            UUID mvpId = instance.getMVP();
+            if (mvpId != null) {
+                Player mvp = Bukkit.getPlayer(mvpId);
+                String mvpName = (mvp != null) ? mvp.getName() : "Unknown";
+                inv.setItem(3, createItem(Material.TOTEM_OF_UNDYING, "&#FFAA00&l☆ MVP ★",
+                        "&f" + mvpName,
+                        "&7Pemain paling berkontribusi!",
+                        "",
+                        "&cDMG Dealt: &f" + String.format("%.1f", instance.getDamageDealt(mvpId)),
+                        "&4DMG Taken: &f" + String.format("%.1f", instance.getDamageTaken(mvpId)),
+                        "&cKills: &f" + instance.getMobsKilled(mvpId)));
+            }
+
+            // Display Personal Stats
+            double myDmgDealt = instance.getDamageDealt(player.getUniqueId());
+            double myDmgTaken = instance.getDamageTaken(player.getUniqueId());
+            int myKills = instance.getMobsKilled(player.getUniqueId());
+
+            inv.setItem(5, createItem(Material.NETHER_STAR, "&#00FFFF&lPERSONAL STATS",
+                    "&7Statistik kamu selama dungeon ini:",
+                    "",
+                    "&cDMG Dealt: &f" + String.format("%.1f", myDmgDealt),
+                    "&4DMG Taken: &f" + String.format("%.1f", myDmgTaken),
+                    "&cKills: &f" + myKills));
+
             List<ItemStack> loot = instance.getCollectedLoot();
             int[] lootSlots = { 10, 11, 12, 13, 14, 15, 16 };
             for (int i = 0; i < lootSlots.length && i < loot.size(); i++) {
@@ -64,6 +90,18 @@ public class DungeonCompletionGUI implements Listener {
                     "&cWaktu: &f" + ChatUtils.formatTime(instance.getDuration() / 1000),
                     "&cStage Terakhir: &f" + instance.getCurrentStage(),
                     "&cDeaths: &f" + instance.getTotalDeaths()));
+
+            // Display Personal Stats even if failed
+            double myDmgDealt = instance.getDamageDealt(player.getUniqueId());
+            double myDmgTaken = instance.getDamageTaken(player.getUniqueId());
+            int myKills = instance.getMobsKilled(player.getUniqueId());
+
+            inv.setItem(5, createItem(Material.NETHER_STAR, "&#00FFFF&lPERSONAL STATS",
+                    "&7Statistik kamu selama dungeon ini:",
+                    "",
+                    "&cDMG Dealt: &f" + String.format("%.1f", myDmgDealt),
+                    "&4DMG Taken: &f" + String.format("%.1f", myDmgTaken),
+                    "&cKills: &f" + myKills));
         }
 
         inv.setItem(22, createItem(Material.BARRIER, "&#AAAAAA&l✕ TUTUP", "&7Klik untuk menutup dan kembali."));

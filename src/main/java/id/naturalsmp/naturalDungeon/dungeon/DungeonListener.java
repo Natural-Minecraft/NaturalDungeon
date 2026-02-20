@@ -45,16 +45,22 @@ public class DungeonListener implements Listener {
             player.getInventory().setContents(saved);
     }
 
-    // Invulnerability check — cancel damage if player just respawned
+    // Invulnerability check and MVP Damage Tracking
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerDamage(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof Player player))
             return;
 
         DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
-        if (instance != null && instance.isInvulnerable(player.getUniqueId())) {
-            e.setCancelled(true);
-            return;
+        if (instance != null) {
+            // Cancel damage if invulnerable after respawn
+            if (instance.isInvulnerable(player.getUniqueId())) {
+                e.setCancelled(true);
+                return;
+            }
+
+            // Track MVP Stat: Damage Taken
+            instance.addDamageTaken(player.getUniqueId(), e.getFinalDamage());
         }
 
         // Mutator: VAMPIRIC
@@ -86,11 +92,16 @@ public class DungeonListener implements Listener {
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
             if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
 
-                // Spawn damage number VFX
-                if (e instanceof EntityDamageByEntityEvent damageEvent && damageEvent.getDamager() instanceof Player) {
-                    boolean isCrit = damageEvent.isCritical();
-                    double damage = e.getFinalDamage();
-                    plugin.getDamageNumberManager().spawnDamageNumber(living.getLocation(), damage, isCrit);
+                // Spawn damage number VFX and track MVP stats
+                if (e instanceof EntityDamageByEntityEvent damageEvent) {
+                    if (damageEvent.getDamager() instanceof Player player) {
+                        boolean isCrit = damageEvent.isCritical();
+                        double damage = e.getFinalDamage();
+                        plugin.getDamageNumberManager().spawnDamageNumber(living.getLocation(), damage, isCrit);
+
+                        // Track MVP stat
+                        instance.addDamageDealt(player.getUniqueId(), damage);
+                    }
                 }
 
                 // Update name tag immediately after damage
@@ -124,6 +135,15 @@ public class DungeonListener implements Listener {
 
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
             if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
+
+                // Track MVP Kill stat
+                if (living.getKiller() != null) {
+                    Player killer = living.getKiller();
+                    if (instance.getParticipants().contains(killer.getUniqueId())) {
+                        instance.addMobKill(killer.getUniqueId());
+                    }
+                }
+
                 if (instance.hasMutator(MutatorType.EXPLOSIVE)) {
                     // Drop primed TNT basically
                     org.bukkit.Location loc = living.getLocation();
