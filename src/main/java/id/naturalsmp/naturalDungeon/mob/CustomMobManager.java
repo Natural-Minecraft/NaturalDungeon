@@ -47,6 +47,7 @@ public class CustomMobManager {
             mob.setSpeed(sec.getDouble("speed", 0.23));
             mob.setBoss(sec.getBoolean("boss", false));
             mob.setSkillIds(sec.getStringList("skills"));
+            mob.setModelId(sec.getString("model-id", null));
             mobs.put(key, mob);
         }
     }
@@ -62,6 +63,9 @@ public class CustomMobManager {
             config.set(key + ".speed", mob.getSpeed());
             config.set(key + ".boss", mob.isBoss());
             config.set(key + ".skills", mob.getSkillIds());
+            if (mob.getModelId() != null) {
+                config.set(key + ".model-id", mob.getModelId());
+            }
         }
         try {
             config.save(dataFile);

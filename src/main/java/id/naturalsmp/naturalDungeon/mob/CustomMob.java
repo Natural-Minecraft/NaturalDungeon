@@ -16,6 +16,7 @@ public class CustomMob {
     private double damage;
     private double speed;
     private boolean boss;
+    private String modelId;
     private List<String> skillIds;
     private Map<String, Object> equipment; // slot -> material/item
 
@@ -104,5 +105,13 @@ public class CustomMob {
 
     public void removeSkill(String skillId) {
         skillIds.remove(skillId);
+    }
+
+    public String getModelId() {
+        return modelId;
+    }
+
+    public void setModelId(String modelId) {
+        this.modelId = modelId;
     }
 }
