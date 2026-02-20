@@ -467,6 +467,11 @@ public class WaveManager {
                     }
                 }
 
+                // Apply ModelEngine Model (Hybrid Support)
+                if (customMob.getModelId() != null && plugin.hasModelEngine()) {
+                    plugin.getModelEngineHook().applyModel(entity, customMob.getModelId());
+                }
+
                 // Apply Skills via SkillRegistry
                 if (!customMob.getSkillIds().isEmpty()) {
                     plugin.getSkillRegistry().applySkills(living, customMob.getSkillIds());
