@@ -377,10 +377,6 @@ public final class NaturalDungeon extends JavaPlugin {
         return playerStatsManager;
     }
 
-    public VaultHook getVaultHook() {
-        return vaultHook;
-    }
-
     public SQLiteStorage getSqliteStorage() {
         return sqliteStorage;
     }
