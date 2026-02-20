@@ -203,7 +203,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
 
         player.sendMessage(ChatUtils.colorize("&aAttempting to spawn a test wave at your location..."));
         Dungeon.Wave testWave = new Dungeon.Wave(Collections.singletonList("ZOMBIE"), 5, 0);
-        instance.getWaveManager().spawnWave(testWave, player.getLocation(), 1, false);
+        instance.getWaveManager().spawnWave(testWave, player.getLocation(), 1, false, Collections.emptyList());
     }
 
     private void sendUsage(CommandSender sender) {

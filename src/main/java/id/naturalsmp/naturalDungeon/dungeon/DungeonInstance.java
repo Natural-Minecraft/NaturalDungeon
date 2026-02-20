@@ -449,7 +449,7 @@ public class DungeonInstance {
         Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName);
         Location center = centerOpt.orElse(dungeonWorld.getSpawnLocation()).add(15, 0, 15);
 
-        waveManager.spawnWave(wave, center, participants.size(), bloodMoon);
+        waveManager.spawnWave(wave, center, participants.size(), bloodMoon, loc.getMobSpawns());
     }
 
     public void onWaveComplete() {
@@ -495,42 +495,68 @@ public class DungeonInstance {
             return;
 
         bossSpawned = true;
-        broadcastTitle("&d&lBOSS SPAWNED", "&7Defeat the dungeon guardian!", 10, 40, 10);
-        playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1f);
+        broadcastTitle("&d&lBOSS INCOMING", "&7Prepare for battle!", 10, 40, 10);
         updateBossBar("&d&lBOSS HP", 1.0, org.bukkit.boss.BarColor.PURPLE);
 
-        // Boss VFX
-        if (dungeonWorld != null) {
-            Dungeon.StageLocation bossLocDetails = stage.getLocation(instanceId);
-            List<Double> bossCoords = bossLocDetails.getBossSpawnLocation();
-            Location bossVfxLoc;
-            if (bossCoords != null && bossCoords.size() >= 3) {
-                bossVfxLoc = new Location(dungeonWorld, bossCoords.get(0), bossCoords.get(1), bossCoords.get(2));
-            } else {
-                String regionName = bossLocDetails.getArenaRegion();
-                if (regionName == null || regionName.isEmpty())
-                    regionName = bossLocDetails.getSafeZone();
-
-                bossVfxLoc = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
-                        .orElse(dungeonWorld.getSpawnLocation()).add(20, 0, 20);
-            }
-            dungeonWorld.strikeLightningEffect(bossVfxLoc);
-        }
-
+        // Calculate Boss Location
         Dungeon.StageLocation loc = stage.getLocation(instanceId);
-        List<Double> bossLoc = loc.getBossSpawnLocation();
-        Location spawn;
-        if (bossLoc != null && bossLoc.size() >= 3) {
-            spawn = new Location(dungeonWorld, bossLoc.get(0), bossLoc.get(1), bossLoc.get(2));
+        List<Double> bossCoords = loc.getBossSpawnLocation();
+        Location center;
+
+        if (bossCoords != null && bossCoords.size() >= 3) {
+            center = new Location(dungeonWorld, bossCoords.get(0), bossCoords.get(1), bossCoords.get(2));
         } else {
             String regionName = loc.getArenaRegion();
             if (regionName == null || regionName.isEmpty())
                 regionName = loc.getSafeZone();
 
-            spawn = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
+            center = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
                     .orElse(dungeonWorld.getSpawnLocation()).add(20, 0, 20);
         }
-        waveManager.spawnBoss(stage.getBossId(), spawn, participants.size());
+
+        final Location spawn = center;
+
+        // Add 3-second Aesthetic Boss Portal Sequence
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int ticks = 0;
+            double angle = 0;
+
+            @Override
+            public void run() {
+                if (!active) {
+                    this.cancel();
+                    return;
+                }
+
+                ticks += 2; // Run every 2 ticks
+                angle += Math.PI / 4;
+
+                // Helix Particle Effect
+                double radius = 1.5;
+                for (int i = 0; i < 3; i++) {
+                    double x = Math.cos(angle + (i * Math.PI * 2 / 3)) * radius;
+                    double z = Math.sin(angle + (i * Math.PI * 2 / 3)) * radius;
+                    spawn.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,
+                            spawn.clone().add(x, ticks * 0.05, z), 2, 0, 0, 0, 0.02);
+                }
+
+                // Sound Effect (growing pitch)
+                if (ticks % 10 == 0) {
+                    playSound(Sound.BLOCK_BEACON_AMBIENT, 0.5f + (ticks * 0.02f));
+                }
+
+                // Pre-Spawn Strike and Rumble at the end
+                if (ticks >= 60) {
+                    this.cancel();
+                    spawn.getWorld().strikeLightningEffect(spawn);
+                    playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f);
+                    broadcastTitle("&d&lBOSS SPAWNED", "&cKILL IT!", 5, 20, 10);
+
+                    // Spawn the boss finally
+                    waveManager.spawnBoss(stage.getBossId(), spawn, participants.size());
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 
     private void onStageComplete() {

@@ -67,8 +67,11 @@ public class BossConfigGUI implements Listener {
             case 13 -> {
                 player.closeInventory();
                 org.bukkit.Location loc = player.getLocation();
+                List<Double> locList = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
+                // Save to boss-spawn directly on the stage level
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                        "stages." + holder.stageIndex + ".boss-spawn", locList);
                 String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + "spawn", locStr);
                 player.sendMessage(ChatUtils.colorize("&aBoss spawn location set: &f" + locStr));
             }
             case 15 -> plugin.getEditorChatInput().requestInput(player,

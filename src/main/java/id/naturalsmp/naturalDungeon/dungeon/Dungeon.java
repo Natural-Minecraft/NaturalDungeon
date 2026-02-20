@@ -188,6 +188,7 @@ public class Dungeon {
         private final String safeZone;
         private final String arenaRegion; // [NEW]
         private final List<Double> bossSpawnLocation;
+        private final List<String> mobSpawns; // [NEW] List of serialized location strings
 
         public StageLocation(ConfigurationSection config) {
             this(config, false);
@@ -196,8 +197,13 @@ public class Dungeon {
         public StageLocation(ConfigurationSection config, boolean legacy) {
             this.safeZone = config.getString("safe-zone", "");
             this.arenaRegion = config.getString("arena-region", ""); // [NEW]
+            this.mobSpawns = config.getStringList("mob-spawns"); // [NEW]
+
             if (legacy) {
                 this.bossSpawnLocation = parseDoubleList(config, "boss.spawn-location");
+                if (this.mobSpawns.isEmpty() && config.contains("mob-spawns")) {
+                    this.mobSpawns.addAll(config.getStringList("mob-spawns"));
+                }
             } else {
                 this.bossSpawnLocation = parseDoubleList(config, "boss-spawn");
             }
@@ -231,6 +237,10 @@ public class Dungeon {
 
         public List<Double> getBossSpawnLocation() {
             return bossSpawnLocation;
+        }
+
+        public List<String> getMobSpawns() {
+            return mobSpawns;
         }
     }
 

@@ -47,7 +47,8 @@ public class WaveManager {
         this.dungeonWorld = dungeonWorld;
     }
 
-    public void spawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon) {
+    public void spawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon,
+            List<String> spawnerLocs) {
         active = true;
         this.currentWaveObj = wave;
         this.objectiveTimer = wave.getTargetTime();
@@ -76,7 +77,7 @@ public class WaveManager {
                 int scaled = (int) Math.ceil(base * (1 + (playerCount - 1) * (scaleFactor - 1)));
                 totalExpected += scaled;
 
-                spawnSpecificMobs(mobId, scaled, center, playerCount, bloodMoon);
+                spawnSpecificMobs(mobId, scaled, center, playerCount, bloodMoon, spawnerLocs);
             }
         } else {
             // Legacy Logic: Random from pool
@@ -86,7 +87,7 @@ public class WaveManager {
 
             for (int i = 0; i < scaledCount; i++) {
                 String mobId = mobTypes.get(ThreadLocalRandom.current().nextInt(mobTypes.size()));
-                spawnSpecificMobs(mobId, 1, center, playerCount, bloodMoon);
+                spawnSpecificMobs(mobId, 1, center, playerCount, bloodMoon, spawnerLocs);
             }
         }
 
@@ -161,23 +162,56 @@ public class WaveManager {
         instance.updateBossBar(title, progress, org.bukkit.boss.BarColor.YELLOW);
     }
 
-    private void spawnSpecificMobs(String mobId, int count, Location center, int playerCount, boolean bloodMoon) {
+    private void spawnSpecificMobs(String mobId, int count, Location center, int playerCount, boolean bloodMoon,
+            List<String> spawnerLocs) {
         for (int i = 0; i < count; i++) {
-            // Random point within radius for variation
-            double offsetX = ThreadLocalRandom.current().nextDouble(-8, 8);
-            double offsetZ = ThreadLocalRandom.current().nextDouble(-8, 8);
-            Location targetLoc = center.clone().add(offsetX, 0, offsetZ);
-            Location spawnLoc = findGroundLevel(targetLoc);
+            Location spawnLoc;
+
+            // If custom mob spawners are defined, pick one randomly
+            if (spawnerLocs != null && !spawnerLocs.isEmpty()) {
+                String locStr = spawnerLocs.get(ThreadLocalRandom.current().nextInt(spawnerLocs.size()));
+                String[] parts = locStr.split(",");
+                if (parts.length >= 4) {
+                    try {
+                        org.bukkit.World w = Bukkit.getWorld(parts[0]);
+                        double x = Double.parseDouble(parts[1]);
+                        double y = Double.parseDouble(parts[2]);
+                        double z = Double.parseDouble(parts[3]);
+                        float yaw = parts.length > 4 ? Float.parseFloat(parts[4]) : 0;
+                        float pitch = parts.length > 5 ? Float.parseFloat(parts[5]) : 0;
+                        spawnLoc = new Location(w != null ? w : dungeonWorld, x, y, z, yaw, pitch);
+                    } catch (Exception e) {
+                        spawnLoc = findGroundLevel(center.clone().add(ThreadLocalRandom.current().nextDouble(-8, 8), 0,
+                                ThreadLocalRandom.current().nextDouble(-8, 8)));
+                    }
+                } else {
+                    spawnLoc = findGroundLevel(center.clone().add(ThreadLocalRandom.current().nextDouble(-8, 8), 0,
+                            ThreadLocalRandom.current().nextDouble(-8, 8)));
+                }
+            } else {
+                // Legacy: Random point within radius for variation
+                double offsetX = ThreadLocalRandom.current().nextDouble(-8, 8);
+                double offsetZ = ThreadLocalRandom.current().nextDouble(-8, 8);
+                Location targetLoc = center.clone().add(offsetX, 0, offsetZ);
+                spawnLoc = findGroundLevel(targetLoc);
+            }
+
+            final Location finalSpawnLoc = spawnLoc;
 
             // [PREMIUM] Telegraphing Particles
-            spawnLoc.getWorld().spawnParticle(org.bukkit.Particle.SOUL, spawnLoc.clone().add(0, 0.5, 0), 20, 0.3, 0.5,
+            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.SOUL, finalSpawnLoc.clone().add(0, 0.5, 0), 20,
+                    0.3, 0.5,
                     0.3, 0.05);
-            spawnLoc.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE, spawnLoc.clone().add(0, 0.5, 0), 10, 0.2,
+            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE,
+                    finalSpawnLoc.clone().add(0, 0.5, 0), 10, 0.2,
                     0.3, 0.2, 0.02);
+            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.FLAME, finalSpawnLoc.clone().add(0, 0.5, 0), 10,
+                    0.2,
+                    0.3, 0.2, 0.05);
 
             // Spawn with 1s delay
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                Entity spawned = spawnMob(mobId, spawnLoc, playerCount);
+                Entity spawned = spawnMob(mobId, finalSpawnLoc, playerCount);
                 if (spawned != null) {
 
                     // Mark targets for HUNT_TARGET explicitly
