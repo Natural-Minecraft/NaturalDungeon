@@ -14,6 +14,13 @@ public class PlayerStats {
     private long fastestTime = Long.MAX_VALUE; // milliseconds
     private double totalDamageDealt = 0;
     private double totalDamageTaken = 0;
+
+    // Daily/Weekly Trackers
+    private int dailyClears = 0;
+    private long lastDailyReset = 0;
+    private int weeklyClears = 0;
+    private long lastWeeklyReset = 0;
+
     private final Map<String, Integer> dungeonClears = new HashMap<>(); // dungeonId -> count
 
     public PlayerStats(UUID playerId) {
@@ -60,6 +67,32 @@ public class PlayerStats {
         if (timeMs < fastestTime)
             fastestTime = timeMs;
         dungeonClears.merge(dungeonId, 1, Integer::sum);
+
+        checkResets();
+        dailyClears++;
+        weeklyClears++;
+    }
+
+    public void checkResets() {
+        Calendar cal = Calendar.getInstance();
+
+        // Daily reset (midnight)
+        Calendar dailyReset = Calendar.getInstance();
+        dailyReset.setTimeInMillis(lastDailyReset);
+        if (cal.get(Calendar.DAY_OF_YEAR) != dailyReset.get(Calendar.DAY_OF_YEAR)
+                || cal.get(Calendar.YEAR) != dailyReset.get(Calendar.YEAR)) {
+            dailyClears = 0;
+            lastDailyReset = System.currentTimeMillis();
+        }
+
+        // Weekly reset (Monday)
+        Calendar weeklyReset = Calendar.getInstance();
+        weeklyReset.setTimeInMillis(lastWeeklyReset);
+        if (cal.get(Calendar.WEEK_OF_YEAR) != weeklyReset.get(Calendar.WEEK_OF_YEAR)
+                || cal.get(Calendar.YEAR) != weeklyReset.get(Calendar.YEAR)) {
+            weeklyClears = 0;
+            lastWeeklyReset = System.currentTimeMillis();
+        }
     }
 
     public void addDamageDealt(double damage) {
@@ -93,6 +126,40 @@ public class PlayerStats {
 
     public void setTotalDamageTaken(double v) {
         this.totalDamageTaken = v;
+    }
+
+    public int getDailyClears() {
+        checkResets();
+        return dailyClears;
+    }
+
+    public void setDailyClears(int dailyClears) {
+        this.dailyClears = dailyClears;
+    }
+
+    public long getLastDailyReset() {
+        return lastDailyReset;
+    }
+
+    public void setLastDailyReset(long lastDailyReset) {
+        this.lastDailyReset = lastDailyReset;
+    }
+
+    public int getWeeklyClears() {
+        checkResets();
+        return weeklyClears;
+    }
+
+    public void setWeeklyClears(int weeklyClears) {
+        this.weeklyClears = weeklyClears;
+    }
+
+    public long getLastWeeklyReset() {
+        return lastWeeklyReset;
+    }
+
+    public void setLastWeeklyReset(long lastWeeklyReset) {
+        this.lastWeeklyReset = lastWeeklyReset;
     }
 
     public void setDungeonClears(Map<String, Integer> map) {

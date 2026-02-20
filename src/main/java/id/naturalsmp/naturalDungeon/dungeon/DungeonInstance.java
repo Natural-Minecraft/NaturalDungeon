@@ -796,6 +796,11 @@ public class DungeonInstance {
                     if (uuid.equals(mvpUuid)) {
                         am.unlockAchievement(p, "mvp");
                     }
+
+                    // Stats Tracking
+                    plugin.getPlayerStatsManager().recordClear(uuid, dungeon.getId(), duration, totalDeaths);
+                    plugin.getSqliteStorage().recordCompletion(uuid, dungeon.getId(), difficulty.getId(), duration,
+                            totalDeaths);
                 }
             }
 

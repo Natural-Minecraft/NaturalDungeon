@@ -156,8 +156,18 @@ public class LootManager {
         for (UUID uuid : players) {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
-                plugin.getAuraSkillsHook().addXp(player, skill, totalXp);
-                player.sendMessage(ChatUtils.colorize("&a+" + totalXp + " " + skill + " XP!"));
+                int finalXp = totalXp;
+                id.naturalsmp.naturaldungeon.stats.PlayerStats stats = plugin.getPlayerStatsManager().getStats(uuid);
+
+                // First 3 dungeons of the day give 2x XP
+                if (stats.getDailyClears() < 3) {
+                    finalXp *= 2;
+                    player.sendMessage(ChatUtils.colorize("&6&lDAILY BONUS &8» &eKamu mendapat &l2x XP&e! &7(&f"
+                            + (stats.getDailyClears() + 1) + "&8/&f3&7)"));
+                }
+
+                plugin.getAuraSkillsHook().addXp(player, skill, finalXp);
+                player.sendMessage(ChatUtils.colorize("&a+" + finalXp + " " + skill + " XP!"));
             }
         }
     }

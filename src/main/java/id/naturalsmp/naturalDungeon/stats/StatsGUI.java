@@ -64,6 +64,10 @@ public class StatsGUI implements Listener {
         inv.setItem(12, createStatItem(Material.NETHER_STAR, "&d&lFlawless Clears",
                 "&f" + stats.getFlawlessClears()));
 
+        // Daily Clears
+        inv.setItem(13, createStatItem(Material.GOLD_NUGGET, "&e&lDaily Clears",
+                "&f" + stats.getDailyClears()));
+
         // Fastest Time
         String timeStr = stats.getFastestTime() == Long.MAX_VALUE ? "N/A"
                 : formatTime(stats.getFastestTime());
@@ -77,6 +81,10 @@ public class StatsGUI implements Listener {
         // Damage Taken
         inv.setItem(16, createStatItem(Material.SHIELD, "&4&lDamage Taken",
                 "&f" + String.format("%.0f", stats.getTotalDamageTaken())));
+
+        // Weekly Clears
+        inv.setItem(21, createStatItem(Material.GOLD_INGOT, "&6&lWeekly Clears",
+                "&f" + stats.getWeeklyClears()));
 
         // Close
         inv.setItem(22, createItem(Material.BARRIER, "&cTutup"));

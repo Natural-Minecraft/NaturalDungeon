@@ -41,6 +41,11 @@ public class PlayerStatsManager {
         stats.setTotalDamageDealt(config.getDouble("damage-dealt", 0));
         stats.setTotalDamageTaken(config.getDouble("damage-taken", 0));
 
+        stats.setDailyClears(config.getInt("daily-clears", 0));
+        stats.setLastDailyReset(config.getLong("last-daily-reset", System.currentTimeMillis()));
+        stats.setWeeklyClears(config.getInt("weekly-clears", 0));
+        stats.setLastWeeklyReset(config.getLong("last-weekly-reset", System.currentTimeMillis()));
+
         // Load dungeon-specific clears
         if (config.isConfigurationSection("dungeon-clears")) {
             Map<String, Integer> clears = new HashMap<>();
@@ -65,6 +70,11 @@ public class PlayerStatsManager {
         config.set("fastest-time", stats.getFastestTime());
         config.set("damage-dealt", stats.getTotalDamageDealt());
         config.set("damage-taken", stats.getTotalDamageTaken());
+
+        config.set("daily-clears", stats.getDailyClears());
+        config.set("last-daily-reset", stats.getLastDailyReset());
+        config.set("weekly-clears", stats.getWeeklyClears());
+        config.set("last-weekly-reset", stats.getLastWeeklyReset());
 
         for (Map.Entry<String, Integer> entry : stats.getDungeonClears().entrySet()) {
             config.set("dungeon-clears." + entry.getKey(), entry.getValue());
