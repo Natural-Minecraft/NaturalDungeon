@@ -234,7 +234,7 @@ public class WaveManager {
                         }
                     }
                 } else {
-                    plugin.getLogger().warning("Failed to spawn mob " + mobId + " at " + spawnLoc);
+                    plugin.getLogger().warning("Failed to spawn mob " + mobId + " at " + finalSpawnLoc);
                 }
                 pendingSpawns--;
             }, 20L);
@@ -678,7 +678,7 @@ public class WaveManager {
                     : instance.getParticipants().stream()
                             .map(Bukkit::getPlayer).filter(Objects::nonNull).findFirst().map(Player::getLocation)
                             .orElse(dungeonWorld.getSpawnLocation()),
-                    instance.getParticipants().size(), false);
+                    instance.getParticipants().size(), false, null);
         }
     }
 

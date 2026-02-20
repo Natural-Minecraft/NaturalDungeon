@@ -95,7 +95,7 @@ public class WaveEditorGUI implements Listener {
                     + "," + String.format("%.1f", loc.getYaw()) + "," + String.format("%.1f", loc.getPitch());
 
             String path = "stages." + holder.stageIndex + ".mob-spawns";
-            List<String> spawns = plugin.getDungeonManager().getDungeonConfig(holder.dungeonId).getStringList(path);
+            List<String> spawns = plugin.getDungeonManager().loadDungeonConfig(holder.dungeonId).getStringList(path);
             spawns.add(locStr);
             plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, spawns);
             player.sendMessage(ChatUtils.colorize("&aDitambahkan Mob Spawner #" + spawns.size() + ": &f" + locStr));
