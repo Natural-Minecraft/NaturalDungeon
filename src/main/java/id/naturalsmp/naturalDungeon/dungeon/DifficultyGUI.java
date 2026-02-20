@@ -58,7 +58,8 @@ public class DifficultyGUI implements Listener {
             lore.add(ChatUtils.colorize("&7Max Deaths: &c" + diff.getMaxDeaths()));
             lore.add(ChatUtils.colorize("&7Stages: &f" + diff.getTotalStages()));
             lore.add("");
-            lore.add(ChatUtils.colorize("&eKlik untuk memilih!"));
+            lore.add(ChatUtils.colorize("&eKiri-Klik untuk memilih!"));
+            lore.add(ChatUtils.colorize("&bKanan-Klik untuk preview Loot!"));
 
             Material mat = Material.matchMaterial(diff.getId().toUpperCase() + "_BANNER");
             if (mat == null)
@@ -100,6 +101,12 @@ public class DifficultyGUI implements Listener {
         if (dungeon != null) {
             DungeonDifficulty diff = dungeon.getDifficulty(diffId);
             if (diff != null) {
+                if (e.isRightClick()) {
+                    // Open Loot Preview
+                    new id.naturalsmp.naturaldungeon.loot.LootPreviewGUI(plugin).open(player, dungeon, diff);
+                    return;
+                }
+
                 // Validate Requirements
                 if (!checkRequirements(player, diff)) {
                     player.closeInventory();

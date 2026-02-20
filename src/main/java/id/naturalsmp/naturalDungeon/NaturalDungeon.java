@@ -126,6 +126,7 @@ public final class NaturalDungeon extends JavaPlugin {
         registerListeners();
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.player.AchievementGUI(this),
                 this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.loot.LootPreviewGUI(this), this);
 
         // 6. Register PAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
