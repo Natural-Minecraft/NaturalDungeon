@@ -17,7 +17,6 @@ import java.util.*;
 
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
-import id.naturalsmp.naturaldungeon.dungeon.MutatorType;
 
 public class DungeonListener implements Listener {
 

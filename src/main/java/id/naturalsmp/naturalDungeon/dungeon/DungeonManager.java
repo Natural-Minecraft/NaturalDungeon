@@ -391,7 +391,12 @@ public class DungeonManager implements Listener {
 
     public int getWaveCount(String dungeonId, int stageNum) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        ConfigurationSection sec = config.getConfigurationSection("stages." + stageNum + ".waves");
+        String path = "stages." + stageNum + ".waves";
+        if (config.isList(path)) {
+            List<?> list = config.getList(path);
+            return list == null ? 0 : list.size();
+        }
+        ConfigurationSection sec = config.getConfigurationSection(path);
         return sec == null ? 0 : sec.getKeys(false).size();
     }
 

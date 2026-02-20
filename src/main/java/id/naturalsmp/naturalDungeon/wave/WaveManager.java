@@ -27,6 +27,7 @@ public class WaveManager {
     private BukkitTask waveCheckTask;
     private BukkitTask bossMechanicsTask; // [NEW] Track boss mechanics
     private boolean active = false;
+    private final List<BukkitTask> crystalBeamTasks = new ArrayList<>(); // Track crystal beam particles
 
     // Wave specific metadata
     private Dungeon.Wave currentWaveObj;
@@ -279,13 +280,12 @@ public class WaveManager {
                     crystal.setCustomNameVisible(true);
                     bossCrystals.add(crystal.getUniqueId());
 
-                    // Particle beam to boss (visual)
-                    Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+                    // Particle beam to boss (visual) — tracked for safe cancellation
+                    BukkitTask beamTask = new org.bukkit.scheduler.BukkitRunnable() {
                         @Override
                         public void run() {
                             if (crystal.isDead() || living.isDead()) {
-                                Bukkit.getScheduler().cancelTasks(plugin); // Hacky, better to use BukkitRunnable or
-                                                                           // specific ID
+                                this.cancel(); // Only cancel THIS beam task
                                 return;
                             }
                             // Draw beam
@@ -299,7 +299,8 @@ public class WaveManager {
                                 dungeonWorld.spawnParticle(org.bukkit.Particle.END_ROD, p1, 1, 0, 0, 0, 0);
                             }
                         }
-                    }, 0L, 5L);
+                    }.runTaskTimer(plugin, 0L, 5L);
+                    crystalBeamTasks.add(beamTask);
                 }
             }
 
@@ -327,18 +328,127 @@ public class WaveManager {
             return null;
         }
 
+        // MythicMobs Integration
         if (mobId.startsWith("MM:") && plugin.hasMythicMobs()) {
             Entity mmEffect = plugin.getMythicMobsHook().spawnMob(mobId.substring(3), location, 1);
             if (mmEffect != null)
                 return mmEffect;
         }
 
+        // Custom Mob Integration (CUSTOM: prefix or direct ID match)
+        String customId = mobId.startsWith("CUSTOM:") ? mobId.substring(7) : mobId;
+        id.naturalsmp.naturaldungeon.mob.CustomMob customMob = plugin.getCustomMobManager().getMob(customId);
+        if (customMob != null) {
+            return spawnCustomMob(customMob, location, playerCount);
+        }
+
+        // Vanilla Fallback
         EntityType entityType = parseVanillaMob(mobId);
         if (entityType == null) {
             plugin.getLogger().warning("Unknown mob type: " + mobId);
             return null;
         }
 
+        return spawnVanillaEntity(entityType, mobId, location, playerCount);
+    }
+
+    /**
+     * Spawn a CustomMob with all configured stats, equipment, and skills.
+     */
+    private Entity spawnCustomMob(id.naturalsmp.naturaldungeon.mob.CustomMob customMob, Location location,
+            int playerCount) {
+        try {
+            Entity entity = dungeonWorld.spawn(location, customMob.getEntityType().getEntityClass(),
+                    org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM);
+            if (entity instanceof LivingEntity living) {
+                double hpMultiplier = 1 + (playerCount - 1) * (ConfigUtils.getDouble("scaling.hp-per-player") - 1);
+                double maxHp = customMob.getHealth() * hpMultiplier;
+
+                // Apply HP
+                try {
+                    org.bukkit.attribute.AttributeInstance attr = living
+                            .getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                    if (attr != null) {
+                        attr.setBaseValue(maxHp);
+                    }
+                } catch (Throwable e) {
+                    living.setMaxHealth(maxHp);
+                }
+                living.setHealth(maxHp);
+
+                // Apply Damage
+                try {
+                    org.bukkit.attribute.AttributeInstance dmgAttr = living
+                            .getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+                    if (dmgAttr != null) {
+                        dmgAttr.setBaseValue(customMob.getDamage() * hpMultiplier);
+                    }
+                } catch (Throwable ignored) {
+                }
+
+                // Apply Speed
+                try {
+                    org.bukkit.attribute.AttributeInstance spdAttr = living
+                            .getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
+                    if (spdAttr != null) {
+                        spdAttr.setBaseValue(customMob.getSpeed());
+                    }
+                } catch (Throwable ignored) {
+                }
+
+                // Apply Equipment
+                if (entity instanceof org.bukkit.entity.Mob mob) {
+                    org.bukkit.inventory.EntityEquipment eq = mob.getEquipment();
+                    if (eq != null) {
+                        for (java.util.Map.Entry<String, Object> entry : customMob.getEquipment().entrySet()) {
+                            try {
+                                org.bukkit.Material mat = org.bukkit.Material
+                                        .valueOf(entry.getValue().toString().toUpperCase());
+                                org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(mat);
+                                switch (entry.getKey().toUpperCase()) {
+                                    case "HELMET" -> eq.setHelmet(item);
+                                    case "CHESTPLATE" -> eq.setChestplate(item);
+                                    case "LEGGINGS" -> eq.setLeggings(item);
+                                    case "BOOTS" -> eq.setBoots(item);
+                                    case "HAND" -> eq.setItemInMainHand(item);
+                                    case "OFFHAND" -> eq.setItemInOffHand(item);
+                                }
+                            } catch (IllegalArgumentException ignored) {
+                            }
+                        }
+                    }
+                }
+
+                // Apply Skills via SkillRegistry
+                if (!customMob.getSkillIds().isEmpty()) {
+                    plugin.getSkillRegistry().applySkills(living, customMob.getSkillIds());
+                }
+
+                // AuraMobs Integration
+                if (plugin.getAuraMobsHook().isEnabled()) {
+                    int level = instance.getDungeon().getMinTier() * 10 + (instance.getCurrentStage() * 5);
+                    plugin.getAuraMobsHook().setLevel(living, level);
+                }
+
+                // Custom Name
+                String name = ChatUtils.colorize("&7[Lv." + instance.getDungeon().getMinTier() + "] &f"
+                        + customMob.getName() + " &c❤ " + (int) living.getHealth() + "/"
+                        + (int) maxHp);
+                living.setCustomName(name);
+                living.setCustomNameVisible(true);
+            }
+            return entity;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Error spawning custom mob " + customMob.getId() + ": " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Spawn a vanilla entity with standard stat scaling.
+     */
+    private Entity spawnVanillaEntity(EntityType entityType, String mobId, Location location, int playerCount) {
         try {
             Entity entity = dungeonWorld.spawn(location, entityType.getEntityClass(),
                     org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM);
@@ -363,13 +473,13 @@ public class WaveManager {
                 }
                 living.setHealth(maxHealthValue);
 
-                // [NEW] AuraMobs Integration
+                // AuraMobs Integration
                 if (plugin.getAuraMobsHook().isEnabled()) {
                     int level = instance.getDungeon().getMinTier() * 10 + (instance.getCurrentStage() * 5);
                     plugin.getAuraMobsHook().setLevel(living, level);
                 }
 
-                // [NEW] Ultimate Meta-Tag
+                // Name Tag
                 String name = ChatUtils.colorize("&7[Lv." + instance.getDungeon().getMinTier() + "] &f"
                         + entityType.name() + " &c❤ " + (int) living.getHealth() + "/"
                         + (int) living.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getBaseValue());
@@ -569,6 +679,12 @@ public class WaveManager {
             if (entity != null && !entity.isDead())
                 entity.remove();
         }
+        // Cancel crystal beam tasks
+        for (BukkitTask task : crystalBeamTasks) {
+            if (task != null && !task.isCancelled())
+                task.cancel();
+        }
+        crystalBeamTasks.clear();
         bossCrystals.clear();
         activeMobs.clear();
         cancelWaveCheck();

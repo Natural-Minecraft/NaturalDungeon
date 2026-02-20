@@ -172,4 +172,25 @@ public class SkillRegistry {
     public int getSkillCount() {
         return skills.size();
     }
+
+    /**
+     * Apply skills to a living entity by setting metadata tags.
+     * The SkillExecutor tick loop reads these metadata to execute skills at
+     * runtime.
+     */
+    public void applySkills(org.bukkit.entity.LivingEntity entity, java.util.List<String> skillIds) {
+        if (skillIds == null || skillIds.isEmpty())
+            return;
+
+        // Mark as dungeon mob
+        entity.setMetadata("dungeon_mob",
+                new org.bukkit.metadata.FixedMetadataValue(
+                        org.bukkit.Bukkit.getPluginManager().getPlugin("NaturalDungeon"), true));
+
+        // Set skill IDs as comma-separated metadata
+        String joined = String.join(",", skillIds);
+        entity.setMetadata("mob_skills",
+                new org.bukkit.metadata.FixedMetadataValue(
+                        org.bukkit.Bukkit.getPluginManager().getPlugin("NaturalDungeon"), joined));
+    }
 }

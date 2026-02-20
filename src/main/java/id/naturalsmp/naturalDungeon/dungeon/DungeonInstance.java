@@ -372,18 +372,19 @@ public class DungeonInstance {
         center.getBlock().setType(org.bukkit.Material.CAMPFIRE);
         updateBossBar("&a&lRESTING &7- 60s", 1.0, org.bukkit.boss.BarColor.GREEN);
 
-        // TODO: Spawn Temporary Merchant entity
-
         final Location campfireLoc = center.clone();
 
-        // Timer for safe room (60s default)
-        BukkitTask safeRoomTimer = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+        // Timer for safe room (60s default) — tracked via BukkitRunnable for safe
+        // self-cancel
+        new org.bukkit.scheduler.BukkitRunnable() {
             int time = 60;
 
             @Override
             public void run() {
-                if (!active)
+                if (!active) {
+                    this.cancel();
                     return;
+                }
                 time--;
 
                 // Healing aura
@@ -402,13 +403,11 @@ public class DungeonInstance {
 
                 if (time <= 0) {
                     campfireLoc.getBlock().setType(org.bukkit.Material.AIR); // Remove campfire
+                    this.cancel(); // Only cancel THIS task
                     onStageComplete();
-                    // Cancel this task
-                    Bukkit.getScheduler().cancelTasks(plugin); // Ideally track ID and cancel specifically, or rely on
-                                                               // active flag later. Quick hack for anonymous.
                 }
             }
-        }, 20L, 20L);
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startNextWave() {
