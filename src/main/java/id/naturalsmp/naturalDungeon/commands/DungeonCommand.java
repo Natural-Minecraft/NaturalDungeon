@@ -157,6 +157,11 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             return true;
         }
 
+        if (args.length > 0 && args[0].equalsIgnoreCase("achievements")) {
+            new id.naturalsmp.naturaldungeon.player.AchievementGUI(plugin).open(player);
+            return true;
+        }
+
         plugin.getDungeonManager().openDungeonGUI(player);
         return true;
     }

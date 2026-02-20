@@ -33,6 +33,7 @@ import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
 import id.naturalsmp.naturaldungeon.mob.CustomMobSpawner;
 import id.naturalsmp.naturaldungeon.skill.SkillRegistry;
 import id.naturalsmp.naturaldungeon.skill.SkillExecutor;
+import id.naturalsmp.naturaldungeon.player.AchievementManager;
 import id.naturalsmp.naturaldungeon.queue.DungeonQueue;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -54,6 +55,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private SkillRegistry skillRegistry;
     private SkillExecutor skillExecutor;
     private DungeonQueue dungeonQueue;
+    private AchievementManager achievementManager;
 
     // Hooks
     private VaultHook vaultHook;
@@ -114,12 +116,16 @@ public final class NaturalDungeon extends JavaPlugin {
         this.skillRegistry = new SkillRegistry(this);
         this.skillExecutor = new SkillExecutor(this, skillRegistry);
         this.dungeonQueue = new DungeonQueue(this);
+        // Player Managers
+        this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
 
         // 4. Register Commands
         registerCommands();
 
         // 5. Register Listeners
         registerListeners();
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.player.AchievementGUI(this),
+                this);
 
         // 6. Register PAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -404,5 +410,9 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public id.naturalsmp.naturaldungeon.vfx.DamageNumberManager getDamageNumberManager() {
         return damageNumberManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.player.AchievementManager getAchievementManager() {
+        return achievementManager;
     }
 }

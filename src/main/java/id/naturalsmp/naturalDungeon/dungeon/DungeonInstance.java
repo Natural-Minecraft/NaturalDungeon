@@ -766,10 +766,37 @@ public class DungeonInstance {
                     if (p != null) {
                         p.sendMessage(ChatUtils.colorize(
                                 "&d&l✦ &fFlawless Clear! &7Kamu mendapat bonus XP & loot!"));
+                        // Achievement
+                        plugin.getAchievementManager().unlockAchievement(p, "flawless");
                     }
                 }
                 // Give bonus XP for flawless clear
                 lootManager.giveXpReward(participants, 2); // extra 2 stages worth of XP
+            }
+
+            // Achievements & Stats Tracking
+            UUID mvpUuid = getMVP();
+            for (UUID uuid : participants) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    id.naturalsmp.naturaldungeon.player.AchievementManager am = plugin.getAchievementManager();
+
+                    // Increment clear count
+                    am.incrementStat(uuid, "dungeons_cleared");
+                    int clears = am.getStat(uuid, "dungeons_cleared");
+
+                    if (clears >= 1)
+                        am.unlockAchievement(p, "novice");
+                    if (clears >= 10)
+                        am.unlockAchievement(p, "expert");
+                    if (clears >= 100)
+                        am.unlockAchievement(p, "master");
+
+                    // MVP Achievement
+                    if (uuid.equals(mvpUuid)) {
+                        am.unlockAchievement(p, "mvp");
+                    }
+                }
             }
 
             // Server-wide completion announcement

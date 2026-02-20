@@ -141,6 +141,7 @@ public class DungeonListener implements Listener {
                     Player killer = living.getKiller();
                     if (instance.getParticipants().contains(killer.getUniqueId())) {
                         instance.addMobKill(killer.getUniqueId());
+                        plugin.getAchievementManager().unlockAchievement(killer, "first_blood");
                     }
                 }
 
