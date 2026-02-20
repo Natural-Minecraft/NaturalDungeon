@@ -369,6 +369,20 @@ public class WaveManager {
                 return mmEffect;
         }
 
+        // ModelEngine Integration
+        if (mobId.startsWith("ME:") && plugin.hasModelEngine()) {
+            String[] parts = mobId.substring(3).split(":");
+            String modelId = parts[0];
+            EntityType baseType = EntityType.ZOMBIE;
+            if (parts.length > 1) {
+                try {
+                    baseType = EntityType.valueOf(parts[1].toUpperCase());
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            return plugin.getModelEngineHook().spawnModelMob(modelId, baseType, location);
+        }
+
         // Custom Mob Integration (CUSTOM: prefix or direct ID match)
         String customId = mobId.startsWith("CUSTOM:") ? mobId.substring(7) : mobId;
         id.naturalsmp.naturaldungeon.mob.CustomMob customMob = plugin.getCustomMobManager().getMob(customId);

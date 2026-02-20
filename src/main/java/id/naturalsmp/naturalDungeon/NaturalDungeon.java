@@ -17,6 +17,7 @@ import id.naturalsmp.naturaldungeon.integration.AuraSkillsHook;
 import id.naturalsmp.naturaldungeon.integration.NaturalCoreHook;
 import id.naturalsmp.naturaldungeon.integration.PlaceholderAPIHook;
 import id.naturalsmp.naturaldungeon.integration.AuraMobsHook;
+import id.naturalsmp.naturaldungeon.integration.ModelEngineHook;
 import id.naturalsmp.naturaldungeon.commands.DungeonCommand;
 import id.naturalsmp.naturaldungeon.commands.PartyCommand;
 import id.naturalsmp.naturaldungeon.commands.AdminCommand;
@@ -62,6 +63,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private AuraSkillsHook auraSkillsHook;
     private NaturalCoreHook naturalCoreHook;
     private AuraMobsHook auraMobsHook;
+    private ModelEngineHook modelEngineHook;
 
     // Singleton GUI Listeners
     private DungeonGUI dungeonGUI;
@@ -179,6 +181,10 @@ public final class NaturalDungeon extends JavaPlugin {
 
         this.naturalCoreHook = new NaturalCoreHook(this);
         this.auraMobsHook = new AuraMobsHook(this);
+        this.modelEngineHook = new ModelEngineHook(this);
+        if (modelEngineHook.isEnabled()) {
+            getLogger().info("ModelEngine hooked!");
+        }
     }
 
     private void registerCommands() {
@@ -294,6 +300,10 @@ public final class NaturalDungeon extends JavaPlugin {
         return mythicMobsHook;
     }
 
+    public ModelEngineHook getModelEngineHook() {
+        return modelEngineHook;
+    }
+
     public MMOItemsHook getMmoItemsHook() {
         return mmoItemsHook;
     }
@@ -304,6 +314,10 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public boolean hasMythicMobs() {
         return mythicMobsHook != null;
+    }
+
+    public boolean hasModelEngine() {
+        return modelEngineHook != null && modelEngineHook.isEnabled();
     }
 
     public boolean hasMMOItems() {
