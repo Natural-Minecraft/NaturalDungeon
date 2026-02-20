@@ -128,7 +128,7 @@ public class ElementalMasterySkill implements MobSkill {
 
     private void executeTsunami(LivingEntity caster, Player target) {
         Location center = caster.getLocation();
-        Vector direction = target.getLocation().toVector().subtract(center.toVector()).normalize().setY(0);
+        final Vector direction = target.getLocation().toVector().subtract(center.toVector()).normalize().setY(0);
 
         new BukkitRunnable() {
             int t = 0;
@@ -171,7 +171,7 @@ public class ElementalMasterySkill implements MobSkill {
 
     private void executeEarthSpikes(LivingEntity caster, Player target) {
         Location center = caster.getLocation();
-        Vector dir = target.getLocation().toVector().subtract(center.toVector()).normalize().setY(0);
+        final Vector dir = target.getLocation().toVector().subtract(center.toVector()).normalize().setY(0);
 
         new BukkitRunnable() {
             int t = 0;
