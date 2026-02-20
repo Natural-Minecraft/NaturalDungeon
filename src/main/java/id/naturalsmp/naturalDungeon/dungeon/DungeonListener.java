@@ -85,6 +85,14 @@ public class DungeonListener implements Listener {
         // Find if this mob belongs to any dungeon
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
             if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
+
+                // Spawn damage number VFX
+                if (e instanceof EntityDamageByEntityEvent damageEvent && damageEvent.getDamager() instanceof Player) {
+                    boolean isCrit = damageEvent.isCritical();
+                    double damage = e.getFinalDamage();
+                    plugin.getDamageNumberManager().spawnDamageNumber(living.getLocation(), damage, isCrit);
+                }
+
                 // Update name tag immediately after damage
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (living.isDead())

@@ -91,6 +91,46 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 plugin.getDungeonManager().endDungeon(instance, false);
                 player.sendMessage(ChatUtils.colorize("&aDungeon di-force end."));
             }
+            case "clone" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(ChatUtils.colorize("&cGunakan: /nd clone <source_id> <new_id>"));
+                    return true;
+                }
+                String sourceId = args[1];
+                String newId = args[2];
+                if (plugin.getDungeonManager().getDungeon(sourceId) == null) {
+                    sender.sendMessage(ChatUtils.colorize("&cDungeon sumber tidak ditemukan: " + sourceId));
+                    return true;
+                }
+                if (plugin.getDungeonManager().getDungeon(newId) != null) {
+                    sender.sendMessage(ChatUtils.colorize("&cDungeon dengan ID " + newId + " sudah ada!"));
+                    return true;
+                }
+                boolean success = plugin.getDungeonManager().cloneDungeon(sourceId, newId);
+                if (success) {
+                    sender.sendMessage(
+                            ChatUtils.colorize("&a✔ Berhasil meng-clone dungeon &e" + sourceId + " &ake &e" + newId));
+                } else {
+                    sender.sendMessage(ChatUtils.colorize("&c✖ Gagal meng-clone dungeon. Cek console."));
+                }
+            }
+            case "status" -> {
+                sender.sendMessage(ChatUtils.colorize("&6&lStatus Dungeon Aktif:"));
+                List<DungeonInstance> active = plugin.getDungeonManager().getActiveInstances();
+                if (active.isEmpty()) {
+                    sender.sendMessage(ChatUtils.colorize("&7Tidak ada dungeon yang sedang berjalan."));
+                    return true;
+                }
+                for (DungeonInstance instance : active) {
+                    String time = ChatUtils.formatTime(instance.getDuration() / 1000);
+                    int players = instance.getParticipants().size();
+                    sender.sendMessage(ChatUtils.colorize("  &e" + instance.getDungeon().getId() +
+                            " &7| Stage: &f" + instance.getCurrentStage() +
+                            " &7| Wave: &f" + instance.getCurrentWave() +
+                            " &7| Players: &f" + players +
+                            " &7| Waktu: &f" + time));
+                }
+            }
             case "list" -> {
                 sender.sendMessage(ChatUtils.colorize("&6&lDungeon List:"));
                 for (Dungeon dungeon : plugin.getDungeonManager().getDungeons()) {
@@ -217,6 +257,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
         sender.sendMessage(ChatUtils.colorize("&e/nd set <safezone|arena> <pos1|pos2> &7- Set region points"));
         sender.sendMessage(ChatUtils.colorize("&e/nd editor &7- Open dungeon editor GUI"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
     }
 
@@ -264,10 +306,10 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             completions
                     .addAll(Arrays.asList("reload", "version", "setup", "test", "forceend", "list", "info", "admin",
-                            "editor"));
+                            "editor", "clone", "status"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("setup") || sub.equals("test") || sub.equals("info")) {
+            if (sub.equals("setup") || sub.equals("test") || sub.equals("info") || sub.equals("clone")) {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
             } else if (sub.equals("set")) {
                 completions.addAll(Arrays.asList("safezone", "arena"));

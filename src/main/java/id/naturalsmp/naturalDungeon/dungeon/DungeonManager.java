@@ -59,6 +59,38 @@ public class DungeonManager implements Listener {
         return dungeons.keySet();
     }
 
+    public boolean cloneDungeon(String sourceId, String newId) {
+        Dungeon source = dungeons.get(sourceId);
+        if (source == null)
+            return false;
+
+        File dungeonsFolder = new File(plugin.getDataFolder(), "dungeons");
+        File sourceFile = new File(dungeonsFolder, sourceId + ".yml");
+        File newFile = new File(dungeonsFolder, newId + ".yml");
+
+        if (!sourceFile.exists() || newFile.exists())
+            return false;
+
+        try {
+            // Copy file content
+            java.nio.file.Files.copy(sourceFile.toPath(), newFile.toPath());
+
+            // Load new config and change display name & id
+            YamlConfiguration newConfig = YamlConfiguration.loadConfiguration(newFile);
+            newConfig.set("display-name", source.getDisplayName() + " (Copy)");
+            newConfig.save(newFile);
+
+            // Load into memory
+            dungeons.put(newId, new Dungeon(newId, newConfig));
+            plugin.getLogger().info("Successfully cloned dungeon " + sourceId + " to " + newId);
+            return true;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to clone dungeon " + sourceId + " to " + newId + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public DungeonInstance getActiveInstance(Player player) {
         return activeInstances.get(player.getUniqueId());
     }

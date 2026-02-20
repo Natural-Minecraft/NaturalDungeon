@@ -41,6 +41,24 @@ public class MobSkillEditorGUI implements Listener {
             inv.setItem(slots[i], createItem(Material.BOOK, "&e" + cat.getDisplayName(), "&7" + cat.getDescription()));
         }
 
+        // Skill Presets (bottom row)
+        inv.setItem(0, createItem(Material.DIAMOND_CHESTPLATE, "&#FF6666&lTANKY BOSS",
+                "&7Preset: Shield Wall, Life Drain,",
+                "&7Ground Slam, Gravity Pull",
+                "", "&aKlik untuk apply preset"));
+        inv.setItem(1, createItem(Material.BLAZE_POWDER, "&#FF8800&lAOE CASTER",
+                "&7Preset: Meteor Shower, Thunderstorm,",
+                "&7Earth Spikes, Tsunami Wave",
+                "", "&aKlik untuk apply preset"));
+        inv.setItem(2, createItem(Material.GOLDEN_APPLE, "&#55FF55&lSUPPORT MOB",
+                "&7Preset: Heal Aura, Shield Allies,",
+                "&7Summon Minions, Phantom Phase",
+                "", "&aKlik untuk apply preset"));
+        inv.setItem(3, createItem(Material.IRON_SWORD, "&#AA55FF&lASSASSIN",
+                "&7Preset: Shadow Step, Soul Tether,",
+                "&7Blindness Fog, Time Dilation",
+                "", "&aKlik untuk apply preset"));
+
         inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
         player.openInventory(inv);
     }
@@ -88,27 +106,37 @@ public class MobSkillEditorGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         if (e.getSlot() == 22) {
             if (holder.isBossEditor) {
-                new BossEditorGUI(plugin).openBossConfig(player, holder.dungeonId, holder.mobId); // Need to expose this
-                                                                                                  // or use
-                                                                                                  // reflection/public??
-                // BossEditorGUI.openBossConfig is private in my previous step...
-                // Mistake! I need to make it public or access it differently.
-                // For now, I'll update BossEditorGUI to make it public or use a different entry
-                // point.
-                // Or I can just open the list if I can't go back to config directly easily
-                // without an instance.
-                // Wait, I can instantiate BossEditorGUI. I need to make the method public.
-                // For MobEditorGUI, logic is similar.
-                // Let's assume I will make openBossConfig public in next step.
-                // Actually, I can just open the main editor for now if that fails, but I should
-                // fix it.
-                // I will update BossEditorGUI to make openBossConfig public.
+                new BossEditorGUI(plugin).openBossConfig(player, holder.dungeonId, holder.mobId);
             } else {
-                // Open Mob Config (private too? Check MobEditorGUI)
-                // MobEditorGUI.openMobConfig is private.
-                // I need to fix visibility for both.
-                new MobEditorGUI(plugin).open(player, holder.dungeonId); // Fallback to list
+                new MobEditorGUI(plugin).open(player, holder.dungeonId);
             }
+            return;
+        }
+
+        // Handle Preset Clicks (slots 0-3)
+        if (e.getSlot() >= 0 && e.getSlot() <= 3) {
+            CustomMob mob = plugin.getCustomMobManager().getMob(holder.mobId);
+            if (mob == null)
+                return;
+
+            List<String> preset = switch (e.getSlot()) {
+                case 0 -> List.of("shield_wall", "life_drain", "ground_slam", "gravity_pull"); // Tanky Boss
+                case 1 -> List.of("meteor_shower", "thunderstorm", "earth_spikes", "tsunami_wave"); // AOE Caster
+                case 2 -> List.of("heal_aura", "shield_allies", "summon_minions", "phantom_phase"); // Support
+                case 3 -> List.of("shadow_step", "soul_tether", "blindness_fog", "time_dilation"); // Assassin
+                default -> List.of();
+            };
+
+            // Clear existing and apply preset
+            mob.getSkillIds().clear();
+            for (String skillId : preset) {
+                if (plugin.getSkillRegistry().getSkill(skillId) != null) {
+                    mob.addSkill(skillId);
+                }
+            }
+            plugin.getCustomMobManager().updateMob(mob);
+            player.sendMessage(ChatUtils.colorize("&a✔ Preset applied! " + preset.size() + " skills."));
+            open(player, holder.dungeonId, holder.mobId, holder.isBossEditor); // Refresh
             return;
         }
 

@@ -65,6 +65,9 @@ public final class NaturalDungeon extends JavaPlugin {
     private AuraMobsHook auraMobsHook;
     private ModelEngineHook modelEngineHook;
 
+    // VFX
+    private id.naturalsmp.naturaldungeon.vfx.DamageNumberManager damageNumberManager;
+
     // Singleton GUI Listeners
     private DungeonGUI dungeonGUI;
     private BuffChoiceGUI buffChoiceGUI;
@@ -185,6 +188,9 @@ public final class NaturalDungeon extends JavaPlugin {
         if (modelEngineHook.isEnabled()) {
             getLogger().info("ModelEngine hooked!");
         }
+
+        // VFX
+        this.damageNumberManager = new id.naturalsmp.naturaldungeon.vfx.DamageNumberManager(this);
     }
 
     private void registerCommands() {
@@ -394,5 +400,9 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public DungeonQueue getDungeonQueue() {
         return dungeonQueue;
+    }
+
+    public id.naturalsmp.naturaldungeon.vfx.DamageNumberManager getDamageNumberManager() {
+        return damageNumberManager;
     }
 }
