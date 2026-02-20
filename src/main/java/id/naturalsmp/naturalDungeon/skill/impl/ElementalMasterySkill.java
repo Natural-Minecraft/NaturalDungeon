@@ -148,7 +148,7 @@ public class ElementalMasterySkill implements MobSkill {
                     Vector side = new Vector(-direction.getZ(), 0, direction.getX()).normalize().multiply(i);
                     Location particleLoc = current.clone().add(side);
                     caster.getWorld().spawnParticle(Particle.SPLASH, particleLoc, 10, 0.5, 1, 0.5, 0.1);
-                    caster.getWorld().spawnParticle(Particle.WATER_BUBBLE, particleLoc, 5, 0.5, 0.5, 0.5, 0.05);
+                    caster.getWorld().spawnParticle(Particle.BUBBLE, particleLoc, 5, 0.5, 0.5, 0.5, 0.05);
                 }
 
                 if (t % 5 == 0) {
@@ -188,7 +188,7 @@ public class ElementalMasterySkill implements MobSkill {
                 Location spikeLoc = current.clone();
 
                 // Jump up effect
-                spikeLoc.getWorld().spawnParticle(Particle.BLOCK_DUST, spikeLoc, 50, 0.5, 0.5, 0.5,
+                spikeLoc.getWorld().spawnParticle(Particle.BLOCK, spikeLoc, 50, 0.5, 0.5, 0.5,
                         Material.STONE.createBlockData());
                 spikeLoc.getWorld().playSound(spikeLoc, Sound.BLOCK_STONE_BREAK, 1f, 0.5f);
 

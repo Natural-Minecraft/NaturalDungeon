@@ -317,7 +317,7 @@ public class DungeonManager implements Listener {
         return new File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
     }
 
-    private YamlConfiguration loadDungeonConfig(String dungeonId) {
+    public YamlConfiguration loadDungeonConfig(String dungeonId) {
         File file = getDungeonFile(dungeonId);
         if (!file.exists())
             return new YamlConfiguration();
