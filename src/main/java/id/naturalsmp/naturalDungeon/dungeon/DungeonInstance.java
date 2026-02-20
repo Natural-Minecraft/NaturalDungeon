@@ -124,7 +124,6 @@ public class DungeonInstance {
             }
 
             startSafeZoneCheck();
-            startHUDTask();
             startTimerLimit();
             startHazardTask();
             Bukkit.getScheduler().runTaskLater(plugin, () -> startStage(currentStage), 60L);

@@ -116,7 +116,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             }
             case "status" -> {
                 sender.sendMessage(ChatUtils.colorize("&6&lStatus Dungeon Aktif:"));
-                List<DungeonInstance> active = plugin.getDungeonManager().getActiveInstances();
+                Collection<DungeonInstance> active = plugin.getDungeonManager().getActiveInstances();
                 if (active.isEmpty()) {
                     sender.sendMessage(ChatUtils.colorize("&7Tidak ada dungeon yang sedang berjalan."));
                     return true;
