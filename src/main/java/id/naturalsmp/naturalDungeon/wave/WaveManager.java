@@ -783,4 +783,25 @@ public class WaveManager {
     public boolean isBossMob(UUID uuid) {
         return bossUUID != null && bossUUID.equals(uuid);
     }
+
+    // ===== HUD Data Getters (for NaturalCore integration) =====
+
+    public int getActiveMobCount() {
+        return activeMobs.size();
+    }
+
+    public int getInitialMobCount() {
+        return initialWaveCount;
+    }
+
+    public String getObjectiveText() {
+        if (currentWaveObj == null)
+            return "Kill All";
+        return switch (currentWaveObj.getType()) {
+            case KILL_ALL -> "Kill All (" + activeMobs.size() + " left)";
+            case HUNT_TARGET -> "Hunt " + currentWaveObj.getTargetName() + " (" + activeMobs.size() + " left)";
+            case DEFEND_TARGET -> "Defend " + currentWaveObj.getTargetName() + " (" + objectiveTimer + "s)";
+            case CAPTURE_ZONE -> "Capture Zone (" + objectiveTimer + "s)";
+        };
+    }
 }

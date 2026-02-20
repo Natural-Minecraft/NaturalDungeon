@@ -605,40 +605,6 @@ public class DungeonInstance {
         }, 20L, 10L);
     }
 
-    private void startHUDTask() {
-        // Cancel previous HUD task if any (safety)
-        if (hudTask != null) {
-            hudTask.cancel();
-        }
-        hudTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!active) {
-                hudTask.cancel();
-                hudTask = null;
-                return;
-            }
-
-            String time = ChatUtils.formatTime(getDuration() / 1000);
-            String rank = getPerformanceRank();
-
-            for (UUID uuid : participants) {
-                Player p = Bukkit.getPlayer(uuid);
-                if (p == null)
-                    continue;
-
-                int playerLives = lives.getOrDefault(uuid, 0);
-                String heartColor = playerLives > 1 ? "&a" : "&c";
-
-                String actionbar = ChatUtils.colorize(
-                        "&7Waktu: &f" + time + " &8| " +
-                                "&7Lives: " + heartColor + playerLives + " ❤ &8| " +
-                                "&7Rank: &#FFBB00" + rank);
-
-                p.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
-                        net.md_5.bungee.api.chat.TextComponent.fromLegacyText(actionbar));
-            }
-        }, 20L, 20L);
-    }
-
     public void handleFakeDeath(Player player) {
         if (!active)
             return;
@@ -1031,5 +997,49 @@ public class DungeonInstance {
 
     public WaveManager getWaveManager() {
         return waveManager;
+    }
+
+    // ===== HUD Data API (for NaturalCore DungeonHUDComponent) =====
+
+    /**
+     * Get total waves in the current stage.
+     */
+    public int getTotalWavesInStage() {
+        Dungeon.Stage stage = getStage(currentStage);
+        if (stage == null)
+            return 0;
+        return stage.getWaves().size();
+    }
+
+    /**
+     * Get total stages in this dungeon.
+     */
+    public int getTotalStages() {
+        return difficulty.getTotalStages();
+    }
+
+    /**
+     * Get the objective text for the current wave.
+     */
+    public String getObjectiveText() {
+        if (waveManager == null)
+            return "";
+        return waveManager.getObjectiveText();
+    }
+
+    /**
+     * Get remaining mobs in the current wave.
+     */
+    public int getRemainingMobs() {
+        if (waveManager == null)
+            return 0;
+        return waveManager.getActiveMobCount();
+    }
+
+    /**
+     * Get the dungeon display name.
+     */
+    public String getDungeonName() {
+        return dungeon.getDisplayName();
     }
 }
