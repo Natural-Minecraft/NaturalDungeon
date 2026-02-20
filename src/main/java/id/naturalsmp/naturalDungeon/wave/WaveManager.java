@@ -198,16 +198,38 @@ public class WaveManager {
 
             final Location finalSpawnLoc = spawnLoc;
 
-            // [PREMIUM] Telegraphing Particles
-            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.SOUL, finalSpawnLoc.clone().add(0, 0.5, 0), 20,
-                    0.3, 0.5,
-                    0.3, 0.05);
-            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.LARGE_SMOKE,
-                    finalSpawnLoc.clone().add(0, 0.5, 0), 10, 0.2,
-                    0.3, 0.2, 0.02);
-            finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.FLAME, finalSpawnLoc.clone().add(0, 0.5, 0), 10,
-                    0.2,
-                    0.3, 0.2, 0.05);
+            // [PREMIUM] Aesthetic Mob Spawning Sequence (1s)
+            new BukkitRunnable() {
+                int t = 0;
+
+                @Override
+                public void run() {
+                    if (t >= 20 || !active) {
+                        this.cancel();
+                        return;
+                    }
+
+                    // Expandable Circle
+                    double radius = 1.0 * (t / 20.0);
+                    for (int i = 0; i < 8; i++) {
+                        double angle = (2 * Math.PI / 8) * i;
+                        double x = Math.cos(angle) * radius;
+                        double z = Math.sin(angle) * radius;
+                        finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.SOUL_FIRE_FLAME,
+                                finalSpawnLoc.clone().add(x, 0.1, z), 1, 0, 0, 0, 0);
+                    }
+
+                    // Rising Beam
+                    finalSpawnLoc.getWorld().spawnParticle(org.bukkit.Particle.SOUL,
+                            finalSpawnLoc.clone().add(0, t * 0.1, 0), 3, 0.1, 0.1, 0.1, 0.02);
+
+                    if (t % 10 == 0) {
+                        finalSpawnLoc.getWorld().playSound(finalSpawnLoc, org.bukkit.Sound.BLOCK_BEACON_AMBIENT, 0.5f,
+                                1.5f);
+                    }
+                    t += 2;
+                }
+            }.runTaskTimer(plugin, 0L, 2L);
 
             // Spawn with 1s delay
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
