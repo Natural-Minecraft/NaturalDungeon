@@ -152,6 +152,10 @@ public class SkillRegistry {
         register(new CrowdControlSkill("blind_fog", "Blind Fog", 300, 20, 0.0));
         register(new CrowdControlSkill("phantom_possession", "Phantom Possession", 600, 8, 4.0));
 
+        // ============ ENTITY MANIPULATION (2 skills) ============
+        register(new EntityManipulationSkill("summon_minions", "Summon Minions", 500, 15));
+        register(new EntityManipulationSkill("soul_tether", "Soul Tether", 400, 12));
+
         // ============ BOSS (5 skills) ============
         register(new GenericSkill("arena_lockdown", "Arena Lockdown", SkillCategory.BOSS, 400, 20, 0.0));
         register(new GenericSkill("death_ray", "Death Ray", SkillCategory.BOSS, 300, 25, 25.0));
