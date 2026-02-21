@@ -39,7 +39,7 @@ public class DungeonCompletionGUI implements Listener {
                     "&7dungeon &f" + instance.getDungeon().getDisplayName() + "&7!",
                     "",
                     "&aWaktu: &f" + ChatUtils.formatTime(instance.getDuration() / 1000),
-                    "&aStages: &f" + instance.getDifficulty().getTotalStages(),
+                    "&aStages: &f" + instance.getDungeon().getTotalStages(),
                     "&aDeaths: &f" + instance.getTotalDeaths(),
                     "",
                     "&#FFBB00&lRANK: &f&n" + instance.getPerformanceRank()));
@@ -77,7 +77,7 @@ public class DungeonCompletionGUI implements Listener {
             }
 
             int baseXp = ConfigUtils.getInt("rewards.base-xp");
-            int totalXp = baseXp * instance.getDifficulty().getTotalStages();
+            int totalXp = baseXp * instance.getDungeon().getTotalStages();
             String skill = ConfigUtils.getString("rewards.xp-skill");
             inv.setItem(21, createItem(Material.EXPERIENCE_BOTTLE, "&#00AAFF&l⬆ XP REWARD",
                     "&7Kamu mendapatkan:",

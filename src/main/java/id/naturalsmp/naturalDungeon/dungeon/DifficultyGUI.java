@@ -56,7 +56,7 @@ public class DifficultyGUI implements Listener {
             lore.add(ChatUtils.colorize("&7Min Tier: &f" + tierDisplay));
             lore.add(ChatUtils.colorize("&7Key Required: &f" + keyDisplay));
             lore.add(ChatUtils.colorize("&7Max Deaths: &c" + diff.getMaxDeaths()));
-            lore.add(ChatUtils.colorize("&7Stages: &f" + diff.getTotalStages()));
+            lore.add(ChatUtils.colorize("&7Stages: &f" + dungeon.getTotalStages()));
             lore.add("");
             lore.add(ChatUtils.colorize("&eKiri-Klik untuk memilih!"));
             lore.add(ChatUtils.colorize("&bKanan-Klik untuk preview Loot!"));

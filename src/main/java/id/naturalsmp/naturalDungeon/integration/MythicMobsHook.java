@@ -34,4 +34,13 @@ public class MythicMobsHook {
     public boolean mobExists(String mobId) {
         return MythicProvider.get().getMobManager().getMythicMob(mobId).isPresent();
     }
+
+    // Aliases for AdminCommand
+    public boolean isValidMob(String mobId) {
+        return mobExists(mobId);
+    }
+
+    public Entity spawnMythicMob(String mobId, Location location) {
+        return spawnMob(mobId, location, 1.0);
+    }
 }
