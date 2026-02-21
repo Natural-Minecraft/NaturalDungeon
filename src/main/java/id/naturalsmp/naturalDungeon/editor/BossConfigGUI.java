@@ -54,7 +54,7 @@ public class BossConfigGUI implements Listener {
         if (e.getCurrentItem() == null)
             return;
         Player player = (Player) e.getWhoClicked();
-        String path = "stages." + holder.stageIndex + ".boss.";
+        String path = "stages." + (holder.stageIndex + 1) + ".boss.";
 
         switch (e.getSlot()) {
             case 11 -> plugin.getEditorChatInput().requestInput(player,
@@ -70,7 +70,7 @@ public class BossConfigGUI implements Listener {
                 List<Double> locList = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
                 // Save to boss-spawn directly on the stage level
                 plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                        "stages." + holder.stageIndex + ".boss-spawn", locList);
+                        "stages." + (holder.stageIndex + 1) + ".boss-spawn", locList);
                 String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
                 player.sendMessage(ChatUtils.colorize("&aBoss spawn location set: &f" + locStr));
             }

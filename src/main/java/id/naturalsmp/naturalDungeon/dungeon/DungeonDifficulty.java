@@ -11,7 +11,6 @@ public class DungeonDifficulty {
     private final String keyReq; // Format: TYPE:ID:AMOUNT (e.g., MMOITEMS:MATERIAL:KEY:1)
     private final int maxDeaths;
     private final double rewardMultiplier;
-    private final List<Dungeon.Stage> stages;
     private final ConfigurationSection lootSection;
 
     public DungeonDifficulty(String id, ConfigurationSection config) {
@@ -22,15 +21,6 @@ public class DungeonDifficulty {
         this.maxDeaths = config.getInt("max-deaths", 3);
         this.rewardMultiplier = config.getDouble("reward-multiplier", 1.0);
         this.lootSection = config.getConfigurationSection("loot");
-        this.stages = new ArrayList<>();
-
-        ConfigurationSection stagesSection = config.getConfigurationSection("stages");
-        if (stagesSection != null) {
-            for (String stageKey : stagesSection.getKeys(false)) {
-                stages.add(
-                        new Dungeon.Stage(Integer.parseInt(stageKey), stagesSection.getConfigurationSection(stageKey)));
-            }
-        }
     }
 
     public String getId() {
@@ -53,19 +43,11 @@ public class DungeonDifficulty {
         return maxDeaths;
     }
 
-    public List<Dungeon.Stage> getStages() {
-        return stages;
-    }
-
-    public ConfigurationSection getLootSection() {
-        return lootSection;
-    }
-
     public double getRewardMultiplier() {
         return rewardMultiplier;
     }
 
-    public int getTotalStages() {
-        return stages.size();
+    public ConfigurationSection getLootSection() {
+        return lootSection;
     }
 }

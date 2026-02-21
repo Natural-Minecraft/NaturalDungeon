@@ -77,6 +77,8 @@ public final class NaturalDungeon extends JavaPlugin {
     private LeaderboardGUI leaderboardGUI;
     private PartyGUI partyGUI;
 
+    private boolean maintenanceMode = false;
+
     private static final int CONFIG_VERSION = 1;
 
     @Override
@@ -142,6 +144,14 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public int getConfigVersion() {
         return CONFIG_VERSION;
+    }
+
+    public boolean isMaintenanceMode() {
+        return maintenanceMode;
+    }
+
+    public void setMaintenanceMode(boolean maintenanceMode) {
+        this.maintenanceMode = maintenanceMode;
     }
 
     @Override

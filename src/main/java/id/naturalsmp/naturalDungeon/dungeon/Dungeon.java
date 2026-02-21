@@ -14,6 +14,7 @@ public class Dungeon {
     private final List<String> description;
     private final long cooldownSeconds;
     private final Map<String, DungeonDifficulty> difficulties;
+    private final List<Stage> stages;
 
     public Dungeon(String id, ConfigurationSection config) {
         this.id = id;
@@ -24,6 +25,7 @@ public class Dungeon {
         this.description = config.getStringList("description");
         this.cooldownSeconds = config.getLong("cooldown", 3600);
         this.difficulties = new LinkedHashMap<>();
+        this.stages = new ArrayList<>();
 
         ConfigurationSection diffSection = config.getConfigurationSection("difficulties");
         if (diffSection != null) {
@@ -32,9 +34,22 @@ public class Dungeon {
             }
         }
 
-        // Backwards compatibility
-        if (difficulties.isEmpty() && config.contains("stages")) {
+        // Backwards compatibility for difficulty
+        if (difficulties.isEmpty()) {
             difficulties.put("normal", new DungeonDifficulty("normal", config));
+        }
+
+        // Parse global stages
+        ConfigurationSection stagesSection = config.getConfigurationSection("stages");
+        if (stagesSection != null) {
+            for (String stageKey : stagesSection.getKeys(false)) {
+                try {
+                    int stageNum = Integer.parseInt(stageKey);
+                    stages.add(new Stage(stageNum, stagesSection.getConfigurationSection(stageKey)));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            stages.sort(java.util.Comparator.comparingInt(Stage::getNumber));
         }
     }
 
@@ -85,16 +100,11 @@ public class Dungeon {
     }
 
     public int getTotalStages() {
-        if (difficulties.containsKey("normal"))
-            return difficulties.get("normal").getTotalStages();
-        return difficulties.isEmpty() ? 0 : difficulties.values().iterator().next().getTotalStages();
+        return stages.size();
     }
 
     public List<Stage> getStages() {
-        // Fallback for older code mostly
-        if (difficulties.containsKey("normal"))
-            return difficulties.get("normal").getStages();
-        return difficulties.isEmpty() ? Collections.emptyList() : difficulties.values().iterator().next().getStages();
+        return stages;
     }
 
     public static class Stage {

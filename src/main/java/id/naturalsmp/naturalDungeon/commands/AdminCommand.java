@@ -185,12 +185,39 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                     player.sendMessage(ChatUtils.colorize("&cGunakan: /nd editor [dungeon_id] [stage_number]"));
                 }
             }
-            case "debugspawn" -> {
+            case "maintenance" -> {
+                boolean state = !plugin.isMaintenanceMode();
+                plugin.setMaintenanceMode(state);
+                if (state) {
+                    sender.sendMessage(ChatUtils
+                            .colorize("&c&l[!] &cMaintenance Mode Diaktifkan! Tidak ada yang bisa memulai dungeon."));
+                } else {
+                    sender.sendMessage(
+                            ChatUtils.colorize("&a&l[!] &aMaintenance Mode Dinonaktifkan! Dungeon normal kembali."));
+                }
+            }
+            case "debug" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
                     return true;
                 }
-                handleDebugSpawn(player, args);
+                if (args.length >= 3 && args[1].equalsIgnoreCase("bossspawn")) {
+                    String bossId = args[2];
+                    player.sendMessage(ChatUtils.colorize("&aMencoba spawn boss: &e" + bossId));
+                    if (plugin.getCustomMobManager().getMob(bossId) != null) {
+                        plugin.getCustomMobSpawner().spawnMob(bossId, player.getLocation());
+                        player.sendMessage(ChatUtils.colorize("&a✔ Boss (Custom Mob) berhasil di-spawn."));
+                    } else if (plugin.getServer().getPluginManager().getPlugin("MythicMobs") != null
+                            && plugin.getMythicMobsHook().isValidMob(bossId)) {
+                        plugin.getMythicMobsHook().spawnMythicMob(bossId, player.getLocation());
+                        player.sendMessage(ChatUtils.colorize("&a✔ Boss (MythicMobs) berhasil di-spawn."));
+                    } else {
+                        player.sendMessage(ChatUtils
+                                .colorize("&c✖ Gagal! Boss ID tidak dikenali (bukan CustomMob atau MythicMob)."));
+                    }
+                } else {
+                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd debug bossspawn <bossId>"));
+                }
             }
             case "check" -> {
                 handleCheck(sender, args);
@@ -201,18 +228,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private void handleDebugSpawn(Player player, String[] args) {
-        DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
-        if (instance == null) {
-            player.sendMessage(ChatUtils.colorize("&cYou must be in a dungeon to use this!"));
-            return;
-        }
-
-        player.sendMessage(ChatUtils.colorize("&aAttempting to spawn a test wave at your location..."));
-        Dungeon.Wave testWave = new Dungeon.Wave(Collections.singletonList("ZOMBIE"), 5, 0);
-        instance.getWaveManager().spawnWave(testWave, player.getLocation(), 1, false, Collections.emptyList());
-    }
-
+    // Removed old debugspawn
     private void sendUsage(CommandSender sender) {
         sender.sendMessage(ChatUtils.colorize("&6&lNaturalDungeon Admin"));
         sender.sendMessage(ChatUtils.colorize("&e/nd reload &7- Reload configs"));
@@ -226,7 +242,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd editor [dungeon] [stage] &7- Editor/Setup Mode"));
         sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
-        sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd maintenance &7- Toggle maintenance mode"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd debug bossspawn <bossId> &7- Spawn test boss"));
     }
 
     private void handleCheck(CommandSender sender, String[] args) {
@@ -272,14 +289,36 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             completions.addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info",
-                    "editor", "clone", "status"));
+                    "editor", "clone", "status", "maintenance", "debug", "check"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")) {
+            if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
+                    || sub.equals("debug")) {
+                if (sub.equals("debug")) {
+                    completions.add("bossspawn");
+                    return completions;
+                }
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("editor")) {
-            completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+        } else if (args.length == 3) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("debug") && args[1].equalsIgnoreCase("bossspawn")) {
+                for (id.naturalsmp.naturaldungeon.mob.CustomMob m : plugin.getCustomMobManager().getAllMobs()) {
+                    if (m.isBoss())
+                        completions.add(m.getId());
+                }
+                if (plugin.getServer().getPluginManager().getPlugin("MythicMobs") != null) {
+                    try {
+                        for (String mm : io.lumine.mythic.bukkit.MythicBukkit.inst().getMobManager().getMobNames()) {
+                            completions.add(mm);
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+                return completions;
+            } else if (sub.equalsIgnoreCase("editor")) {
+                completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+            }
         }
         return completions;
     }

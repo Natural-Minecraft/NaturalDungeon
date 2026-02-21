@@ -176,6 +176,16 @@ public class DungeonManager implements Listener {
             }
         }
 
+        if (plugin.isMaintenanceMode()) {
+            if (participants.size() > 0) {
+                Player p = Bukkit.getPlayer(participants.get(0));
+                if (p != null)
+                    p.sendMessage(ChatUtils.colorize(
+                            "&c&l[!] &cDungeon System sedang dalam masa perbaikan (Maintenance). Coba lagi nanti!"));
+            }
+            return;
+        }
+
         // Validation moved to *before* delay
         for (UUID uuid : participants) {
             if (activeInstances.containsKey(uuid) || pendingStarts.containsKey(uuid)) {
@@ -416,14 +426,14 @@ public class DungeonManager implements Listener {
 
     public void deleteStage(String dungeonId, int stageNum) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        config.set("stages." + stageNum, null);
+        config.set("stages." + (stageNum + 1), null);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
     }
 
-    public int getWaveCount(String dungeonId, int stageNum) {
+    public int getWaveCount(String dungeonId, int stageIndex) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        String path = "stages." + stageNum + ".waves";
+        String path = "stages." + (stageIndex + 1) + ".waves";
         if (config.isList(path)) {
             List<?> list = config.getList(path);
             return list == null ? 0 : list.size();
@@ -432,28 +442,29 @@ public class DungeonManager implements Listener {
         return sec == null ? 0 : sec.getKeys(false).size();
     }
 
-    public void addWave(String dungeonId, int stageNum) {
-        int nextWave = getWaveCount(dungeonId, stageNum) + 1;
+    public void addWave(String dungeonId, int stageIndex) {
+        int nextWave = getWaveCount(dungeonId, stageIndex) + 1;
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        config.set("stages." + stageNum + ".waves." + nextWave + ".mobs", new ArrayList<>());
-        config.set("stages." + stageNum + ".waves." + nextWave + ".delay", 0);
-        config.set("stages." + stageNum + ".waves." + nextWave + ".count", 1);
+        config.set("stages." + (stageIndex + 1) + ".waves." + nextWave + ".mobs", new ArrayList<>());
+        config.set("stages." + (stageIndex + 1) + ".waves." + nextWave + ".delay", 0);
+        config.set("stages." + (stageIndex + 1) + ".waves." + nextWave + ".count", 1);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
     }
 
-    public void deleteWave(String dungeonId, int stageNum, int waveNum) {
+    public void deleteWave(String dungeonId, int stageIndex, int waveIndex) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        config.set("stages." + stageNum + ".waves." + waveNum, null);
+        config.set("stages." + (stageIndex + 1) + ".waves." + (waveIndex + 1), null);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
     }
 
-    public void addWaveMob(String dungeonId, int stageNum, int waveNum, String mobId) {
+    public void addWaveMob(String dungeonId, int stageIndex, int waveIndex, String mobId) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        List<String> mobs = config.getStringList("stages." + stageNum + ".waves." + waveNum + ".mobs");
+        String path = "stages." + (stageIndex + 1) + ".waves." + (waveIndex + 1) + ".mobs";
+        List<String> mobs = config.getStringList(path);
         mobs.add(mobId);
-        config.set("stages." + stageNum + ".waves." + waveNum + ".mobs", mobs);
+        config.set(path, mobs);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
     }

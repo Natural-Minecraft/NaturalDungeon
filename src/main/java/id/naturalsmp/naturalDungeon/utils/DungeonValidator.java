@@ -18,16 +18,13 @@ public class DungeonValidator {
             return errors;
         }
 
-        // We check the first difficulty as baseline for validation
-        DungeonDifficulty diff = dungeon.getDifficulties().iterator().next();
-
-        if (diff.getStages().isEmpty()) {
+        if (dungeon.getStages().isEmpty()) {
             errors.add("&cTidak ada stage satupun!");
             return errors;
         }
 
-        for (int s = 0; s < diff.getStages().size(); s++) {
-            Dungeon.Stage stage = diff.getStages().get(s);
+        for (int s = 0; s < dungeon.getStages().size(); s++) {
+            Dungeon.Stage stage = dungeon.getStages().get(s);
             String stageName = "Stage " + (s + 1);
 
             List<String> stageErrors = validateStage(plugin, dungeon, stage);

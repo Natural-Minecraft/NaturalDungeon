@@ -61,9 +61,7 @@ public class WaveManager {
         Map<String, Integer> counts = wave.getMobCounts();
         List<String> mobTypes = wave.getMobs();
 
-        // ATOMIC RESET
         activeMobs.clear();
-        boolean hasSpawnedInvalid = false;
 
         // [PREMIUM] Wave Sound
         instance.playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f);
@@ -86,6 +84,11 @@ public class WaveManager {
             int scaledCount = (int) Math.ceil(baseCount * (1 + (playerCount - 1) * (scaleFactor - 1)));
             totalExpected = scaledCount;
 
+            if (mobTypes.isEmpty()) {
+                plugin.getLogger()
+                        .warning("Wave in dungeon " + instance.getDungeon().getId() + " has no mobs defined!");
+                return;
+            }
             for (int i = 0; i < scaledCount; i++) {
                 String mobId = mobTypes.get(ThreadLocalRandom.current().nextInt(mobTypes.size()));
                 spawnSpecificMobs(mobId, 1, center, playerCount, bloodMoon, spawnerLocs);

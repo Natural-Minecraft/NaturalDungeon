@@ -59,7 +59,7 @@ public class WaveConfigGUI implements Listener {
         if (e.getCurrentItem() == null)
             return;
         Player player = (Player) e.getWhoClicked();
-        String wavePath = "stages." + holder.stageIndex + ".waves." + holder.waveIndex + ".";
+        String wavePath = "stages." + (holder.stageIndex + 1) + ".waves." + (holder.waveIndex + 1) + ".";
 
         switch (e.getSlot()) {
             case 10 -> plugin.getEditorChatInput().requestInput(player,

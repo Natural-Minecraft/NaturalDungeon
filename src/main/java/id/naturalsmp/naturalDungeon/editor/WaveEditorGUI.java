@@ -94,7 +94,7 @@ public class WaveEditorGUI implements Listener {
                     + loc.getBlockZ()
                     + "," + String.format("%.1f", loc.getYaw()) + "," + String.format("%.1f", loc.getPitch());
 
-            String path = "stages." + holder.stageIndex + ".mob-spawns";
+            String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
             List<String> spawns = plugin.getDungeonManager().loadDungeonConfig(holder.dungeonId).getStringList(path);
             spawns.add(locStr);
             plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, spawns);
@@ -104,7 +104,7 @@ public class WaveEditorGUI implements Listener {
 
         // Feature: Clear Mob Spawners
         if (e.getSlot() == 29) {
-            String path = "stages." + holder.stageIndex + ".mob-spawns";
+            String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
             plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, new ArrayList<String>());
             player.sendMessage(ChatUtils.colorize("&cSemua Mob Spawner di Stage ini telah dihapus!"));
             open(player, holder.dungeonId, holder.stageIndex);
@@ -118,7 +118,8 @@ public class WaveEditorGUI implements Listener {
             String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
                     + loc.getBlockZ()
                     + "," + String.format("%.1f", loc.getYaw()) + "," + String.format("%.1f", loc.getPitch());
-            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, "stages." + holder.stageIndex + ".safe-zone",
+            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                    "stages." + (holder.stageIndex + 1) + ".safe-zone",
                     locStr);
             player.sendMessage(ChatUtils.colorize("&aSafe zone stage set: &f" + locStr));
             return;
@@ -131,7 +132,7 @@ public class WaveEditorGUI implements Listener {
             String cornerStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
             String cfgKey = e.getSlot() == 34 ? "corner1" : "corner2";
             plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                    "stages." + holder.stageIndex + ".arena-region." + cfgKey, cornerStr);
+                    "stages." + (holder.stageIndex + 1) + ".arena-region." + cfgKey, cornerStr);
             player.sendMessage(ChatUtils.colorize("&aArena " + cfgKey + " set: &f" + cornerStr));
             return;
         }

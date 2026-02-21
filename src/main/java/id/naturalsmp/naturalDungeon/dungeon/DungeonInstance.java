@@ -571,7 +571,7 @@ public class DungeonInstance {
         playSound(Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f);
 
         currentStage++;
-        if (currentStage > difficulty.getTotalStages()) {
+        if (currentStage > dungeon.getTotalStages()) {
             plugin.getDungeonManager().endDungeon(this, true);
         } else {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -748,7 +748,7 @@ public class DungeonInstance {
                 center.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
                 dungeonWorld.strikeLightningEffect(center);
             }
-            lootManager.giveXpReward(participants, difficulty.getTotalStages());
+            lootManager.giveXpReward(participants, dungeon.getTotalStages());
 
             // 3. Events & Announcement
             Bukkit.getPluginManager().callEvent(
@@ -907,7 +907,7 @@ public class DungeonInstance {
     }
 
     private Dungeon.Stage getStage(int stageNum) {
-        return difficulty.getStages().stream().filter(s -> s.getNumber() == stageNum).findFirst().orElse(null);
+        return dungeon.getStages().stream().filter(s -> s.getNumber() == stageNum).findFirst().orElse(null);
     }
 
     private void broadcast(String message) {
@@ -976,7 +976,7 @@ public class DungeonInstance {
 
         long durationSec = getDuration() / 1000;
         int deaths = getTotalDeaths();
-        int stages = difficulty.getTotalStages();
+        int stages = dungeon.getTotalStages();
 
         // Dynamic threshold: 2 mins per stage for Rank S
         long sThreshold = stages * 120L;
@@ -1096,7 +1096,7 @@ public class DungeonInstance {
      * Get total stages in this dungeon.
      */
     public int getTotalStages() {
-        return difficulty.getTotalStages();
+        return dungeon.getTotalStages();
     }
 
     /**
