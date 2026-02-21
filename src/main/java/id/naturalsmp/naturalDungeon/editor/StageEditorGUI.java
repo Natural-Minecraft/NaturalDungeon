@@ -1,7 +1,10 @@
 package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
+import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
+import id.naturalsmp.naturaldungeon.dungeon.DungeonDifficulty;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
+import id.naturalsmp.naturaldungeon.utils.DungeonValidator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -33,13 +36,38 @@ public class StageEditorGUI implements Listener {
         for (int i = 0; i < 36; i++)
             inv.setItem(i, filler);
 
-        // Get stage count from config
-        int stageCount = plugin.getDungeonManager().getStageCount(dungeonId);
+        Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
+        int stageCount = dungeon != null ? dungeon.getTotalStages() : 0;
+        List<Dungeon.Stage> stages = dungeon != null ? dungeon.getStages() : new ArrayList<>();
+
         for (int i = 0; i < stageCount && i < 18; i++) {
-            inv.setItem(i + 9, createItem(Material.LADDER,
-                    "&e&lStage " + (i + 1),
-                    "&aKlik untuk edit waves",
-                    "&cShift+Klik untuk hapus"));
+            Dungeon.Stage stage = (i < stages.size()) ? stages.get(i) : null;
+            List<String> errors = stage != null ? DungeonValidator.validateStage(plugin, dungeon, stage)
+                    : Collections.singletonList("Stage data not found");
+            boolean isValid = errors.isEmpty();
+
+            List<String> lore = new ArrayList<>();
+            if (isValid) {
+                lore.add("&a✔ Siap dimainkan!");
+            } else {
+                lore.add("&c⚠ Setup Belum Selesai:");
+                for (int j = 0; j < Math.min(3, errors.size()); j++) {
+                    String prefix = errors.get(j).contains("tidak ditemukan di WorldGuard") ? "&e" : "&c";
+                    lore.add(" " + prefix + errors.get(j));
+                }
+                if (errors.size() > 3) {
+                    lore.add(" &c...dan " + (errors.size() - 3) + " error lainnya");
+                }
+            }
+            lore.add("");
+            lore.add("&aKlik untuk edit waves");
+            lore.add("&cShift+Klik untuk hapus");
+
+            Material icon = isValid ? Material.EMERALD_BLOCK : Material.REDSTONE_BLOCK;
+
+            inv.setItem(i + 9, createItem(icon,
+                    (isValid ? "&a&l" : "&c&l") + "Stage " + (i + 1),
+                    lore.toArray(new String[0])));
         }
 
         inv.setItem(31, createItem(Material.EMERALD, "&a&lTambah Stage"));

@@ -3,6 +3,7 @@ package id.naturalsmp.naturaldungeon.editor;
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
+import id.naturalsmp.naturaldungeon.utils.DungeonValidator;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -40,11 +41,32 @@ public class DungeonListEditorGUI implements Listener {
             if (dungeon == null || slot > 43)
                 continue;
 
-            ItemStack item = createItem(Material.CHEST,
-                    "&e&l" + dungeon.getDisplayName(),
-                    "&7ID: &f" + id,
-                    "&7Difficulties: &f" + dungeon.getDifficulties().size(),
-                    "", "&aKlik untuk edit!");
+            List<String> errors = DungeonValidator.validate(plugin, dungeon);
+            boolean isValid = errors.isEmpty();
+
+            List<String> lore = new ArrayList<>();
+            lore.add("&7ID: &f" + id);
+            lore.add("&7Difficulties: &f" + dungeon.getDifficulties().size());
+            lore.add("");
+
+            if (isValid) {
+                lore.add("&a✔ Siap dimaikan!");
+            } else {
+                lore.add("&c⚠ Setup Belum Selesai:");
+                for (int j = 0; j < Math.min(5, errors.size()); j++) {
+                    lore.add(" " + errors.get(j));
+                }
+                if (errors.size() > 5) {
+                    lore.add(" &c...dan " + (errors.size() - 5) + " error lainnya");
+                }
+            }
+            lore.add("");
+            lore.add("&eKlik untuk edit!");
+
+            ItemStack item = createItem(isValid ? Material.EMERALD_BLOCK : Material.REDSTONE_BLOCK,
+                    (isValid ? "&a&l" : "&c&l") + dungeon.getDisplayName(),
+                    lore.toArray(new String[0]));
+
             ItemMeta meta = item.getItemMeta();
             meta.getPersistentDataContainer().set(
                     new org.bukkit.NamespacedKey(plugin, "dungeon_id"),

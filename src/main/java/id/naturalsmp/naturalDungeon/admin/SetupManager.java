@@ -4,8 +4,8 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import org.bukkit.*;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -37,7 +37,7 @@ public class SetupManager implements Listener {
 
     public void enterStageEditor(Player player, Dungeon dungeon, int stageNum) {
         // Save Inventory
-        EditorSession session = new EditorSession(dungeon, stageNum, player.getInventory().getContents());
+        EditorSession session = new EditorSession(player, dungeon, stageNum, player.getInventory().getContents());
         sessions.put(player.getUniqueId(), session);
 
         player.getInventory().clear();
@@ -61,6 +61,7 @@ public class SetupManager implements Listener {
     public void exitSetupMode(Player player) {
         EditorSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
+            session.cleanup();
             player.getInventory().setContents(session.savedInventory);
             player.sendMessage(ChatUtils.colorize("&eExited Setup Mode."));
         }
@@ -157,18 +158,36 @@ public class SetupManager implements Listener {
         }
 
         if (type.equalsIgnoreCase("safezone")) {
-            if (posNum == 1)
+            if (posNum == 1) {
                 session.pos1 = loc;
-            else
+                session.safe1Holo = createOrMoveHolo(session.safe1Holo, loc, "&aSafezone Pos 1");
+            } else {
                 session.pos2 = loc;
+                session.safe2Holo = createOrMoveHolo(session.safe2Holo, loc, "&aSafezone Pos 2");
+            }
             p.sendMessage(ChatUtils.colorize("&aSafezone Pos " + posNum + " Set: &7" + formatLoc(loc)));
         } else if (type.equalsIgnoreCase("arena")) {
-            if (posNum == 1)
+            if (posNum == 1) {
                 session.arenaPos1 = loc;
-            else
+                session.arena1Holo = createOrMoveHolo(session.arena1Holo, loc, "&cArena Pos 1");
+            } else {
                 session.arenaPos2 = loc;
+                session.arena2Holo = createOrMoveHolo(session.arena2Holo, loc, "&cArena Pos 2");
+            }
             p.sendMessage(ChatUtils.colorize("&cArena Pos " + posNum + " Set: &7" + formatLoc(loc)));
         }
+    }
+
+    private TextDisplay createOrMoveHolo(TextDisplay current, Location loc, String text) {
+        if (current == null || current.isDead()) {
+            current = loc.getWorld().spawn(loc.clone().add(0.5, 1.5, 0.5), TextDisplay.class);
+            current.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+            current.setBackgroundColor(org.bukkit.Color.fromARGB(100, 0, 0, 0));
+        } else {
+            current.teleport(loc.clone().add(0.5, 1.5, 0.5));
+        }
+        current.setText(ChatUtils.colorize(text));
+        return current;
     }
 
     private void saveSafeZone(Player p, EditorSession session) {
@@ -209,6 +228,7 @@ public class SetupManager implements Listener {
 
     private void saveBossSpawn(Player p, EditorSession session, Location loc) {
         List<Double> coords = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
+        session.bossHolo = createOrMoveHolo(session.bossHolo, loc, "&c📍 Boss Spawn\n&7(Stage " + session.stage + ")");
         saveConfig(session.dungeon.getId(), "stages." + session.stage + ".boss.spawn-location", coords);
         saveConfig(session.dungeon.getId(), "stages." + session.stage + ".boss.id", "ZOMBIE"); // Default
         p.sendMessage(ChatUtils.colorize("&aBoss Spawn Set! &7" + formatLoc(loc)));
@@ -216,7 +236,8 @@ public class SetupManager implements Listener {
 
     private void saveConfig(String dungeonId, String path, Object value) {
         File file = new File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration
+                .loadConfiguration(file);
         config.set(path, value);
         try {
             config.save(file);
@@ -278,11 +299,28 @@ public class SetupManager implements Listener {
         Location pos1, pos2; // Safezone
         Location arenaPos1, arenaPos2; // Arena
 
-        public EditorSession(Dungeon dungeon, int stage, ItemStack[] savedInventory) {
+        TextDisplay safe1Holo, safe2Holo;
+        TextDisplay arena1Holo, arena2Holo;
+        TextDisplay bossHolo;
+
+        public EditorSession(Player p, Dungeon dungeon, int stage, ItemStack[] savedInventory) {
             this.dungeon = dungeon;
             this.stage = stage;
             this.savedInventory = savedInventory;
-            this.playerUUID = UUID.randomUUID(); // Just placeholder, key is map key
+            this.playerUUID = p.getUniqueId();
+        }
+
+        public void cleanup() {
+            if (safe1Holo != null)
+                safe1Holo.remove();
+            if (safe2Holo != null)
+                safe2Holo.remove();
+            if (arena1Holo != null)
+                arena1Holo.remove();
+            if (arena2Holo != null)
+                arena2Holo.remove();
+            if (bossHolo != null)
+                bossHolo.remove();
         }
     }
 }
