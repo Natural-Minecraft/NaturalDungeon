@@ -2,18 +2,16 @@ package id.naturalsmp.naturaldungeon.dungeon;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
@@ -26,89 +24,113 @@ public class DungeonCompletionGUI implements Listener {
     }
 
     public void open(Player player, DungeonInstance instance, boolean victory) {
-        String title = ConfigUtils.getMessage("gui.completion.title");
-        Inventory inv = Bukkit.createInventory(new CompletionHolder(), 27, title);
+        String title = victory
+                ? "&#55FF55✦ ᴅᴜɴɢᴇᴏɴ ᴄᴏᴍᴘʟᴇᴛᴇ ✦"
+                : "&#FF5555✖ ᴅᴜɴɢᴇᴏɴ ꜰᴀɪʟᴇᴅ ✖";
 
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
+        Inventory inv = GUIUtils.createGUI(new CompletionHolder(), 45, title);
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         if (victory) {
-            inv.setItem(4, createItem(Material.LIME_BANNER, "&#55FF55&l✔ DUNGEON SELESAI!",
-                    "&7Selamat! Kamu berhasil menyelesaikan",
-                    "&7dungeon &f" + instance.getDungeon().getDisplayName() + "&7!",
-                    "",
-                    "&aWaktu: &f" + ChatUtils.formatTime(instance.getDuration() / 1000),
-                    "&aStages: &f" + instance.getDungeon().getTotalStages(),
-                    "&aDeaths: &f" + instance.getTotalDeaths(),
-                    "",
-                    "&#FFBB00&lRANK: &f&n" + instance.getPerformanceRank()));
-
-            // Display MVP
-            UUID mvpId = instance.getMVP();
-            if (mvpId != null) {
-                Player mvp = Bukkit.getPlayer(mvpId);
-                String mvpName = (mvp != null) ? mvp.getName() : "Unknown";
-                inv.setItem(3, createItem(Material.TOTEM_OF_UNDYING, "&#FFAA00&l☆ MVP ★",
-                        "&f" + mvpName,
-                        "&7Pemain paling berkontribusi!",
-                        "",
-                        "&cDMG Dealt: &f" + String.format("%.1f", instance.getDamageDealt(mvpId)),
-                        "&4DMG Taken: &f" + String.format("%.1f", instance.getDamageTaken(mvpId)),
-                        "&cKills: &f" + instance.getMobsKilled(mvpId)));
-            }
-
-            // Display Personal Stats
-            double myDmgDealt = instance.getDamageDealt(player.getUniqueId());
-            double myDmgTaken = instance.getDamageTaken(player.getUniqueId());
-            int myKills = instance.getMobsKilled(player.getUniqueId());
-
-            inv.setItem(5, createItem(Material.NETHER_STAR, "&#00FFFF&lPERSONAL STATS",
-                    "&7Statistik kamu selama dungeon ini:",
-                    "",
-                    "&cDMG Dealt: &f" + String.format("%.1f", myDmgDealt),
-                    "&4DMG Taken: &f" + String.format("%.1f", myDmgTaken),
-                    "&cKills: &f" + myKills));
-
-            List<ItemStack> loot = instance.getCollectedLoot();
-            int[] lootSlots = { 10, 11, 12, 13, 14, 15, 16 };
-            for (int i = 0; i < lootSlots.length && i < loot.size(); i++) {
-                inv.setItem(lootSlots[i], loot.get(i));
-            }
-
-            int baseXp = ConfigUtils.getInt("rewards.base-xp");
-            int totalXp = baseXp * instance.getDungeon().getTotalStages();
-            String skill = ConfigUtils.getString("rewards.xp-skill");
-            inv.setItem(21, createItem(Material.EXPERIENCE_BOTTLE, "&#00AAFF&l⬆ XP REWARD",
-                    "&7Kamu mendapatkan:",
-                    "&b+" + totalXp + " " + skill.toUpperCase() + " XP"));
+            buildVictoryGUI(inv, player, instance);
         } else {
-            inv.setItem(4, createItem(Material.RED_BANNER, "&#FF5555&l✘ DUNGEON GAGAL",
-                    "&7Sayangnya kamu tidak berhasil",
-                    "&7menyelesaikan dungeon ini.",
-                    "",
-                    "&cWaktu: &f" + ChatUtils.formatTime(instance.getDuration() / 1000),
-                    "&cStage Terakhir: &f" + instance.getCurrentStage(),
-                    "&cDeaths: &f" + instance.getTotalDeaths()));
-
-            // Display Personal Stats even if failed
-            double myDmgDealt = instance.getDamageDealt(player.getUniqueId());
-            double myDmgTaken = instance.getDamageTaken(player.getUniqueId());
-            int myKills = instance.getMobsKilled(player.getUniqueId());
-
-            inv.setItem(5, createItem(Material.NETHER_STAR, "&#00FFFF&lPERSONAL STATS",
-                    "&7Statistik kamu selama dungeon ini:",
-                    "",
-                    "&cDMG Dealt: &f" + String.format("%.1f", myDmgDealt),
-                    "&4DMG Taken: &f" + String.format("%.1f", myDmgTaken),
-                    "&cKills: &f" + myKills));
+            buildDefeatGUI(inv, player, instance);
         }
 
-        inv.setItem(22, createItem(Material.BARRIER, "&#AAAAAA&l✕ TUTUP", "&7Klik untuk menutup dan kembali."));
+        // Close button (slot 40)
+        inv.setItem(40, GUIUtils.createItem(Material.BARRIER,
+                "&#FF5555&l✖ ᴛᴜᴛᴜᴘ",
+                "&7Klik untuk menutup."));
 
         player.openInventory(inv);
-        player.playSound(player.getLocation(), victory ? Sound.UI_TOAST_CHALLENGE_COMPLETE : Sound.ENTITY_VILLAGER_NO,
-                1f, 1f);
+        GUIUtils.playOpenSound(player);
+    }
+
+    private void buildVictoryGUI(Inventory inv, Player player, DungeonInstance instance) {
+        long duration = instance.getDuration() / 1000;
+        String timeStr = ChatUtils.formatTime(duration);
+        String rank = instance.getPerformanceRank();
+        UUID mvpUUID = instance.getMVP();
+
+        // ─── Trophy (slot 4) ───
+        inv.setItem(4, GUIUtils.createItem(Material.NETHER_STAR,
+                "&#FFD700&l✦ ᴠɪᴄᴛᴏʀʏ ✦",
+                GUIUtils.separator(),
+                "&#FFD700⚔ " + instance.getDungeon().getDisplayName(),
+                "&7Difficulty: &#FFAA00" + instance.getDifficulty().getDisplayName(),
+                "",
+                "&7Waktu: &#55FF55" + timeStr,
+                "&7Rank: " + getRankColor(rank) + "&l" + rank,
+                GUIUtils.separator()));
+
+        // ─── MVP (slot 20) ───
+        String mvpName = mvpUUID != null ? org.bukkit.Bukkit.getOfflinePlayer(mvpUUID).getName() : "N/A";
+        inv.setItem(20, GUIUtils.createItem(Material.DIAMOND_SWORD,
+                "&#FFD700&l🏆 ᴍᴠᴘ",
+                GUIUtils.separator(),
+                "&7Player: &#FFAA00" + mvpName,
+                "&7Damage Dealt: &f" + ChatUtils.formatLarge(instance.getDamageDealt(mvpUUID)),
+                "&7Mobs Killed: &f" + instance.getMobsKilled(mvpUUID)));
+
+        // ─── Personal Stats (slot 22) ───
+        inv.setItem(22, GUIUtils.createItem(Material.BOOK,
+                "&#AA44FF&l📊 ꜱᴛᴀᴛɪꜱᴛɪᴋ ᴋᴀᴍᴜ",
+                GUIUtils.separator(),
+                "&7Damage: &f" + ChatUtils.formatLarge(instance.getDamageDealt(player.getUniqueId())),
+                "&7Taken: &f" + ChatUtils.formatLarge(instance.getDamageTaken(player.getUniqueId())),
+                "&7Kills: &f" + instance.getMobsKilled(player.getUniqueId()),
+                "&7Deaths: &c" + instance.getTotalDeaths()));
+
+        // ─── Loot Preview (slot 24) ───
+        List<ItemStack> loot = instance.getCollectedLoot();
+        List<String> lootLore = new ArrayList<>();
+        lootLore.add(GUIUtils.separator());
+        if (loot != null && !loot.isEmpty()) {
+            for (int i = 0; i < Math.min(5, loot.size()); i++) {
+                ItemStack item = loot.get(i);
+                String name = item.getType().name().replace("_", " ");
+                lootLore.add("&#FFAA00 • &f" + name + " &7x" + item.getAmount());
+            }
+            if (loot.size() > 5) {
+                lootLore.add("&8  ...dan " + (loot.size() - 5) + " lainnya");
+            }
+        } else {
+            lootLore.add("&7Tidak ada loot.");
+        }
+        inv.setItem(24, GUIUtils.createItem(Material.CHEST,
+                "&#55FF55&l🎁 ʟᴏᴏᴛ",
+                lootLore));
+    }
+
+    private void buildDefeatGUI(Inventory inv, Player player, DungeonInstance instance) {
+        // ─── Defeat Info (slot 4) ───
+        inv.setItem(4, GUIUtils.createItem(Material.SKELETON_SKULL,
+                "&#FF5555&l✖ ᴅᴇꜰᴇᴀᴛ ✖",
+                GUIUtils.separator(),
+                "&#FF5555⚔ " + instance.getDungeon().getDisplayName(),
+                "&7Difficulty: &#FFAA00" + instance.getDifficulty().getDisplayName(),
+                "",
+                "&7Terakhir: Stage &f" + instance.getCurrentStage(),
+                "&7Total Deaths: &#FF5555" + instance.getTotalDeaths(),
+                GUIUtils.separator(),
+                "&7Coba lagi lain kali!"));
+
+        // ─── Stats (slot 22) ───
+        inv.setItem(22, GUIUtils.createItem(Material.BOOK,
+                "&#AA44FF&l📊 ꜱᴛᴀᴛɪꜱᴛɪᴋ",
+                GUIUtils.separator(),
+                "&7Damage: &f" + ChatUtils.formatLarge(instance.getDamageDealt(player.getUniqueId())),
+                "&7Kills: &f" + instance.getMobsKilled(player.getUniqueId())));
+    }
+
+    private String getRankColor(String rank) {
+        return switch (rank) {
+            case "S" -> "&#FFD700";
+            case "A" -> "&#55FF55";
+            case "B" -> "&#55CCFF";
+            case "C" -> "&#FFAA00";
+            default -> "&#FF5555";
+        };
     }
 
     @EventHandler
@@ -119,20 +141,15 @@ public class DungeonCompletionGUI implements Listener {
         if (e.getClickedInventory() != e.getView().getTopInventory())
             return;
         if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.BARRIER) {
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
             e.getWhoClicked().closeInventory();
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof CompletionHolder)
+            e.setCancelled(true);
     }
 
     public static class CompletionHolder implements InventoryHolder {

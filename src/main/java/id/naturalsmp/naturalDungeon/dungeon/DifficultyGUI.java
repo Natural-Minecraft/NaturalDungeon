@@ -2,15 +2,15 @@ package id.naturalsmp.naturaldungeon.dungeon;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.party.PartyConfirmationGUI;
-import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -34,47 +34,53 @@ public class DifficultyGUI implements Listener {
         if (dungeon == null)
             return;
 
-        String title = ConfigUtils.getMessage("gui.difficulty.title");
-        Inventory inv = Bukkit.createInventory(new DifficultyHolder(dungeonId), 27, title);
+        Inventory inv = GUIUtils.createGUI(new DifficultyHolder(dungeonId), 27,
+                "&#FFAA00⚙ ᴘɪʟɪʜ ᴅɪꜰꜰɪᴄᴜʟᴛʏ ⚙");
 
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        int[] slots = { 11, 13, 15 }; // Normal, Hard, Hell (example)
+        // Centered slots for up to 5 difficulties
+        int[] slots = { 10, 11, 13, 15, 16 };
+        int count = dungeon.getDifficulties().size();
+        int[] usedSlots = centerSlots(count);
+
         int idx = 0;
-
         for (DungeonDifficulty diff : dungeon.getDifficulties()) {
-            if (idx >= slots.length)
+            if (idx >= usedSlots.length)
                 break;
 
-            String keyDisplay = diff.getKeyReq() != null ? diff.getKeyReq() : "None";
-            String tierDisplay = String.valueOf(diff.getMinTier());
+            String keyDisplay = (diff.getKeyReq() != null && !diff.getKeyReq().equalsIgnoreCase("none"))
+                    ? "&#FF5555" + diff.getKeyReq()
+                    : "&#55FF55Tidak ada";
+
+            Material mat = getDifficultyMaterial(diff.getId());
+            String color = getDifficultyColor(diff.getId());
 
             List<String> lore = new ArrayList<>();
+            lore.add(GUIUtils.separator());
+            lore.add("&7Min Tier: " + color + diff.getMinTier() + "+");
+            lore.add("&7Key: " + keyDisplay);
+            lore.add("&7Max Deaths: &#FF5555" + diff.getMaxDeaths());
+            lore.add("&7Reward: &#FFAA00" + diff.getRewardMultiplier() + "x");
             lore.add("");
-            lore.add(ChatUtils.colorize("&7Min Tier: &f" + tierDisplay));
-            lore.add(ChatUtils.colorize("&7Key Required: &f" + keyDisplay));
-            lore.add(ChatUtils.colorize("&7Max Deaths: &c" + diff.getMaxDeaths()));
-            lore.add(ChatUtils.colorize("&7Stages: &f" + dungeon.getTotalStages()));
-            lore.add("");
-            lore.add(ChatUtils.colorize("&eKiri-Klik untuk memilih!"));
-            lore.add(ChatUtils.colorize("&bKanan-Klik untuk preview Loot!"));
+            lore.add("&#FFAA00&l⚔ Kiri-Klik &7→ Main");
+            lore.add("&#55CCFF&l👁 Kanan-Klik &7→ Preview Loot");
 
-            Material mat = Material.matchMaterial(diff.getId().toUpperCase() + "_BANNER");
-            if (mat == null)
-                mat = Material.PAPER;
-
-            ItemStack item = createItem(mat, diff.getDisplayName(), lore.toArray(new String[0]));
+            ItemStack item = GUIUtils.createItem(mat, color + "&l" + diff.getDisplayName(), lore);
             ItemMeta meta = item.getItemMeta();
             meta.getPersistentDataContainer().set(diffKey, PersistentDataType.STRING, diff.getId());
             item.setItemMeta(meta);
 
-            inv.setItem(slots[idx++], item);
+            inv.setItem(usedSlots[idx++], item);
         }
 
-        inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
+        // Back button (slot 22)
+        inv.setItem(22, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ",
+                "&7Kembali ke daftar dungeon."));
+
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -82,11 +88,16 @@ public class DifficultyGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof DifficultyHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
 
         Player player = (Player) e.getWhoClicked();
+
+        // Back button
         if (e.getCurrentItem().getType() == Material.ARROW) {
+            GUIUtils.playClickSound(player);
             plugin.getDungeonManager().openDungeonGUI(player);
             return;
         }
@@ -103,24 +114,32 @@ public class DifficultyGUI implements Listener {
             if (diff != null) {
                 if (e.isRightClick()) {
                     // Open Loot Preview
+                    GUIUtils.playClickSound(player);
                     new id.naturalsmp.naturaldungeon.loot.LootPreviewGUI(plugin).open(player, dungeon, diff);
                     return;
                 }
 
                 // Validate Requirements
                 if (!checkRequirements(player, diff)) {
+                    GUIUtils.playErrorSound(player);
                     player.closeInventory();
                     return;
                 }
 
                 // Open Confirmation
+                GUIUtils.playClickSound(player);
                 new PartyConfirmationGUI(plugin).startConfirmation(player, dungeon, diff);
             }
         }
     }
 
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof DifficultyHolder)
+            e.setCancelled(true);
+    }
+
     private boolean checkRequirements(Player player, DungeonDifficulty diff) {
-        // 1. Tier Check using Hook
         if (plugin.getNaturalCoreHook().isEnabled()) {
             int playerTier = plugin.getNaturalCoreHook().getPlayerTier(player);
             if (playerTier < diff.getMinTier()) {
@@ -129,28 +148,39 @@ public class DifficultyGUI implements Listener {
                 return false;
             }
         }
-
-        // 2. Key Check (Leader Only)
-        // This is a visual check, actual consumption happens on start
-        String keyReq = diff.getKeyReq();
-        if (keyReq != null && !keyReq.isEmpty() && !keyReq.equalsIgnoreCase("none")) {
-            // Check logic will be in ConfirmationGUI to handle consumption
-            // Here we just warn if missing? Or let confirmation handle it?
-            // Let's assume confirmation handles it for now.
-        }
         return true;
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
+    private int[] centerSlots(int count) {
+        return switch (count) {
+            case 1 -> new int[] { 13 };
+            case 2 -> new int[] { 12, 14 };
+            case 3 -> new int[] { 11, 13, 15 };
+            case 4 -> new int[] { 10, 12, 14, 16 };
+            default -> new int[] { 10, 11, 13, 15, 16 };
+        };
+    }
+
+    private Material getDifficultyMaterial(String id) {
+        return switch (id.toLowerCase()) {
+            case "easy" -> Material.LIME_BANNER;
+            case "normal" -> Material.YELLOW_BANNER;
+            case "hard" -> Material.ORANGE_BANNER;
+            case "hell", "nightmare" -> Material.RED_BANNER;
+            case "extreme", "inferno" -> Material.BLACK_BANNER;
+            default -> Material.WHITE_BANNER;
+        };
+    }
+
+    private String getDifficultyColor(String id) {
+        return switch (id.toLowerCase()) {
+            case "easy" -> "&#55FF55";
+            case "normal" -> "&#FFFF55";
+            case "hard" -> "&#FFAA00";
+            case "hell", "nightmare" -> "&#FF5555";
+            case "extreme", "inferno" -> "&#AA00AA";
+            default -> "&#FFFFFF";
+        };
     }
 
     public static class DifficultyHolder implements InventoryHolder {
