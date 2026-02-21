@@ -4,18 +4,15 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonDifficulty;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import java.util.*;
 
@@ -32,32 +29,52 @@ public class DifficultyEditorGUI implements Listener {
 
     public void open(Player player, String dungeonId) {
         Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
-        Inventory inv = Bukkit.createInventory(new DiffEditorHolder(dungeonId), 27,
-                ChatUtils.colorize("&c&lDIFFICULTIES: &e" + dungeonId));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
+
+        Inventory inv = GUIUtils.createGUI(new DiffEditorHolder(dungeonId), 27,
+                "&#FF5555⚔ ᴅɪꜰꜰɪᴄᴜʟᴛɪᴇꜱ: &f" + dungeonId);
+
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         if (dungeon != null) {
             int slot = 10;
             for (DungeonDifficulty diff : dungeon.getDifficulties()) {
                 if (slot > 16)
                     break;
-                inv.setItem(slot, createItem(Material.IRON_SWORD,
-                        "&e" + diff.getDisplayName(),
+
+                String color = switch (diff.getId().toLowerCase()) {
+                    case "easy" -> "&#55FF55";
+                    case "normal" -> "&#FFFF55";
+                    case "hard" -> "&#FFAA00";
+                    case "hell", "nightmare" -> "&#FF5555";
+                    default -> "&#FFFFFF";
+                };
+
+                inv.setItem(slot, GUIUtils.createItem(Material.IRON_SWORD,
+                        color + "&l" + diff.getDisplayName(),
+                        GUIUtils.separator(),
                         "&7ID: &f" + diff.getId(),
                         "&7Min Tier: &f" + diff.getMinTier(),
-                        "&7Max Deaths: &c" + diff.getMaxDeaths(),
-                        "&7Reward Multi: &a" + diff.getRewardMultiplier() + "x",
-                        "", "&aKlik untuk edit, &cShift+Klik untuk hapus"));
+                        "&7Max Deaths: &#FF5555" + diff.getMaxDeaths(),
+                        "&7Reward: &#55FF55" + diff.getRewardMultiplier() + "x",
+                        "",
+                        "&#FFAA00&l⚔ Klik &7→ Edit",
+                        "&#FF5555&l✖ Shift+Klik &7→ Hapus"));
                 slot++;
             }
         }
 
-        inv.setItem(22, createItem(Material.EMERALD, "&a&lTambah Difficulty"));
-        inv.setItem(18, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(22, GUIUtils.createItem(Material.EMERALD,
+                "&#55FF55&l✚ ᴛᴀᴍʙᴀʜ ᴅɪꜰꜰɪᴄᴜʟᴛʏ",
+                GUIUtils.separator(),
+                "&7Buat difficulty baru.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(18, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -65,27 +82,32 @@ public class DifficultyEditorGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof DiffEditorHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
+
         Player player = (Player) e.getWhoClicked();
+        GUIUtils.playClickSound(player);
 
         if (e.getSlot() == 18) {
             new DungeonMainEditorGUI(plugin).open(player, holder.dungeonId);
             return;
         }
         if (e.getSlot() == 22) {
+            player.closeInventory();
             plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan ID difficulty baru (misal: normal, hard, hell):"),
+                    ChatUtils.colorize("&#55FF55&l✚ &7Masukkan ID difficulty (misal: normal, hard, hell):"),
                     input -> {
                         String id = input.toLowerCase().replace(" ", "_");
                         plugin.getDungeonManager().createDifficulty(holder.dungeonId, id);
-                        player.sendMessage(ChatUtils.colorize("&aDifficulty &f" + id + " &adibuat!"));
+                        player.sendMessage(ChatUtils.colorize("&#55FF55✔ Difficulty &f" + id + " &#55FF55dibuat!"));
+                        GUIUtils.playSuccessSound(player);
                         open(player, holder.dungeonId);
                     });
             return;
         }
 
-        // Clicked on a difficulty item
         if (e.getSlot() >= 10 && e.getSlot() <= 16) {
             Dungeon dungeon = plugin.getDungeonManager().getDungeon(holder.dungeonId);
             if (dungeon == null)
@@ -98,7 +120,7 @@ public class DifficultyEditorGUI implements Listener {
 
             if (e.isShiftClick()) {
                 plugin.getDungeonManager().deleteDifficulty(holder.dungeonId, diff.getId());
-                player.sendMessage(ChatUtils.colorize("&cDifficulty &f" + diff.getId() + " &cdihapus!"));
+                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Difficulty &f" + diff.getId() + " &#FF5555dihapus!"));
                 open(player, holder.dungeonId);
             } else {
                 new DifficultyConfigGUI(plugin).open(player, holder.dungeonId, diff.getId());
@@ -106,16 +128,10 @@ public class DifficultyEditorGUI implements Listener {
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof DiffEditorHolder)
+            e.setCancelled(true);
     }
 
     public static class DiffEditorHolder implements InventoryHolder {

@@ -2,24 +2,22 @@ package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
-import id.naturalsmp.naturaldungeon.dungeon.DungeonDifficulty;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.DungeonValidator;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
 /**
- * List and manage stages per difficulty.
+ * List and manage stages for a dungeon.
  */
 public class StageEditorGUI implements Listener {
 
@@ -30,11 +28,10 @@ public class StageEditorGUI implements Listener {
     }
 
     public void open(Player player, String dungeonId) {
-        Inventory inv = Bukkit.createInventory(new StageEditorHolder(dungeonId), 36,
-                ChatUtils.colorize("&e&lSTAGES: &e" + dungeonId));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 36; i++)
-            inv.setItem(i, filler);
+        Inventory inv = GUIUtils.createGUI(new StageEditorHolder(dungeonId), 36,
+                "&#FFAA00🏗 ꜱᴛᴀɢᴇꜱ: &f" + dungeonId);
+
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
         int stageCount = dungeon != null ? dungeon.getTotalStages() : 0;
@@ -47,33 +44,44 @@ public class StageEditorGUI implements Listener {
             boolean isValid = errors.isEmpty();
 
             List<String> lore = new ArrayList<>();
+            lore.add(GUIUtils.separator());
             if (isValid) {
-                lore.add("&a✔ Siap dimainkan!");
+                lore.add("&#55FF55✔ Siap dimainkan!");
             } else {
-                lore.add("&c⚠ Setup Belum Selesai:");
+                lore.add("&#FF5555⚠ Setup belum selesai:");
                 for (int j = 0; j < Math.min(3, errors.size()); j++) {
-                    String prefix = errors.get(j).contains("tidak ditemukan di WorldGuard") ? "&e" : "&c";
-                    lore.add(" " + prefix + errors.get(j));
+                    lore.add("  &#FF5555• " + errors.get(j));
                 }
                 if (errors.size() > 3) {
-                    lore.add(" &c...dan " + (errors.size() - 3) + " error lainnya");
+                    lore.add("  &8...dan " + (errors.size() - 3) + " lainnya");
                 }
             }
             lore.add("");
-            lore.add("&aKlik untuk edit waves");
-            lore.add("&cShift+Klik untuk hapus");
+            lore.add("&#FFAA00&l⚔ Klik &7→ Edit Waves");
+            lore.add("&#FF5555&l✖ Shift+Klik &7→ Hapus");
 
             Material icon = isValid ? Material.EMERALD_BLOCK : Material.REDSTONE_BLOCK;
+            String color = isValid ? "&#55FF55" : "&#FF5555";
 
-            inv.setItem(i + 9, createItem(icon,
-                    (isValid ? "&a&l" : "&c&l") + "Stage " + (i + 1),
-                    lore.toArray(new String[0])));
+            inv.setItem(i + 9, GUIUtils.createItem(icon,
+                    color + "&lStage " + (i + 1),
+                    lore));
         }
 
-        inv.setItem(31, createItem(Material.EMERALD, "&a&lTambah Stage"));
-        inv.setItem(27, createItem(Material.ARROW, "&cKembali"));
+        // Add Stage button
+        inv.setItem(31, GUIUtils.createItem(Material.EMERALD,
+                "&#55FF55&l✚ ᴛᴀᴍʙᴀʜ ꜱᴛᴀɢᴇ",
+                GUIUtils.separator(),
+                "&7Tambah stage baru.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        // Back button
+        inv.setItem(27, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -81,9 +89,13 @@ public class StageEditorGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof StageEditorHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
+
         Player player = (Player) e.getWhoClicked();
+        GUIUtils.playClickSound(player);
 
         if (e.getSlot() == 27) {
             new DungeonMainEditorGUI(plugin).open(player, holder.dungeonId);
@@ -91,7 +103,8 @@ public class StageEditorGUI implements Listener {
         }
         if (e.getSlot() == 31) {
             plugin.getDungeonManager().addStage(holder.dungeonId);
-            player.sendMessage(ChatUtils.colorize("&aStage baru ditambahkan!"));
+            player.sendMessage(ChatUtils.colorize("&#55FF55✔ Stage baru ditambahkan!"));
+            GUIUtils.playSuccessSound(player);
             open(player, holder.dungeonId);
             return;
         }
@@ -99,7 +112,7 @@ public class StageEditorGUI implements Listener {
             int stageIndex = e.getSlot() - 9;
             if (e.isShiftClick()) {
                 plugin.getDungeonManager().deleteStage(holder.dungeonId, stageIndex);
-                player.sendMessage(ChatUtils.colorize("&cStage dihapus!"));
+                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Stage dihapus!"));
                 open(player, holder.dungeonId);
             } else {
                 new WaveEditorGUI(plugin).open(player, holder.dungeonId, stageIndex);
@@ -107,16 +120,10 @@ public class StageEditorGUI implements Listener {
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof StageEditorHolder)
+            e.setCancelled(true);
     }
 
     public static class StageEditorHolder implements InventoryHolder {
