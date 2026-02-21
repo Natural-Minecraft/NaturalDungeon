@@ -114,8 +114,14 @@ public class DungeonQueue {
             p.sendMessage(ChatUtils.colorize("&a&lAntrian siap! &fMemulai dungeon &e" + dungeonId + "&f..."));
         }
 
-        // TODO: Actually start the dungeon instance with these players
-        // plugin.getDungeonManager().startQueuedDungeon(dungeonId, partyFromQueue);
+        // Start the dungeon with queued players
+        id.naturalsmp.naturaldungeon.dungeon.Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
+        if (dungeon == null)
+            return;
+
+        List<UUID> uuids = partyFromQueue.stream().map(Player::getUniqueId)
+                .collect(java.util.stream.Collectors.toList());
+        plugin.getDungeonManager().startDungeon(uuids, dungeon, dungeon.getDifficulty("normal"));
     }
 
     /**

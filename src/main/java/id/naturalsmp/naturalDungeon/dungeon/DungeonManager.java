@@ -161,6 +161,8 @@ public class DungeonManager implements Listener {
         Integer taskId = pendingStarts.remove(player.getUniqueId());
         if (taskId != null) {
             Bukkit.getScheduler().cancelTask(taskId);
+            // Also remove ALL other players sharing the same taskId (party members)
+            pendingStarts.values().removeIf(id -> id.equals(taskId));
             if (msg)
                 player.sendMessage(ChatUtils.colorize("&c&lDungeon Start Cancelled!"));
         }
@@ -287,12 +289,17 @@ public class DungeonManager implements Listener {
             return true;
 
         String type = parts[0];
-        int amount = Integer.parseInt(parts[2]);
 
         if (type.equalsIgnoreCase("VANILLA")) {
+            // Format: VANILLA:MATERIAL:AMOUNT
+            int amount = Integer.parseInt(parts[2]);
             Material mat = Material.matchMaterial(parts[1]);
             return mat != null && player.getInventory().containsAtLeast(new ItemStack(mat), amount);
         } else if (type.equalsIgnoreCase("MMOITEMS") && plugin.hasMMOItems()) {
+            // Format: MMOITEMS:TYPE:ID:AMOUNT
+            if (parts.length < 4)
+                return true;
+            int amount = Integer.parseInt(parts[3]);
             return plugin.getMmoItemsHook().hasItem(player, parts[1], parts[2], amount);
         }
         return true;
@@ -308,13 +315,17 @@ public class DungeonManager implements Listener {
             return;
 
         String type = parts[0];
-        int amount = Integer.parseInt(parts[2]);
-
         if (type.equalsIgnoreCase("VANILLA")) {
+            // Format: VANILLA:MATERIAL:AMOUNT
+            int amount = Integer.parseInt(parts[2]);
             Material mat = Material.matchMaterial(parts[1]);
             if (mat != null)
                 player.getInventory().removeItem(new ItemStack(mat, amount));
         } else if (type.equalsIgnoreCase("MMOITEMS") && plugin.hasMMOItems()) {
+            // Format: MMOITEMS:TYPE:ID:AMOUNT
+            if (parts.length < 4)
+                return;
+            int amount = Integer.parseInt(parts[3]);
             plugin.getMmoItemsHook().consumeItem(player, parts[1], parts[2], amount);
         }
     }
@@ -395,7 +406,7 @@ public class DungeonManager implements Listener {
 
     public void createDifficulty(String dungeonId, String diffId) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        config.set("difficulties." + diffId + ".display-name", diffId);
+        config.set("difficulties." + diffId + ".display", diffId);
         config.set("difficulties." + diffId + ".min-tier", 0);
         config.set("difficulties." + diffId + ".reward-multiplier", 1.0);
         config.set("difficulties." + diffId + ".max-deaths", 5);
@@ -426,7 +437,7 @@ public class DungeonManager implements Listener {
 
     public void deleteStage(String dungeonId, int stageNum) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
-        config.set("stages." + (stageNum + 1), null);
+        config.set("stages." + stageNum, null);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
     }

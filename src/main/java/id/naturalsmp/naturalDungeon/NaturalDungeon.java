@@ -168,6 +168,9 @@ public final class NaturalDungeon extends JavaPlugin {
         if (customMobManager != null) {
             customMobManager.saveAll();
         }
+        if (dungeonQueue != null) {
+            dungeonQueue.clearAll();
+        }
         getLogger().info(ChatUtils.colorize("&6&lNaturalDungeon &cDisabled!"));
     }
 
@@ -241,6 +244,7 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(partyGUI, this);
         getServer().getPluginManager().registerEvents(new PartyConfirmationGUI(this), this);
         getServer().getPluginManager().registerEvents(statsGUI, this);
+        getServer().getPluginManager().registerEvents(playerStatsManager, this); // Cache eviction on quit
 
         // Editor GUI listeners
         getServer().getPluginManager().registerEvents(editorChatInput, this);
@@ -281,12 +285,17 @@ public final class NaturalDungeon extends JavaPlugin {
             // Check if player is in a designated dungeon world but not in a session
             // We assume dungeons have specific keywords or we check against loaded dungeon
             // worlds
+            // Must exactly match a dungeon world name, not substring
             boolean inDungeonWorld = dungeonManager.getDungeons().stream()
-                    .anyMatch(d -> d.getWorld().equalsIgnoreCase(currentWorld));
+                    .anyMatch(d -> d.getWorld().equals(currentWorld));
 
-            if (inDungeonWorld) {
+            // Also verify the player is NOT in the main overworld (avoid false positive
+            // if dungeon world has similar naming)
+            boolean isMainWorld = currentWorld.equals(getServer().getWorlds().get(0).getName());
+
+            if (inDungeonWorld && !isMainWorld) {
                 getLogger().warning("Stuck player detected: " + p.getName() + " in " + currentWorld);
-                p.teleport(getServer().getWorlds().get(0).getSpawnLocation()); // Return to main world spawn
+                p.teleport(getServer().getWorlds().get(0).getSpawnLocation());
                 p.sendMessage(ChatUtils.colorize(
                         "&6&lNaturalDungeon &8» &eSesi dungeon kamu berakhir (Server restart/crash). Kembali ke Spawn!"));
             }

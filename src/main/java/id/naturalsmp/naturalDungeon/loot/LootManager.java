@@ -28,7 +28,8 @@ public class LootManager {
         this.plugin = plugin;
     }
 
-    public List<ItemStack> distributeLoot(List<UUID> players, ConfigurationSection lootSection, boolean isBoss) {
+    public List<ItemStack> distributeLoot(List<UUID> players, ConfigurationSection lootSection, boolean isBoss,
+            double rewardMultiplier) {
         List<ItemStack> allLoot = new ArrayList<>();
         if (lootSection == null)
             return allLoot;
@@ -46,7 +47,7 @@ public class LootManager {
                 continue;
 
             String amountStr = lootSection.getString(path + ".amount", "1");
-            int amount = parseAmount(amountStr);
+            int amount = (int) Math.max(1, parseAmount(amountStr) * rewardMultiplier);
             ItemStack item = null;
 
             switch (type.toUpperCase()) {

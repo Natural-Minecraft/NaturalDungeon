@@ -116,6 +116,8 @@ public class DungeonCompletionGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof CompletionHolder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.BARRIER) {
             e.getWhoClicked().closeInventory();
         }

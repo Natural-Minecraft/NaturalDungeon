@@ -147,7 +147,7 @@ public class PartyManager implements Listener {
     }
 
     public boolean upgradeParty(Party party, Player player) {
-        if (party.getTier() >= 3) {
+        if (party.getTier() >= 5) {
             player.sendMessage(ConfigUtils.getMessage("party.upgrade-max"));
             return false;
         }

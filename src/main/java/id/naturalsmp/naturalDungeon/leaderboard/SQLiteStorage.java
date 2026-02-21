@@ -56,42 +56,45 @@ public class SQLiteStorage {
     }
 
     /**
-     * Record or update a leaderboard entry (keeps best time).
+     * Record a dungeon completion asynchronously to avoid blocking the main thread.
      */
     public void recordCompletion(UUID uuid, String dungeonId, String difficulty, long timeMs, int deaths) {
-        try {
-            // All-time: only update if better time
-            try (PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO leaderboard (uuid, dungeon_id, difficulty, time_ms, deaths) " +
-                            "VALUES (?, ?, ?, ?, ?) " +
-                            "ON CONFLICT(uuid, dungeon_id, difficulty) DO UPDATE SET " +
-                            "time_ms = MIN(time_ms, excluded.time_ms), deaths = CASE WHEN excluded.time_ms < time_ms THEN excluded.deaths ELSE deaths END")) {
-                ps.setString(1, uuid.toString());
-                ps.setString(2, dungeonId);
-                ps.setString(3, difficulty);
-                ps.setLong(4, timeMs);
-                ps.setInt(5, deaths);
-                ps.executeUpdate();
-            }
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
+                org.bukkit.Bukkit.getPluginManager().getPlugin("NaturalDungeon"), () -> {
+                    try (PreparedStatement stmt = connection.prepareStatement(
+                            "INSERT INTO leaderboard (uuid, dungeon_id, difficulty, time_ms, deaths) VALUES (?, ?, ?, ?, ?) "
+                                    +
+                                    "ON CONFLICT(uuid, dungeon_id, difficulty) DO UPDATE SET time_ms = MIN(time_ms, ?), deaths = MIN(deaths, ?)")) {
+                        stmt.setString(1, uuid.toString());
+                        stmt.setString(2, dungeonId);
+                        stmt.setString(3, difficulty);
+                        stmt.setLong(4, timeMs);
+                        stmt.setInt(5, deaths);
+                        stmt.setLong(6, timeMs);
+                        stmt.setInt(7, deaths);
+                        stmt.executeUpdate();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
 
-            // Weekly
-            int weekNumber = getWeekNumber();
-            try (PreparedStatement ps = connection.prepareStatement(
-                    "INSERT INTO leaderboard_weekly (uuid, dungeon_id, difficulty, time_ms, deaths, week_number) " +
-                            "VALUES (?, ?, ?, ?, ?, ?) " +
-                            "ON CONFLICT(uuid, dungeon_id, difficulty, week_number) DO UPDATE SET " +
-                            "time_ms = MIN(time_ms, excluded.time_ms), deaths = CASE WHEN excluded.time_ms < time_ms THEN excluded.deaths ELSE deaths END")) {
-                ps.setString(1, uuid.toString());
-                ps.setString(2, dungeonId);
-                ps.setString(3, difficulty);
-                ps.setLong(4, timeMs);
-                ps.setInt(5, deaths);
-                ps.setInt(6, weekNumber);
-                ps.executeUpdate();
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().warning("Failed to record leaderboard: " + e.getMessage());
-        }
+                    // Also insert weekly
+                    try (PreparedStatement stmt = connection.prepareStatement(
+                            "INSERT INTO leaderboard_weekly (uuid, dungeon_id, difficulty, time_ms, deaths, week_number) VALUES (?, ?, ?, ?, ?, ?) "
+                                    +
+                                    "ON CONFLICT(uuid, dungeon_id, difficulty, week_number) DO UPDATE SET time_ms = MIN(time_ms, ?), deaths = MIN(deaths, ?)")) {
+                        stmt.setString(1, uuid.toString());
+                        stmt.setString(2, dungeonId);
+                        stmt.setString(3, difficulty);
+                        stmt.setLong(4, timeMs);
+                        stmt.setInt(5, deaths);
+                        stmt.setInt(6, getWeekNumber());
+                        stmt.setLong(7, timeMs);
+                        stmt.setInt(8, deaths);
+                        stmt.executeUpdate();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     /**

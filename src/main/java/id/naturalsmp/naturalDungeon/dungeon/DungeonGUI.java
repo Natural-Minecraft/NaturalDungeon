@@ -112,6 +112,8 @@ public class DungeonGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof DungeonHolder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
 
         if (e.getCurrentItem() == null)
             return;
@@ -126,7 +128,7 @@ public class DungeonGUI implements Listener {
         if (cmdId.equals("btn_leaderboard")) {
             List<Dungeon> dungeons = new ArrayList<>(plugin.getDungeonManager().getDungeons());
             if (!dungeons.isEmpty()) {
-                new LeaderboardGUI(plugin).open(player, dungeons.get(0).getId());
+                plugin.getLeaderboardGUI().open(player, dungeons.get(0).getId());
             }
             return;
         }

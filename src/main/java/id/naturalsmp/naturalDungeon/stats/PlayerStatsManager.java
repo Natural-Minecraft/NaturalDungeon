@@ -2,6 +2,9 @@ package id.naturalsmp.naturaldungeon.stats;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,7 +13,7 @@ import java.util.*;
 /**
  * Manages player stats, persisting to playerdata/<uuid>.yml
  */
-public class PlayerStatsManager {
+public class PlayerStatsManager implements Listener {
 
     private final NaturalDungeon plugin;
     private final Map<UUID, PlayerStats> cache = new HashMap<>();
@@ -107,5 +110,17 @@ public class PlayerStatsManager {
      */
     public boolean hasCleared(UUID uuid, String dungeonId) {
         return getStats(uuid).getDungeonClears().containsKey(dungeonId);
+    }
+
+    /**
+     * Evict player from cache on quit to prevent memory leak.
+     */
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (cache.containsKey(uuid)) {
+            saveStats(uuid);
+            cache.remove(uuid);
+        }
     }
 }

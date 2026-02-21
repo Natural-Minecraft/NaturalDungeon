@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DungeonInstance {
 
@@ -24,7 +25,7 @@ public class DungeonInstance {
     private final Dungeon dungeon;
     private final DungeonDifficulty difficulty;
     private final int instanceId;
-    private final List<UUID> participants;
+    private final CopyOnWriteArrayList<UUID> participants;
     private final Map<UUID, Integer> lives = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Boolean> inSafeZone = new HashMap<>();
@@ -45,6 +46,7 @@ public class DungeonInstance {
     private BukkitTask timerTask; // Dungeon time limit task
     private BukkitTask mutatorTask; // Background task for active mutators
     private BukkitTask hazardTask; // Environmental hazards task
+    private BukkitTask safeRoomTask; // Safe room timer task
     private BossBar bossBar;
 
     private final List<MutatorType> activeMutators = new ArrayList<>();
@@ -64,7 +66,7 @@ public class DungeonInstance {
         this.dungeon = dungeon;
         this.difficulty = difficulty;
         this.instanceId = instanceId;
-        this.participants = new ArrayList<>(participants);
+        this.participants = new CopyOnWriteArrayList<>(participants);
         this.lootManager = new LootManager(plugin);
         this.buffChoiceGUI = plugin.getBuffChoiceGUI();
 
@@ -226,6 +228,9 @@ public class DungeonInstance {
     }
 
     private void startHazardTask() {
+        if (!ConfigUtils.getBoolean("dungeon.hazards-enabled"))
+            return; // Only start hazards if configured
+
         if (hazardTask != null)
             hazardTask.cancel();
 
@@ -378,13 +383,17 @@ public class DungeonInstance {
 
         // Timer for safe room (60s default) — tracked via BukkitRunnable for safe
         // self-cancel
-        new org.bukkit.scheduler.BukkitRunnable() {
+        // Track safe room task for proper cancellation
+        if (safeRoomTask != null)
+            safeRoomTask.cancel();
+        org.bukkit.scheduler.BukkitRunnable safeRoomRunnable = new org.bukkit.scheduler.BukkitRunnable() {
             int time = 60;
 
             @Override
             public void run() {
                 if (!active) {
                     this.cancel();
+                    safeRoomTask = null;
                     return;
                 }
                 time--;
@@ -405,11 +414,13 @@ public class DungeonInstance {
 
                 if (time <= 0) {
                     campfireLoc.getBlock().setType(org.bukkit.Material.AIR); // Remove campfire
-                    this.cancel(); // Only cancel THIS task
+                    this.cancel();
+                    safeRoomTask = null;
                     onStageComplete();
                 }
             }
-        }.runTaskTimer(plugin, 20L, 20L);
+        };
+        safeRoomTask = safeRoomRunnable.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startNextWave() {
@@ -739,7 +750,8 @@ public class DungeonInstance {
             // 2. Spawn Loot Chest with premium VFX
             this.lootChestLocation = center;
             if (difficulty.getLootSection() != null) {
-                collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false);
+                collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false,
+                        difficulty.getRewardMultiplier());
                 lootManager.spawnLootChest(center, collectedLoot);
             } else {
                 // No loot configured, just place chest
@@ -818,7 +830,7 @@ public class DungeonInstance {
                 for (UUID uuid : participants) {
                     Player player = Bukkit.getPlayer(uuid);
                     if (player != null)
-                        new DungeonCompletionGUI(plugin).open(player, this, true);
+                        plugin.getDungeonCompletionGUI().open(player, this, true);
                 }
             }, 40L);
 
@@ -832,7 +844,7 @@ public class DungeonInstance {
                 for (UUID uuid : participants) {
                     Player player = Bukkit.getPlayer(uuid);
                     if (player != null)
-                        new DungeonCompletionGUI(plugin).open(player, this, false);
+                        plugin.getDungeonCompletionGUI().open(player, this, false);
                 }
             }, 20L);
             Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 100L);
@@ -900,6 +912,10 @@ public class DungeonInstance {
         if (hazardTask != null) {
             hazardTask.cancel();
             hazardTask = null;
+        }
+        if (safeRoomTask != null) {
+            safeRoomTask.cancel();
+            safeRoomTask = null;
         }
         removeBossBar();
     }
