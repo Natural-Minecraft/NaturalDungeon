@@ -2,16 +2,15 @@ package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
@@ -27,39 +26,87 @@ public class WaveEditorGUI implements Listener {
     }
 
     public void open(Player player, String dungeonId, int stageIndex) {
-        Inventory inv = Bukkit.createInventory(new WaveEditorHolder(dungeonId, stageIndex), 36,
-                ChatUtils.colorize("&e&lWAVES: Stage " + (stageIndex + 1)));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 36; i++)
-            inv.setItem(i, filler);
+        Inventory inv = GUIUtils.createGUI(new WaveEditorHolder(dungeonId, stageIndex), 36,
+                "&#FFAA00🌊 ᴡᴀᴠᴇꜱ: &fStage " + (stageIndex + 1));
+
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         int waveCount = plugin.getDungeonManager().getWaveCount(dungeonId, stageIndex);
         for (int i = 0; i < waveCount && i < 18; i++) {
-            inv.setItem(i + 9, createItem(Material.IRON_SWORD,
-                    "&6&lWave " + (i + 1),
-                    "&aKlik untuk edit mobs",
-                    "&cShift+Klik untuk hapus"));
+            inv.setItem(i + 9, GUIUtils.createItem(Material.IRON_SWORD,
+                    "&#FFAA00&lWave " + (i + 1),
+                    GUIUtils.separator(),
+                    "&7Edit mobs di wave ini.",
+                    "",
+                    "&#FFAA00&l⚔ Klik &7→ Edit",
+                    "&#FF5555&l✖ Shift+Klik &7→ Hapus"));
         }
 
-        inv.setItem(31, createItem(Material.EMERALD, "&a&lTambah Wave"));
-        inv.setItem(30, createItem(Material.WITHER_SKELETON_SKULL, "&d&lBoss Config",
-                "&7Set boss untuk stage ini"));
-        inv.setItem(27, createItem(Material.ARROW, "&cKembali"));
+        // ─── Bottom Action Bar ───
 
-        // [NEW] Spawner & Arena controls for this stage
-        inv.setItem(28, createItem(Material.BLAZE_POWDER, "&e&lAdd Mob Spawner",
-                "&7Tambah lokasi mob spawn", "&aKlik untuk tambah di lokasi kamu"));
-        inv.setItem(29, createItem(Material.BARRIER, "&c&lClear Mob Spawners",
-                "&7Hapus semua lokasi spawner", "&aKlik untuk clear"));
+        // Back
+        inv.setItem(27, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
-        inv.setItem(33, createItem(Material.EMERALD_BLOCK, "&e&lSet Safe Zone",
-                "&7Set titik start/aman stage", "&aKlik untuk set di lokasi kamu"));
-        inv.setItem(34, createItem(Material.DIAMOND_AXE, "&e&lSet Arena Corner 1",
-                "&7Set pojok arena 1", "&aKlik untuk set"));
-        inv.setItem(35, createItem(Material.DIAMOND_AXE, "&e&lSet Arena Corner 2",
-                "&7Set pojok arena 2", "&aKlik untuk set"));
+        // Add Mob Spawner
+        inv.setItem(28, GUIUtils.createItem(Material.BLAZE_POWDER,
+                "&#FFAA00&l📍 ᴀᴅᴅ ꜱᴘᴀᴡɴᴇʀ",
+                GUIUtils.separator(),
+                "&7Tambah lokasi mob spawn.",
+                "&7Lokasi: &fposisi kamu saat ini.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        // Clear Spawners
+        inv.setItem(29, GUIUtils.createItem(Material.BARRIER,
+                "&#FF5555&l🗑 ᴄʟᴇᴀʀ ꜱᴘᴀᴡɴᴇʀꜱ",
+                GUIUtils.separator(),
+                "&7Hapus semua lokasi spawner.",
+                "",
+                "&#FF5555&l➥ KLIK"));
+
+        // Boss Config
+        inv.setItem(30, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
+                "&#AA44FF&l🐉 ʙᴏꜱꜱ ᴄᴏɴꜰɪɢ",
+                GUIUtils.separator(),
+                "&7Set boss untuk stage ini.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        // Add Wave
+        inv.setItem(31, GUIUtils.createItem(Material.EMERALD,
+                "&#55FF55&l✚ ᴛᴀᴍʙᴀʜ ᴡᴀᴠᴇ",
+                GUIUtils.separator(),
+                "&7Tambah wave baru.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        // Set Safe Zone
+        inv.setItem(33, GUIUtils.createItem(Material.EMERALD_BLOCK,
+                "&#55FF55&l🏠 ꜱᴀꜰᴇ ᴢᴏɴᴇ",
+                GUIUtils.separator(),
+                "&7Set titik aman stage.",
+                "&7Lokasi: &fposisi kamu.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        // Arena Corners
+        inv.setItem(34, GUIUtils.createItem(Material.DIAMOND_AXE,
+                "&#55CCFF&l⬛ ᴄᴏʀɴᴇʀ 1",
+                GUIUtils.separator(),
+                "&7Set pojok arena 1.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(35, GUIUtils.createItem(Material.DIAMOND_AXE,
+                "&#55CCFF&l⬛ ᴄᴏʀɴᴇʀ 2",
+                GUIUtils.separator(),
+                "&7Set pojok arena 2.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -67,97 +114,83 @@ public class WaveEditorGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof WaveEditorHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
+
         Player player = (Player) e.getWhoClicked();
+        GUIUtils.playClickSound(player);
 
-        if (e.getSlot() == 27) {
-            new StageEditorGUI(plugin).open(player, holder.dungeonId);
-            return;
-        }
-        if (e.getSlot() == 30) {
-            new BossConfigGUI(plugin).open(player, holder.dungeonId, holder.stageIndex);
-            return;
-        }
-        if (e.getSlot() == 31) {
-            plugin.getDungeonManager().addWave(holder.dungeonId, holder.stageIndex);
-            player.sendMessage(ChatUtils.colorize("&aWave baru ditambahkan!"));
-            open(player, holder.dungeonId, holder.stageIndex);
-            return;
-        }
-
-        // Feature: Add Mob Spawner
-        if (e.getSlot() == 28) {
-            player.closeInventory();
-            org.bukkit.Location loc = player.getLocation();
-            String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
-                    + loc.getBlockZ()
-                    + "," + String.format("%.1f", loc.getYaw()) + "," + String.format("%.1f", loc.getPitch());
-
-            String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
-            List<String> spawns = plugin.getDungeonManager().loadDungeonConfig(holder.dungeonId).getStringList(path);
-            spawns.add(locStr);
-            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, spawns);
-            player.sendMessage(ChatUtils.colorize("&aDitambahkan Mob Spawner #" + spawns.size() + ": &f" + locStr));
-            return;
-        }
-
-        // Feature: Clear Mob Spawners
-        if (e.getSlot() == 29) {
-            String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
-            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, new ArrayList<String>());
-            player.sendMessage(ChatUtils.colorize("&cSemua Mob Spawner di Stage ini telah dihapus!"));
-            open(player, holder.dungeonId, holder.stageIndex);
-            return;
-        }
-
-        // Feature: Set Safe Zone
-        if (e.getSlot() == 33) {
-            player.closeInventory();
-            org.bukkit.Location loc = player.getLocation();
-            String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
-                    + loc.getBlockZ()
-                    + "," + String.format("%.1f", loc.getYaw()) + "," + String.format("%.1f", loc.getPitch());
-            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                    "stages." + (holder.stageIndex + 1) + ".safe-zone",
-                    locStr);
-            player.sendMessage(ChatUtils.colorize("&aSafe zone stage set: &f" + locStr));
-            return;
-        }
-
-        // Feature: Set Arena Corner 1 & 2
-        if (e.getSlot() == 34 || e.getSlot() == 35) {
-            player.closeInventory();
-            org.bukkit.Location loc = player.getLocation();
-            String cornerStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-            String cfgKey = e.getSlot() == 34 ? "corner1" : "corner2";
-            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                    "stages." + (holder.stageIndex + 1) + ".arena-region." + cfgKey, cornerStr);
-            player.sendMessage(ChatUtils.colorize("&aArena " + cfgKey + " set: &f" + cornerStr));
-            return;
-        }
-        if (e.getSlot() >= 9 && e.getSlot() <= 26) {
-            int waveIndex = e.getSlot() - 9;
-            if (e.isShiftClick()) {
-                plugin.getDungeonManager().deleteWave(holder.dungeonId, holder.stageIndex, waveIndex);
-                player.sendMessage(ChatUtils.colorize("&cWave dihapus!"));
+        switch (e.getSlot()) {
+            case 27 -> new StageEditorGUI(plugin).open(player, holder.dungeonId);
+            case 30 -> new BossConfigGUI(plugin).open(player, holder.dungeonId, holder.stageIndex);
+            case 31 -> {
+                plugin.getDungeonManager().addWave(holder.dungeonId, holder.stageIndex);
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Wave baru ditambahkan!"));
+                GUIUtils.playSuccessSound(player);
                 open(player, holder.dungeonId, holder.stageIndex);
-            } else {
-                new WaveConfigGUI(plugin).open(player, holder.dungeonId, holder.stageIndex, waveIndex);
+            }
+            case 28 -> {
+                player.closeInventory();
+                org.bukkit.Location loc = player.getLocation();
+                String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
+                        + loc.getBlockZ() + "," + String.format("%.1f", loc.getYaw()) + ","
+                        + String.format("%.1f", loc.getPitch());
+                String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
+                List<String> spawns = plugin.getDungeonManager().loadDungeonConfig(holder.dungeonId)
+                        .getStringList(path);
+                spawns.add(locStr);
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, spawns);
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Spawner #" + spawns.size() + ": &f" + locStr));
+                GUIUtils.playSuccessSound(player);
+            }
+            case 29 -> {
+                String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, new ArrayList<String>());
+                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Semua spawner dihapus!"));
+                open(player, holder.dungeonId, holder.stageIndex);
+            }
+            case 33 -> {
+                player.closeInventory();
+                org.bukkit.Location loc = player.getLocation();
+                String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
+                        + loc.getBlockZ() + "," + String.format("%.1f", loc.getYaw()) + ","
+                        + String.format("%.1f", loc.getPitch());
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                        "stages." + (holder.stageIndex + 1) + ".safe-zone", locStr);
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Safe zone set: &f" + locStr));
+                GUIUtils.playSuccessSound(player);
+            }
+            case 34, 35 -> {
+                player.closeInventory();
+                org.bukkit.Location loc = player.getLocation();
+                String cornerStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
+                String cfgKey = e.getSlot() == 34 ? "corner1" : "corner2";
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                        "stages." + (holder.stageIndex + 1) + ".arena-region." + cfgKey, cornerStr);
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Arena " + cfgKey + ": &f" + cornerStr));
+                GUIUtils.playSuccessSound(player);
+            }
+            default -> {
+                if (e.getSlot() >= 9 && e.getSlot() <= 26) {
+                    int waveIndex = e.getSlot() - 9;
+                    if (e.isShiftClick()) {
+                        plugin.getDungeonManager().deleteWave(holder.dungeonId, holder.stageIndex, waveIndex);
+                        player.sendMessage(ChatUtils.colorize("&#FF5555✖ Wave dihapus!"));
+                        open(player, holder.dungeonId, holder.stageIndex);
+                    } else {
+                        new WaveConfigGUI(plugin).open(player, holder.dungeonId, holder.stageIndex, waveIndex);
+                    }
+                }
             }
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof WaveEditorHolder)
+            e.setCancelled(true);
     }
 
     public static class WaveEditorHolder implements InventoryHolder {

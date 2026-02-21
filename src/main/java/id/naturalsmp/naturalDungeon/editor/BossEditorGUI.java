@@ -4,12 +4,13 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.mob.CustomMob;
 import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -28,12 +29,11 @@ public class BossEditorGUI implements Listener {
 
     public void open(Player player, String dungeonId) {
         CustomMobManager mobManager = plugin.getCustomMobManager();
-        Inventory inv = Bukkit.createInventory(new BossListHolder(dungeonId), 54,
-                ChatUtils.colorize("&4&lBOSS EDITOR"));
+        Inventory inv = GUIUtils.createGUI(new BossListHolder(dungeonId), 54,
+                "&#AA44FF🐉 ʙᴏꜱꜱ ᴇᴅɪᴛᴏʀ");
 
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++)
-            inv.setItem(i, filler);
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
         int slot = 10;
         for (CustomMob mob : mobManager.getAllMobs()) {
@@ -42,22 +42,25 @@ public class BossEditorGUI implements Listener {
             if (slot > 43)
                 break;
 
-            inv.setItem(slot, createItem(Material.WITHER_SKELETON_SKULL,
-                    "&c" + mob.getName(),
+            inv.setItem(slot, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
+                    "&#FF5555&l" + mob.getName(),
+                    GUIUtils.separator(),
                     "&7ID: &f" + mob.getId(),
-                    "&7HP: &c" + mob.getHealth(),
-                    "&7DMG: &c" + mob.getDamage(),
-                    "", "&aKlik untuk edit",
-                    "&cShift+Klik untuk hapus"));
+                    "&7HP: &#FF5555" + mob.getHealth(),
+                    "&7DMG: &#FFAA00" + mob.getDamage(),
+                    "",
+                    "&#FFAA00&l⚔ Klik &7→ Edit",
+                    "&#FF5555&l✖ Shift+Klik &7→ Hapus"));
             slot++;
             if (slot % 9 == 8)
                 slot += 2;
         }
 
-        inv.setItem(49, createItem(Material.NETHER_STAR, "&c&lBuat Boss Baru"));
-        inv.setItem(45, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(49, GUIUtils.createItem(Material.NETHER_STAR, "&#55FF55&l✚ ʙᴜᴀᴛ ʙᴏꜱꜱ ʙᴀʀᴜ"));
+        inv.setItem(45, GUIUtils.createItem(Material.ARROW, "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     public void openBossConfig(Player player, String dungeonId, String mobId) {
@@ -105,11 +108,24 @@ public class BossEditorGUI implements Listener {
 
         if (h instanceof BossListHolder holder) {
             e.setCancelled(true);
+            if (e.getClickedInventory() != e.getView().getTopInventory())
+                return;
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
             handleListClick(e, holder);
         } else if (h instanceof BossConfigHolder holder) {
             e.setCancelled(true);
+            if (e.getClickedInventory() != e.getView().getTopInventory())
+                return;
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
             handleConfigClick(e, holder);
         }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        InventoryHolder h = e.getInventory().getHolder();
+        if (h instanceof BossListHolder || h instanceof BossConfigHolder)
+            e.setCancelled(true);
     }
 
     private void handleListClick(InventoryClickEvent e, BossListHolder holder) {
@@ -246,19 +262,7 @@ public class BossEditorGUI implements Listener {
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatUtils.colorize(name));
-            List<String> list = new ArrayList<>();
-            for (String l : lore)
-                list.add(ChatUtils.colorize(l));
-            meta.setLore(list);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
+    // Using GUIUtils.createItem() instead of local createItem
 
     public static class BossListHolder implements InventoryHolder {
         public final String dungeonId;
