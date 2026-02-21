@@ -3,16 +3,15 @@ package id.naturalsmp.naturaldungeon.editor;
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
@@ -30,22 +29,67 @@ public class BasicInfoEditorGUI implements Listener {
 
     public void open(Player player, String dungeonId) {
         Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
-        Inventory inv = Bukkit.createInventory(new InfoHolder(dungeonId), 27,
-                ChatUtils.colorize("&b&lBASIC INFO: &e" + dungeonId));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
 
-        String name = dungeon != null ? dungeon.getDisplayName() : dungeonId;
-        inv.setItem(10, createItem(Material.NAME_TAG, "&e&lNama", "&7Saat ini: &f" + name, "", "&aKlik untuk ubah"));
-        inv.setItem(11, createItem(Material.BOOK, "&e&lDeskripsi", "&aKlik untuk ubah"));
-        inv.setItem(12, createItem(Material.GRASS_BLOCK, "&e&lWorld", "&aKlik untuk set world"));
-        inv.setItem(14, createItem(Material.IRON_CHESTPLATE, "&e&lMax Players", "&aKlik untuk ubah"));
-        inv.setItem(15, createItem(Material.CLOCK, "&e&lCooldown", "&aKlik untuk ubah cooldown"));
-        inv.setItem(16, createItem(Material.ITEM_FRAME, "&e&lIcon Material", "&aKlik untuk ubah icon"));
-        inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
+        Inventory inv = GUIUtils.createGUI(new InfoHolder(dungeonId), 27,
+                "&#55CCFF📝 ʙᴀꜱɪᴄ ɪɴꜰᴏ: &f" + dungeonId);
+
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
+
+        String currentName = dungeon != null ? dungeon.getDisplayName() : dungeonId;
+        String currentWorld = dungeon != null ? dungeon.getWorld() : "N/A";
+        int maxPlayers = dungeon != null ? dungeon.getMaxPlayers() : 4;
+
+        // ─── Editor Fields ───
+
+        inv.setItem(10, GUIUtils.createItem(Material.NAME_TAG,
+                "&#FFD700&l✏ ɴᴀᴍᴀ",
+                GUIUtils.separator(),
+                "&7Saat ini: &f" + currentName,
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK UBAH"));
+
+        inv.setItem(11, GUIUtils.createItem(Material.BOOK,
+                "&#55CCFF&l📖 ᴅᴇꜱᴋʀɪᴘꜱɪ",
+                GUIUtils.separator(),
+                "&7Edit deskripsi dungeon.",
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK UBAH"));
+
+        inv.setItem(12, GUIUtils.createItem(Material.GRASS_BLOCK,
+                "&#55FF55&l🌍 ᴡᴏʀʟᴅ",
+                GUIUtils.separator(),
+                "&7Saat ini: &f" + currentWorld,
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK SET"));
+
+        inv.setItem(14, GUIUtils.createItem(Material.IRON_CHESTPLATE,
+                "&#AAAAAA&l👥 ᴍᴀx ᴘʟᴀʏᴇʀꜱ",
+                GUIUtils.separator(),
+                "&7Saat ini: &f" + maxPlayers,
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK UBAH"));
+
+        inv.setItem(15, GUIUtils.createItem(Material.CLOCK,
+                "&#FFAA00&l⏱ ᴄᴏᴏʟᴅᴏᴡɴ",
+                GUIUtils.separator(),
+                "&7Waktu tunggu antar run.",
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK UBAH"));
+
+        inv.setItem(16, GUIUtils.createItem(Material.ITEM_FRAME,
+                "&#AA44FF&l🎨 ɪᴄᴏɴ",
+                GUIUtils.separator(),
+                "&7Material icon di GUI.",
+                "",
+                "&#FFAA00&l➥ KLIK UNTUK UBAH"));
+
+        // Back button
+        inv.setItem(22, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ",
+                "&7Kembali ke editor utama."));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -53,72 +97,102 @@ public class BasicInfoEditorGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof InfoHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
+
         Player player = (Player) e.getWhoClicked();
         String id = holder.dungeonId;
+        GUIUtils.playClickSound(player);
 
         switch (e.getSlot()) {
-            case 10 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan nama baru:"), input -> {
-                        plugin.getDungeonManager().setDungeonConfig(id, "display-name", input);
-                        player.sendMessage(ChatUtils.colorize("&aNama diubah ke: &f" + input));
-                        open(player, id);
-                    });
-            case 11 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan deskripsi:"), input -> {
-                        plugin.getDungeonManager().setDungeonConfig(id, "description", input);
-                        player.sendMessage(ChatUtils.colorize("&aDeskripsi diubah!"));
-                        open(player, id);
-                    });
-            case 12 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan nama world:"), input -> {
-                        plugin.getDungeonManager().setDungeonConfig(id, "world", input);
-                        player.sendMessage(ChatUtils.colorize("&aWorld diset: &f" + input));
-                        open(player, id);
-                    });
-            case 14 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan max players (angka):"), input -> {
-                        try {
-                            int val = Integer.parseInt(input);
-                            plugin.getDungeonManager().setDungeonConfig(id, "max-players", val);
-                            player.sendMessage(ChatUtils.colorize("&aMax players: &f" + val));
-                        } catch (NumberFormatException ex) {
-                            player.sendMessage(ChatUtils.colorize("&cAngka tidak valid!"));
-                        }
-                        open(player, id);
-                    });
-            case 15 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan cooldown (detik):"), input -> {
-                        try {
-                            int val = Integer.parseInt(input);
-                            plugin.getDungeonManager().setDungeonConfig(id, "cooldown", val);
-                            player.sendMessage(ChatUtils.colorize("&aCooldown: &f" + val + "s"));
-                        } catch (NumberFormatException ex) {
-                            player.sendMessage(ChatUtils.colorize("&cAngka tidak valid!"));
-                        }
-                        open(player, id);
-                    });
-            case 16 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan material icon (misal: DIAMOND_SWORD):"), input -> {
-                        plugin.getDungeonManager().setDungeonConfig(id, "icon", input.toUpperCase());
-                        player.sendMessage(ChatUtils.colorize("&aIcon: &f" + input.toUpperCase()));
-                        open(player, id);
-                    });
+            case 10 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFD700&l✏ &7Masukkan nama baru:"), input -> {
+                            plugin.getDungeonManager().setDungeonConfig(id, "display-name", input);
+                            player.sendMessage(ChatUtils.colorize("&#55FF55✔ Nama diubah ke: &f" + input));
+                            GUIUtils.playSuccessSound(player);
+                            open(player, id);
+                        });
+            }
+            case 11 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#55CCFF&l📖 &7Masukkan deskripsi:"), input -> {
+                            plugin.getDungeonManager().setDungeonConfig(id, "description", input);
+                            player.sendMessage(ChatUtils.colorize("&#55FF55✔ Deskripsi diubah!"));
+                            GUIUtils.playSuccessSound(player);
+                            open(player, id);
+                        });
+            }
+            case 12 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#55FF55&l🌍 &7Masukkan nama world:"), input -> {
+                            plugin.getDungeonManager().setDungeonConfig(id, "world", input);
+                            player.sendMessage(ChatUtils.colorize("&#55FF55✔ World diset: &f" + input));
+                            GUIUtils.playSuccessSound(player);
+                            open(player, id);
+                        });
+            }
+            case 14 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#AAAAAA&l👥 &7Masukkan max players (angka):"), input -> {
+                            try {
+                                int val = Integer.parseInt(input);
+                                plugin.getDungeonManager().setDungeonConfig(id, "max-players", val);
+                                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Max players: &f" + val));
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid!"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            open(player, id);
+                        });
+            }
+            case 15 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFAA00&l⏱ &7Masukkan cooldown (detik):"), input -> {
+                            try {
+                                int val = Integer.parseInt(input);
+                                plugin.getDungeonManager().setDungeonConfig(id, "cooldown", val);
+                                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Cooldown: &f" + val + "s"));
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid!"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            open(player, id);
+                        });
+            }
+            case 16 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#AA44FF&l🎨 &7Masukkan material (misal: DIAMOND_SWORD):"), input -> {
+                            Material mat = Material.matchMaterial(input.toUpperCase());
+                            if (mat != null) {
+                                plugin.getDungeonManager().setDungeonConfig(id, "icon", input.toUpperCase());
+                                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Icon: &f" + input.toUpperCase()));
+                                GUIUtils.playSuccessSound(player);
+                            } else {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Material tidak ditemukan!"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            open(player, id);
+                        });
+            }
             case 22 -> new DungeonMainEditorGUI(plugin).open(player, id);
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof InfoHolder)
+            e.setCancelled(true);
     }
 
     public static class InfoHolder implements InventoryHolder {
