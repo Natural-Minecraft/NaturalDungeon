@@ -169,11 +169,12 @@ public class DungeonMainEditorGUI implements Listener {
             case 23 -> new RewardEditorGUI(plugin).open(player, dungeonId);
             case 24 -> new MobEditorGUI(plugin).open(player, dungeonId);
             case 25 -> {
-                // Give setup wand tools
+                // Setup tools info
                 player.closeInventory();
-                plugin.getSetupManager().giveTools(player);
-                player.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
-                        .colorize("&#FFD700&l⚙ &7Setup tools diberikan. Gunakan untuk menandai region."));
+                player.sendMessage(
+                        ChatUtils.colorize("&#FFD700&l⚙ &7Gunakan &f/nd wand &7untuk mendapatkan setup tools."));
+                player.sendMessage(
+                        ChatUtils.colorize("&7Gunakan wand untuk menandai &fregion &7dan &fspawn points&7."));
             }
             case 36 -> new DungeonListEditorGUI(plugin).open(player);
             case 40 -> {
