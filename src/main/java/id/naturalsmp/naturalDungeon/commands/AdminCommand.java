@@ -4,7 +4,6 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.admin.SetupManager;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonInstance;
-import id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
 import org.bukkit.Bukkit;
@@ -184,7 +183,26 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
                     return true;
                 }
-                new DungeonListEditorGUI(plugin).open(player);
+                if (args.length < 2) {
+                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd editor <dungeon_id> [stage]"));
+                    for (String id : plugin.getDungeonManager().getDungeonIds()) {
+                        player.sendMessage(ChatUtils.colorize("  &e- " + id));
+                    }
+                    return true;
+                }
+                Dungeon dungeon = plugin.getDungeonManager().getDungeon(args[1]);
+                if (dungeon == null) {
+                    player.sendMessage(ChatUtils.colorize("&cDungeon tidak ditemukan: " + args[1]));
+                    return true;
+                }
+                int stageNum = 1;
+                if (args.length >= 3) {
+                    try {
+                        stageNum = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                setupManager.enterStageEditor(player, dungeon, stageNum);
             }
             case "debugspawn" -> {
                 if (!(sender instanceof Player player)) {
@@ -195,35 +213,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             }
             case "check" -> {
                 handleCheck(sender, args);
-            }
-            case "set" -> {
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
-                    return true;
-                }
-                if (args.length < 3) {
-                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd set <safezone|arena> <pos1|pos2>"));
-                    return true;
-                }
-                String type = args[1].toLowerCase();
-                String posStr = args[2].toLowerCase();
-                int posNum = posStr.equals("pos1") ? 1 : (posStr.equals("pos2") ? 2 : -1);
-
-                if (!type.equals("safezone") && !type.equals("arena") && !type.matches("stage\\d+")) {
-                    player.sendMessage(ChatUtils.colorize("&cInvalid type. Use 'safezone' or 'arena'."));
-                    return true;
-                }
-
-                // Allow "stage1", "stage2" aliases to map to "arena"
-                if (type.startsWith("stage"))
-                    type = "arena";
-
-                if (posNum == -1) {
-                    player.sendMessage(ChatUtils.colorize("&cInvalid pos. Use 'pos1' or 'pos2'."));
-                    return true;
-                }
-
-                setupManager.setPos(player, type, posNum, player.getLocation());
             }
             default -> sendUsage(sender);
         }
@@ -255,8 +244,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd forceend &7- Force end dungeon"));
         sender.sendMessage(ChatUtils.colorize("&e/nd list &7- List dungeons"));
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
-        sender.sendMessage(ChatUtils.colorize("&e/nd set <safezone|arena> <pos1|pos2> &7- Set region points"));
-        sender.sendMessage(ChatUtils.colorize("&e/nd editor &7- Open dungeon editor GUI"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd editor <dungeon> [stage] &7- Enter dungeon editor mode"));
         sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
@@ -309,13 +297,10 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                             "editor", "clone", "status"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("setup") || sub.equals("test") || sub.equals("info") || sub.equals("clone")) {
+            if (sub.equals("setup") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
+                    || sub.equals("editor")) {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
-            } else if (sub.equals("set")) {
-                completions.addAll(Arrays.asList("safezone", "arena"));
             }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
-            completions.addAll(Arrays.asList("pos1", "pos2"));
         }
         return completions;
     }

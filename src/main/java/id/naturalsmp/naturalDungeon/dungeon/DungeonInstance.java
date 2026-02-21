@@ -451,7 +451,7 @@ public class DungeonInstance {
         }
 
         Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName);
-        Location center = centerOpt.orElse(dungeonWorld.getSpawnLocation()).add(15, 0, 15);
+        Location center = centerOpt.orElse(dungeonWorld.getSpawnLocation());
 
         waveManager.spawnWave(wave, center, participants.size(), bloodMoon, loc.getMobSpawns());
     }
@@ -515,7 +515,7 @@ public class DungeonInstance {
                 regionName = loc.getSafeZone();
 
             center = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName)
-                    .orElse(dungeonWorld.getSpawnLocation()).add(20, 0, 20);
+                    .orElse(dungeonWorld.getSpawnLocation());
         }
 
         final Location spawn = center;

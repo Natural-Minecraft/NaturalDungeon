@@ -94,7 +94,9 @@ public class SetupManager implements Listener {
 
         player.getInventory().setItem(6, createTool(Material.WITHER_SKELETON_SKULL, "&eSet Boss Spawn", "SET_BOSS",
                 "&7R-Click on block to set"));
-        player.getInventory().setItem(8, createTool(Material.BARRIER, "&cBack to Dashboard", "EXIT", "&7Save & Exit"));
+        player.getInventory().setItem(7, createTool(Material.BARRIER, "&cExit Editor", "EXIT", "&7Save & Exit"));
+        player.getInventory().setItem(8,
+                createTool(Material.COMMAND_BLOCK, "&dOpen GUI", "OPEN_GUI", "&7Open Dashboard GUI"));
     }
 
     private ItemStack createTool(Material mat, String name, String id, String... lore) {
@@ -139,8 +141,10 @@ public class SetupManager implements Listener {
                 }
             }
             case "EXIT" -> {
-                String dungeonId = session.dungeon.getId();
                 exitSetupMode(p);
+            }
+            case "OPEN_GUI" -> {
+                String dungeonId = session.dungeon.getId();
                 openDashboard(p, dungeonId);
             }
         }
