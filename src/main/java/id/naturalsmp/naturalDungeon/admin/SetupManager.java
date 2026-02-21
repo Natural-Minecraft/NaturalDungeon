@@ -23,29 +23,17 @@ import java.util.*;
 public class SetupManager implements Listener {
 
     private final NaturalDungeon plugin;
-    private final SetupGUI setupGUI;
     private final Map<UUID, EditorSession> sessions = new HashMap<>();
     private final NamespacedKey toolKey;
 
     public SetupManager(NaturalDungeon plugin) {
         this.plugin = plugin;
-        this.setupGUI = new SetupGUI(plugin, this);
         this.toolKey = new NamespacedKey(plugin, "setup_tool");
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        plugin.getServer().getPluginManager().registerEvents(setupGUI, plugin);
         startVisualizer();
     }
 
     // --- Entry Points ---
-
-    public void openDashboard(Player player, String dungeonId) {
-        Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
-        if (dungeon == null) {
-            player.sendMessage(ChatUtils.colorize("&cDungeon not found: " + dungeonId));
-            return;
-        }
-        setupGUI.open(player, dungeon);
-    }
 
     public void enterStageEditor(Player player, Dungeon dungeon, int stageNum) {
         // Save Inventory
@@ -94,9 +82,10 @@ public class SetupManager implements Listener {
 
         player.getInventory().setItem(6, createTool(Material.WITHER_SKELETON_SKULL, "&eSet Boss Spawn", "SET_BOSS",
                 "&7R-Click on block to set"));
+
         player.getInventory().setItem(7, createTool(Material.BARRIER, "&cExit Editor", "EXIT", "&7Save & Exit"));
         player.getInventory().setItem(8,
-                createTool(Material.COMMAND_BLOCK, "&dOpen GUI", "OPEN_GUI", "&7Open Dashboard GUI"));
+                createTool(Material.COMMAND_BLOCK, "&dOpen Editor GUI", "OPEN_GUI", "&7Click to open GUI"));
     }
 
     private ItemStack createTool(Material mat, String name, String id, String... lore) {
@@ -140,12 +129,11 @@ public class SetupManager implements Listener {
                     saveBossSpawn(p, session, loc);
                 }
             }
+            case "OPEN_GUI" -> {
+                new id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI(plugin).open(p);
+            }
             case "EXIT" -> {
                 exitSetupMode(p);
-            }
-            case "OPEN_GUI" -> {
-                String dungeonId = session.dungeon.getId();
-                openDashboard(p, dungeonId);
             }
         }
     }

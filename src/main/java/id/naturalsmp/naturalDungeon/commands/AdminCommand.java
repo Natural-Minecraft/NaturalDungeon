@@ -4,6 +4,7 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.admin.SetupManager;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonInstance;
+import id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
 import org.bukkit.Bukkit;
@@ -46,20 +47,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 plugin.reload();
                 sender.sendMessage(ConfigUtils.getMessage("general.reload"));
             }
-            case "setup" -> {
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
-                    return true;
-                }
-                if (args.length < 2) {
-                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd setup <dungeon_id>"));
-                    for (String id : plugin.getDungeonManager().getDungeonIds()) {
-                        player.sendMessage(ChatUtils.colorize("  &e- " + id));
-                    }
-                    return true;
-                }
-                setupManager.openDashboard(player, args[1]);
-            }
+
             case "test" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
@@ -172,37 +160,30 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatUtils.colorize("&7Stages: &f" + dungeon.getTotalStages()));
             }
             case "admin" -> {
-                if (!(sender instanceof Player player)) {
-                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
-                    return true;
-                }
-                openAdminGUI(player);
+                sender.sendMessage(ChatUtils.colorize("&cCommand obsolete. Use /nd editor."));
             }
             case "editor" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
                     return true;
                 }
-                if (args.length < 2) {
-                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd editor <dungeon_id> [stage]"));
-                    for (String id : plugin.getDungeonManager().getDungeonIds()) {
-                        player.sendMessage(ChatUtils.colorize("  &e- " + id));
+                if (args.length == 1) {
+                    new DungeonListEditorGUI(plugin).open(player);
+                } else if (args.length >= 3) {
+                    Dungeon dungeon = plugin.getDungeonManager().getDungeon(args[1]);
+                    if (dungeon == null) {
+                        player.sendMessage(ChatUtils.colorize("&cDungeon tidak ditemukan: " + args[1]));
+                        return true;
                     }
-                    return true;
-                }
-                Dungeon dungeon = plugin.getDungeonManager().getDungeon(args[1]);
-                if (dungeon == null) {
-                    player.sendMessage(ChatUtils.colorize("&cDungeon tidak ditemukan: " + args[1]));
-                    return true;
-                }
-                int stageNum = 1;
-                if (args.length >= 3) {
                     try {
-                        stageNum = Integer.parseInt(args[2]);
-                    } catch (NumberFormatException ignored) {
+                        int stageNum = Integer.parseInt(args[2]);
+                        setupManager.enterStageEditor(player, dungeon, stageNum);
+                    } catch (NumberFormatException e) {
+                        player.sendMessage(ChatUtils.colorize("&cStage harus berupa angka!"));
                     }
+                } else {
+                    player.sendMessage(ChatUtils.colorize("&cGunakan: /nd editor [dungeon_id] [stage_number]"));
                 }
-                setupManager.enterStageEditor(player, dungeon, stageNum);
             }
             case "debugspawn" -> {
                 if (!(sender instanceof Player player)) {
@@ -214,13 +195,10 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             case "check" -> {
                 handleCheck(sender, args);
             }
+
             default -> sendUsage(sender);
         }
         return true;
-    }
-
-    private void openAdminGUI(Player player) {
-        new id.naturalsmp.naturaldungeon.admin.AdminGUI(plugin).open(player);
     }
 
     private void handleDebugSpawn(Player player, String[] args) {
@@ -239,12 +217,13 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&6&lNaturalDungeon Admin"));
         sender.sendMessage(ChatUtils.colorize("&e/nd reload &7- Reload configs"));
         sender.sendMessage(ChatUtils.colorize("&e/nd check &7- Run diagnostic checks"));
-        sender.sendMessage(ChatUtils.colorize("&e/nd setup <dungeon> &7- Setup mode"));
+
         sender.sendMessage(ChatUtils.colorize("&e/nd test <dungeon> &7- Test dungeon"));
         sender.sendMessage(ChatUtils.colorize("&e/nd forceend &7- Force end dungeon"));
         sender.sendMessage(ChatUtils.colorize("&e/nd list &7- List dungeons"));
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
-        sender.sendMessage(ChatUtils.colorize("&e/nd editor <dungeon> [stage] &7- Enter dungeon editor mode"));
+
+        sender.sendMessage(ChatUtils.colorize("&e/nd editor [dungeon] [stage] &7- Editor/Setup Mode"));
         sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debugspawn &7- Spawn test mobs"));
@@ -292,15 +271,15 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             return completions;
 
         if (args.length == 1) {
-            completions
-                    .addAll(Arrays.asList("reload", "version", "setup", "test", "forceend", "list", "info", "admin",
+                    .addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info", "admin",
                             "editor", "clone", "status"));
         } else if (args.length == 2) {
-            String sub = args[0].toLowerCase();
-            if (sub.equals("setup") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
-                    || sub.equals("editor")) {
+            if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")) {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
+
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("editor")) {
+            completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
         }
         return completions;
     }

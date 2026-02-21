@@ -28,7 +28,7 @@ commands:
     aliases: [p, pt]
   nd:
     description: NaturalDungeon admin commands
-    usage: /<command> <reload|setup|admin>
+    usage: /<command> <reload|editor|admin>
     permission: naturaldungeon.admin
 
 permissions:
