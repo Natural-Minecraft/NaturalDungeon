@@ -230,7 +230,6 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(leaderboardGUI, this);
         getServer().getPluginManager().registerEvents(partyGUI, this);
         getServer().getPluginManager().registerEvents(new PartyConfirmationGUI(this), this);
-        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.AdminGUI(this), this);
         getServer().getPluginManager().registerEvents(statsGUI, this);
 
         // Editor GUI listeners
