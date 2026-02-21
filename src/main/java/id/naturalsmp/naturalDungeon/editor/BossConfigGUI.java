@@ -2,16 +2,15 @@ package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
@@ -27,23 +26,37 @@ public class BossConfigGUI implements Listener {
     }
 
     public void open(Player player, String dungeonId, int stageIndex) {
-        Inventory inv = Bukkit.createInventory(new BossHolder(dungeonId, stageIndex), 27,
-                ChatUtils.colorize("&d&lBOSS CONFIG: Stage " + (stageIndex + 1)));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
+        Inventory inv = GUIUtils.createGUI(new BossHolder(dungeonId, stageIndex), 27,
+                "&#AA44FF🐉 ʙᴏꜱꜱ ᴄᴏɴꜰɪɢ: &fStage " + (stageIndex + 1));
 
-        inv.setItem(11, createItem(Material.WITHER_SKELETON_SKULL, "&c&lBoss Mob ID",
-                "&7Set boss mob (MythicMobs ID atau VANILLA)",
-                "&aKlik untuk set"));
-        inv.setItem(13, createItem(Material.COMPASS, "&e&lSpawn Location",
-                "&7Gunakan lokasi kamu saat ini",
-                "&aKlik untuk set lokasi"));
-        inv.setItem(15, createItem(Material.REDSTONE, "&6&lBoss HP Multiplier",
-                "&aKlik untuk set (misal: 2.0)"));
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
-        inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(11, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
+                "&#FF5555&l🐉 ʙᴏꜱꜱ ᴍᴏʙ ɪᴅ",
+                GUIUtils.separator(),
+                "&7Set boss mob ID.",
+                "&7Support: MythicMobs/Vanilla/Custom",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(13, GUIUtils.createItem(Material.COMPASS,
+                "&#55CCFF&l📍 ꜱᴘᴀᴡɴ ʟᴏᴄᴀᴛɪᴏɴ",
+                GUIUtils.separator(),
+                "&7Gunakan lokasi kamu saat ini.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(15, GUIUtils.createItem(Material.REDSTONE,
+                "&#FFAA00&l❤ ʜᴘ ᴍᴜʟᴛɪᴘʟɪᴇʀ",
+                GUIUtils.separator(),
+                "&7Contoh: &f2.0",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(22, GUIUtils.createItem(Material.ARROW, "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
+
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -51,55 +64,61 @@ public class BossConfigGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof BossHolder holder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
+
         Player player = (Player) e.getWhoClicked();
+        GUIUtils.playClickSound(player);
         String path = "stages." + (holder.stageIndex + 1) + ".boss.";
 
         switch (e.getSlot()) {
-            case 11 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan Boss mob ID:"),
-                    input -> {
-                        plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + "mob", input);
-                        player.sendMessage(ChatUtils.colorize("&aBoss mob: &f" + input));
-                        open(player, holder.dungeonId, holder.stageIndex);
-                    });
+            case 11 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#AA44FF&l🐉 &7Masukkan Boss mob ID:"), input -> {
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + "mob", input);
+                            player.sendMessage(ChatUtils.colorize("&#55FF55✔ Boss mob: &f" + input));
+                            GUIUtils.playSuccessSound(player);
+                            open(player, holder.dungeonId, holder.stageIndex);
+                        });
+            }
             case 13 -> {
                 player.closeInventory();
                 org.bukkit.Location loc = player.getLocation();
                 List<Double> locList = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
-                // Save to boss-spawn directly on the stage level
                 plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
                         "stages." + (holder.stageIndex + 1) + ".boss-spawn", locList);
                 String locStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-                player.sendMessage(ChatUtils.colorize("&aBoss spawn location set: &f" + locStr));
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Boss spawn: &f" + locStr));
+                GUIUtils.playSuccessSound(player);
             }
-            case 15 -> plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan HP multiplier (misal: 2.0):"),
-                    input -> {
-                        try {
-                            double v = Double.parseDouble(input);
-                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + "hp-multiplier", v);
-                            player.sendMessage(ChatUtils.colorize("&aBoss HP multiplier: &f" + v + "x"));
-                        } catch (NumberFormatException ex) {
-                            player.sendMessage(ChatUtils.colorize("&cAngka tidak valid!"));
-                        }
-                        open(player, holder.dungeonId, holder.stageIndex);
-                    });
+            case 15 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFAA00&l❤ &7Masukkan HP multiplier (misal: 2.0):"), input -> {
+                            try {
+                                double v = Double.parseDouble(input);
+                                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + "hp-multiplier",
+                                        v);
+                                player.sendMessage(ChatUtils.colorize("&#55FF55✔ HP multiplier: &f" + v + "x"));
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid!"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            open(player, holder.dungeonId, holder.stageIndex);
+                        });
+            }
             case 22 -> new WaveEditorGUI(plugin).open(player, holder.dungeonId, holder.stageIndex);
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof BossHolder)
+            e.setCancelled(true);
     }
 
     public static class BossHolder implements InventoryHolder {

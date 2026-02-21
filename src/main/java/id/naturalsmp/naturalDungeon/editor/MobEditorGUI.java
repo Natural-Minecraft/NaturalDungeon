@@ -4,15 +4,15 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.mob.CustomMob;
 import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
@@ -30,34 +30,44 @@ public class MobEditorGUI implements Listener {
 
     public void open(Player player, String dungeonId) {
         CustomMobManager mobManager = plugin.getCustomMobManager();
-        Inventory inv = Bukkit.createInventory(new MobEditorHolder(dungeonId), 54,
-                ChatUtils.colorize("&d&lCUSTOM MOBS"));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++)
-            inv.setItem(i, filler);
+        Inventory inv = GUIUtils.createGUI(new MobEditorHolder(dungeonId), 54,
+                "&#FF69B4👹 ᴄᴜꜱᴛᴏᴍ ᴍᴏʙꜱ");
+
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
         int slot = 10;
         for (CustomMob mob : mobManager.getAllMobs()) {
             if (slot > 43)
                 break;
-            inv.setItem(slot, createItem(Material.ZOMBIE_HEAD,
-                    "&e" + mob.getName(),
+            inv.setItem(slot, GUIUtils.createItem(Material.ZOMBIE_HEAD,
+                    "&#FFAA00&l" + mob.getName(),
+                    GUIUtils.separator(),
                     "&7ID: &f" + mob.getId(),
-                    "&7HP: &c" + mob.getHealth(),
-                    "&7DMG: &c" + mob.getDamage(),
-                    "&7Speed: &b" + mob.getSpeed(),
-                    "&7Boss: " + (mob.isBoss() ? "&a✔" : "&c✗"),
-                    "", "&aKlik untuk edit",
-                    "&cShift+Klik untuk hapus"));
+                    "&7HP: &#FF5555" + mob.getHealth(),
+                    "&7DMG: &#FFAA00" + mob.getDamage(),
+                    "&7Speed: &#55CCFF" + mob.getSpeed(),
+                    "&7Boss: " + (mob.isBoss() ? "&#55FF55✔" : "&#FF5555✗"),
+                    "",
+                    "&#FFAA00&l⚔ Klik &7→ Edit",
+                    "&#FF5555&l✖ Shift+Klik &7→ Hapus"));
             slot++;
             if (slot % 9 == 8)
                 slot += 2;
         }
 
-        inv.setItem(49, createItem(Material.EMERALD, "&a&lBuat Custom Mob Baru"));
-        inv.setItem(45, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(49, GUIUtils.createItem(Material.EMERALD,
+                "&#55FF55&l✚ ʙᴜᴀᴛ ᴍᴏʙ ʙᴀʀᴜ",
+                GUIUtils.separator(),
+                "&7Buat custom mob baru.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(45, GUIUtils.createItem(Material.ARROW,
+                "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -65,15 +75,28 @@ public class MobEditorGUI implements Listener {
         InventoryHolder holder = e.getInventory().getHolder();
         if (holder instanceof MobConfigHolder) {
             e.setCancelled(true);
+            if (e.getClickedInventory() != e.getView().getTopInventory())
+                return;
             if (e.getCurrentItem() == null)
                 return;
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
             handleConfigClick(e, (MobConfigHolder) holder);
         } else if (holder instanceof MobEditorHolder) {
             e.setCancelled(true);
+            if (e.getClickedInventory() != e.getView().getTopInventory())
+                return;
             if (e.getCurrentItem() == null)
                 return;
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
             handleEditorClick(e, (MobEditorHolder) holder);
         }
+    }
+
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        InventoryHolder h = e.getInventory().getHolder();
+        if (h instanceof MobEditorHolder || h instanceof MobConfigHolder)
+            e.setCancelled(true);
     }
 
     private void handleEditorClick(InventoryClickEvent e, MobEditorHolder holder) {
@@ -84,12 +107,14 @@ public class MobEditorGUI implements Listener {
             return;
         }
         if (e.getSlot() == 49) {
+            player.closeInventory();
             plugin.getEditorChatInput().requestInput(player,
-                    ChatUtils.colorize("&eMasukkan ID mob baru (huruf kecil, tanpa spasi):"),
+                    ChatUtils.colorize("&#55FF55&l✚ &7Masukkan ID mob baru (huruf kecil, tanpa spasi):"),
                     input -> {
                         String id = input.toLowerCase().replace(" ", "_");
                         plugin.getCustomMobManager().createMob(id);
-                        player.sendMessage(ChatUtils.colorize("&aCustom mob &f" + id + " &adibuat!"));
+                        player.sendMessage(ChatUtils.colorize("&#55FF55✔ Custom mob &f" + id + " &#55FF55dibuat!"));
+                        GUIUtils.playSuccessSound(player);
                         openMobConfig(player, holder.dungeonId, id);
                     });
             return;
@@ -105,7 +130,7 @@ public class MobEditorGUI implements Listener {
                     String mobId = idLine.substring(4);
                     if (e.isShiftClick()) {
                         plugin.getCustomMobManager().deleteMob(mobId);
-                        player.sendMessage(ChatUtils.colorize("&cMob &f" + mobId + " &cdihapus!"));
+                        player.sendMessage(ChatUtils.colorize("&#FF5555✖ Mob &f" + mobId + " &#FF5555dihapus!"));
                         open(player, holder.dungeonId);
                     } else {
                         openMobConfig(player, holder.dungeonId, mobId);
@@ -120,84 +145,95 @@ public class MobEditorGUI implements Listener {
         String mobId = holder.mobId;
         CustomMob mob = plugin.getCustomMobManager().getMob(mobId);
         if (mob == null) {
-            player.sendMessage(ChatUtils.colorize("&cMob tidak ditemukan!"));
+            player.sendMessage(ChatUtils.colorize("&#FF5555✖ Mob tidak ditemukan!"));
+            GUIUtils.playErrorSound(player);
             player.closeInventory();
             return;
         }
 
         switch (e.getSlot()) {
-            case 10: // Name
-                plugin.getEditorChatInput().requestInput(player, "&eMasukkan nama baru:", input -> {
-                    mob.setName(input);
-                    plugin.getCustomMobManager().updateMob(mob);
-                    player.sendMessage(ChatUtils.colorize("&aNama diubah!"));
-                    openMobConfig(player, holder.dungeonId, mobId);
-                });
-                break;
-            case 11: // HP
-                plugin.getEditorChatInput().requestInput(player, "&eMasukkan HP baru:", input -> {
-                    try {
-                        double val = Double.parseDouble(input);
-                        mob.setHealth(val);
-                        plugin.getCustomMobManager().updateMob(mob);
-                        openMobConfig(player, holder.dungeonId, mobId);
-                    } catch (NumberFormatException ex) {
-                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
-                    }
-                });
-                break;
-            case 12: // Damage
-                plugin.getEditorChatInput().requestInput(player, "&eMasukkan Damage baru:", input -> {
-                    try {
-                        double val = Double.parseDouble(input);
-                        mob.setDamage(val);
-                        plugin.getCustomMobManager().updateMob(mob);
-                        openMobConfig(player, holder.dungeonId, mobId);
-                    } catch (NumberFormatException ex) {
-                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
-                    }
-                });
-                break;
-            case 13: // Speed
-                plugin.getEditorChatInput().requestInput(player, "&eMasukkan Speed baru (default 0.23):", input -> {
-                    try {
-                        double val = Double.parseDouble(input);
-                        mob.setSpeed(val);
-                        plugin.getCustomMobManager().updateMob(mob);
-                        openMobConfig(player, holder.dungeonId, mobId);
-                    } catch (NumberFormatException ex) {
-                        player.sendMessage(ChatUtils.colorize("&cAngka tidak valid"));
-                    }
-                });
-                break;
-            case 14: // Entity Type
-                plugin.getEditorChatInput().requestInput(player, "&eMasukkan EntityType (misal ZOMBIE, SKELETON):",
-                        input -> {
-                            try {
-                                org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType
-                                        .valueOf(input.toUpperCase());
-                                mob.setEntityType(type);
-                                plugin.getCustomMobManager().updateMob(mob);
-                                openMobConfig(player, holder.dungeonId, mobId);
-                            } catch (IllegalArgumentException ex) {
-                                player.sendMessage(ChatUtils.colorize("&cTipe entity tidak valid!"));
-                            }
+            case 10 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFD700&l✏ &7Masukkan nama baru:"), input -> {
+                            mob.setName(input);
+                            plugin.getCustomMobManager().updateMob(mob);
+                            player.sendMessage(ChatUtils.colorize("&#55FF55✔ Nama diubah!"));
+                            GUIUtils.playSuccessSound(player);
+                            openMobConfig(player, holder.dungeonId, mobId);
                         });
-                break;
-            case 15: // Boss Toggle
+            }
+            case 11 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FF5555&l❤ &7Masukkan HP baru:"), input -> {
+                            try {
+                                mob.setHealth(Double.parseDouble(input));
+                                plugin.getCustomMobManager().updateMob(mob);
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            openMobConfig(player, holder.dungeonId, mobId);
+                        });
+            }
+            case 12 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFAA00&l⚔ &7Masukkan Damage baru:"), input -> {
+                            try {
+                                mob.setDamage(Double.parseDouble(input));
+                                plugin.getCustomMobManager().updateMob(mob);
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            openMobConfig(player, holder.dungeonId, mobId);
+                        });
+            }
+            case 13 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#55CCFF&l💨 &7Masukkan Speed (default 0.23):"), input -> {
+                            try {
+                                mob.setSpeed(Double.parseDouble(input));
+                                plugin.getCustomMobManager().updateMob(mob);
+                                GUIUtils.playSuccessSound(player);
+                            } catch (NumberFormatException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Angka tidak valid"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            openMobConfig(player, holder.dungeonId, mobId);
+                        });
+            }
+            case 14 -> {
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#55FF55&l🐾 &7Masukkan EntityType (ZOMBIE, SKELETON, dll):"), input -> {
+                            try {
+                                mob.setEntityType(org.bukkit.entity.EntityType.valueOf(input.toUpperCase()));
+                                plugin.getCustomMobManager().updateMob(mob);
+                                GUIUtils.playSuccessSound(player);
+                            } catch (IllegalArgumentException ex) {
+                                player.sendMessage(ChatUtils.colorize("&#FF5555✖ Tipe entity tidak valid!"));
+                                GUIUtils.playErrorSound(player);
+                            }
+                            openMobConfig(player, holder.dungeonId, mobId);
+                        });
+            }
+            case 15 -> {
                 mob.setBoss(!mob.isBoss());
                 plugin.getCustomMobManager().updateMob(mob);
-                openMobConfig(player, holder.dungeonId, mobId);
-                break;
-            case 16: // Skills
-                // For now, simple message or placeholder. Boss Editor will have "more complex"
-                // skill editor.
                 player.sendMessage(
-                        ChatUtils.colorize("&eSkill management will be available in Boss Editor or next update!"));
-                break;
-            case 22: // Back
-                open(player, holder.dungeonId);
-                break;
+                        ChatUtils.colorize("&#55FF55✔ Boss: " + (mob.isBoss() ? "&#55FF55ON" : "&#FF5555OFF")));
+                openMobConfig(player, holder.dungeonId, mobId);
+            }
+            case 16 -> {
+                new MobSkillEditorGUI(plugin).open(player, holder.dungeonId, mobId, mob.isBoss());
+            }
+            case 22 -> open(player, holder.dungeonId);
         }
     }
 
@@ -205,37 +241,32 @@ public class MobEditorGUI implements Listener {
         CustomMob mob = plugin.getCustomMobManager().getMob(mobId);
         if (mob == null)
             return;
-        Inventory inv = Bukkit.createInventory(new MobConfigHolder(dungeonId, mobId), 27,
-                ChatUtils.colorize("&d&lMOB: &e" + mobId));
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 27; i++)
-            inv.setItem(i, filler);
 
-        inv.setItem(10,
-                createItem(Material.NAME_TAG, "&e&lNama", "&7Saat ini: &f" + mob.getName(), "&aKlik untuk ubah"));
-        inv.setItem(11, createItem(Material.IRON_SWORD, "&c&lHP", "&7Saat ini: &f" + mob.getHealth(), "&aKlik"));
-        inv.setItem(12, createItem(Material.DIAMOND_SWORD, "&c&lDamage", "&7Saat ini: &f" + mob.getDamage(), "&aKlik"));
-        inv.setItem(13, createItem(Material.FEATHER, "&b&lSpeed", "&7Saat ini: &f" + mob.getSpeed(), "&aKlik"));
-        inv.setItem(14, createItem(Material.ZOMBIE_SPAWN_EGG, "&e&lEntity Type", "&7Saat ini: &f" + mob.getEntityType(),
-                "&aKlik"));
-        inv.setItem(15, createItem(Material.WITHER_SKELETON_SKULL, "&d&lBoss Toggle",
-                "&7Saat ini: " + (mob.isBoss() ? "&a✔" : "&c✗"), "&aKlik untuk toggle"));
-        inv.setItem(16, createItem(Material.BLAZE_ROD, "&6&lSkills", "&aKlik untuk lihat/assign skills"));
+        Inventory inv = GUIUtils.createGUI(new MobConfigHolder(dungeonId, mobId), 27,
+                "&#FF69B4👹 ᴍᴏʙ: &f" + mobId);
 
-        inv.setItem(22, createItem(Material.ARROW, "&cKembali"));
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
+
+        inv.setItem(10, GUIUtils.createItem(Material.NAME_TAG, "&#FFD700&l✏ ɴᴀᴍᴀ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getName(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(11, GUIUtils.createItem(Material.IRON_SWORD, "&#FF5555&l❤ ʜᴘ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getHealth(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(12, GUIUtils.createItem(Material.DIAMOND_SWORD, "&#FFAA00&l⚔ ᴅᴀᴍᴀɢᴇ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getDamage(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(13, GUIUtils.createItem(Material.FEATHER, "&#55CCFF&l💨 ꜱᴘᴇᴇᴅ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getSpeed(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(14, GUIUtils.createItem(Material.ZOMBIE_SPAWN_EGG, "&#55FF55&l🐾 ᴇɴᴛɪᴛʏ ᴛʏᴘᴇ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getEntityType(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(15, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL, "&#AA44FF&l🐉 ʙᴏꜱꜱ ᴛᴏɢɢʟᴇ",
+                GUIUtils.separator(), "&7Saat ini: " + (mob.isBoss() ? "&#55FF55✔ ON" : "&#FF5555✗ OFF"), "",
+                "&#FFAA00&l➥ KLIK"));
+        inv.setItem(16, GUIUtils.createItem(Material.BLAZE_ROD, "&#FFAA00&l🔮 ꜱᴋɪʟʟꜱ",
+                GUIUtils.separator(), "&7Skills: &f" + mob.getSkillIds().size(), "", "&#FFAA00&l➥ KLIK"));
+
+        inv.setItem(22, GUIUtils.createItem(Material.ARROW, "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
+
         player.openInventory(inv);
-    }
-
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> list = new ArrayList<>();
-        for (String l : lore)
-            list.add(ChatUtils.colorize(l));
-        meta.setLore(list);
-        item.setItemMeta(meta);
-        return item;
+        GUIUtils.playOpenSound(player);
     }
 
     public static class MobEditorHolder implements InventoryHolder {
