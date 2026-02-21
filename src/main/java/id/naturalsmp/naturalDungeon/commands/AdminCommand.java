@@ -271,12 +271,12 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
             return completions;
 
         if (args.length == 1) {
-                    .addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info", "admin",
-                            "editor", "clone", "status"));
+            completions.addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info",
+                    "editor", "clone", "status"));
         } else if (args.length == 2) {
+            String sub = args[0].toLowerCase();
             if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")) {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
-
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("editor")) {
             completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
