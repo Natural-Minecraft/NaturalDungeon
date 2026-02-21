@@ -2,6 +2,7 @@ package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
+import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.DungeonValidator;
 import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;

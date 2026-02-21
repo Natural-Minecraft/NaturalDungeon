@@ -68,36 +68,42 @@ public class BossEditorGUI implements Listener {
         if (mob == null)
             return;
 
-        Inventory inv = Bukkit.createInventory(new BossConfigHolder(dungeonId, mobId), 54,
-                ChatUtils.colorize("&4&lBOSS: &c" + mobId));
+        Inventory inv = GUIUtils.createGUI(new BossConfigHolder(dungeonId, mobId), 54,
+                "&#AA44FF🐉 ʙᴏꜱꜱ: &f" + mobId);
 
-        ItemStack filler = createItem(Material.BLACK_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++)
-            inv.setItem(i, filler);
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
         // Stats
-        inv.setItem(10, createItem(Material.NAME_TAG, "&e&lNama", "&7Saat ini: &f" + mob.getName()));
-        inv.setItem(11, createItem(Material.IRON_SWORD, "&c&lHP", "&7Saat ini: &f" + mob.getHealth()));
-        inv.setItem(12, createItem(Material.DIAMOND_SWORD, "&c&lDamage", "&7Saat ini: &f" + mob.getDamage()));
-        inv.setItem(13, createItem(Material.FEATHER, "&b&lSpeed", "&7Saat ini: &f" + mob.getSpeed()));
-        inv.setItem(14,
-                createItem(Material.ZOMBIE_SPAWN_EGG, "&e&lEntity Type", "&7Saat ini: &f" + mob.getEntityType()));
+        inv.setItem(10, GUIUtils.createItem(Material.NAME_TAG, "&#FFD700&l✏ ɴᴀᴍᴀ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getName(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(11, GUIUtils.createItem(Material.IRON_SWORD, "&#FF5555&l❤ ʜᴘ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getHealth(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(12, GUIUtils.createItem(Material.DIAMOND_SWORD, "&#FFAA00&l⚔ ᴅᴀᴍᴀɢᴇ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getDamage(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(13, GUIUtils.createItem(Material.FEATHER, "&#55CCFF&l💨 ꜱᴘᴇᴇᴅ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getSpeed(), "", "&#FFAA00&l➥ KLIK"));
+        inv.setItem(14, GUIUtils.createItem(Material.ZOMBIE_SPAWN_EGG, "&#55FF55&l🐾 ᴇɴᴛɪᴛʏ ᴛʏᴘᴇ", GUIUtils.separator(),
+                "&7Saat ini: &f" + mob.getEntityType(), "", "&#FFAA00&l➥ KLIK"));
 
         // Equipment
-        inv.setItem(28, createItem(Material.DIAMOND_HELMET, "&bHelmet", "&7Set helmet item"));
-        inv.setItem(29, createItem(Material.DIAMOND_CHESTPLATE, "&bChestplate", "&7Set chestplate item"));
-        inv.setItem(30, createItem(Material.DIAMOND_LEGGINGS, "&bLeggings", "&7Set leggings item"));
-        inv.setItem(31, createItem(Material.DIAMOND_BOOTS, "&bBoots", "&7Set boots item"));
-        inv.setItem(33, createItem(Material.DIAMOND_SWORD, "&cMain Hand", "&7Set main hand item"));
-        inv.setItem(34, createItem(Material.SHIELD, "&eOff Hand", "&7Set off hand item"));
+        inv.setItem(28, GUIUtils.createItem(Material.DIAMOND_HELMET, "&#55CCFF&lHelmet", "&7Pegang item lalu klik."));
+        inv.setItem(29,
+                GUIUtils.createItem(Material.DIAMOND_CHESTPLATE, "&#55CCFF&lChestplate", "&7Pegang item lalu klik."));
+        inv.setItem(30,
+                GUIUtils.createItem(Material.DIAMOND_LEGGINGS, "&#55CCFF&lLeggings", "&7Pegang item lalu klik."));
+        inv.setItem(31, GUIUtils.createItem(Material.DIAMOND_BOOTS, "&#55CCFF&lBoots", "&7Pegang item lalu klik."));
+        inv.setItem(33, GUIUtils.createItem(Material.DIAMOND_SWORD, "&#FF5555&lMain Hand", "&7Pegang item lalu klik."));
+        inv.setItem(34, GUIUtils.createItem(Material.SHIELD, "&#FFAA00&lOff Hand", "&7Pegang item lalu klik."));
 
         // Skills
-        inv.setItem(16, createItem(Material.ENCHANTED_BOOK, "&d&lSkills",
-                "&7Kelola Skills (" + mob.getSkillIds().size() + ")"));
+        inv.setItem(16, GUIUtils.createItem(Material.ENCHANTED_BOOK, "&#AA44FF&l🔮 ꜱᴋɪʟʟꜱ",
+                GUIUtils.separator(), "&7Skills: &f" + mob.getSkillIds().size(), "", "&#FFAA00&l➥ KLIK"));
 
-        inv.setItem(49, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(49, GUIUtils.createItem(Material.ARROW, "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
