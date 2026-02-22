@@ -187,10 +187,7 @@ public class HubManager {
         StringBuilder sb = new StringBuilder();
         sb.append("&#FFD700📊 ꜱᴇʀᴠᴇʀ ꜱᴛᴀᴛꜱ 📊\n");
         sb.append("&f\n");
-        int activeCount = 0;
-        for (Dungeon d : plugin.getDungeonManager().getDungeons()) {
-            activeCount += d.getActiveInstances().size();
-        }
+        int activeCount = plugin.getDungeonManager().getActiveInstanceCount();
         sb.append("&7Active Dungeons: &f").append(activeCount).append("\n");
         sb.append("&7Season: &e1 (Blood Moon)\n");
         return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand()

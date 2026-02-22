@@ -40,7 +40,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            sendUsage(sender);
+            sendHelp(sender);
             return true;
         }
 
