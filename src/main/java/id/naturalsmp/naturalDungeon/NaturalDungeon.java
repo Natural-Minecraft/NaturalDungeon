@@ -281,6 +281,8 @@ public final class NaturalDungeon extends JavaPlugin {
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.TemplatePresetGUI(this),
                 this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.dungeon.SafeRoomShopGUI(this),
+                this);
     }
 
     public void reload() {

@@ -55,10 +55,21 @@ public class DungeonInstance {
     private List<ItemStack> collectedLoot = new ArrayList<>();
     private Location lootChestLocation;
 
+    // Dungeon Coins (in-run currency for safe room shop)
+    private final Map<UUID, Integer> playerCoins = new HashMap<>();
+
     // MVP Stats Tracking
     private final Map<UUID, Double> damageDealt = new HashMap<>();
     private final Map<UUID, Double> damageTaken = new HashMap<>();
     private final Map<UUID, Integer> mobsKilled = new HashMap<>();
+
+    public int getPlayerCoins(UUID playerId) {
+        return playerCoins.getOrDefault(playerId, 0);
+    }
+
+    public void addPlayerCoins(UUID playerId, int amount) {
+        playerCoins.merge(playerId, amount, Integer::sum);
+    }
 
     public DungeonInstance(NaturalDungeon plugin, Dungeon dungeon, DungeonDifficulty difficulty, int instanceId,
             List<UUID> participants) {
