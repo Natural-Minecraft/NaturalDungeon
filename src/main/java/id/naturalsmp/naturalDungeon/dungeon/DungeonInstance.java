@@ -354,7 +354,12 @@ public class DungeonInstance {
             return;
 
         Dungeon.StageLocation loc = stage.getLocation(instanceId);
-        Optional<Location> spawnOpt = plugin.getWorldGuardHook().getRegionSpawnPoint(dungeonWorld, loc.getSafeZone());
+        String safeRegionName = loc.getSafeZone();
+        if (safeRegionName == null || safeRegionName.isEmpty()) {
+            safeRegionName = loc.getArenaRegion();
+        }
+
+        Optional<Location> spawnOpt = plugin.getWorldGuardHook().getRegionSpawnPoint(dungeonWorld, safeRegionName);
         Location spawn = spawnOpt.orElse(dungeonWorld.getSpawnLocation());
 
         for (UUID uuid : participants) {

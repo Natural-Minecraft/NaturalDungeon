@@ -154,7 +154,8 @@ public class Dungeon {
 
             // Fallback for single instance (Legacy/Default)
             if (locations.isEmpty() || !locations.containsKey(1)) {
-                if (config.contains("safe-zone")) {
+                if (config.contains("safe-zone") || config.contains("arena-region")
+                        || config.contains("boss.spawn-location")) {
                     locations.put(1, new StageLocation(config, true));
                 }
             }

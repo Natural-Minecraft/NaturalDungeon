@@ -81,30 +81,6 @@ public class WaveEditorGUI implements Listener {
                 "",
                 "&#FFAA00&l➥ KLIK"));
 
-        // Set Safe Zone
-        inv.setItem(33, GUIUtils.createItem(Material.EMERALD_BLOCK,
-                "&#55FF55&l🏠 ꜱᴀꜰᴇ ᴢᴏɴᴇ",
-                GUIUtils.separator(),
-                "&7Set titik aman stage.",
-                "&7Lokasi: &fposisi kamu.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
-        // Arena Corners
-        inv.setItem(34, GUIUtils.createItem(Material.DIAMOND_AXE,
-                "&#55CCFF&l⬛ ᴄᴏʀɴᴇʀ 1",
-                GUIUtils.separator(),
-                "&7Set pojok arena 1.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
-        inv.setItem(35, GUIUtils.createItem(Material.DIAMOND_AXE,
-                "&#55CCFF&l⬛ ᴄᴏʀɴᴇʀ 2",
-                GUIUtils.separator(),
-                "&7Set pojok arena 2.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
         player.openInventory(inv);
         GUIUtils.playOpenSound(player);
     }
@@ -150,27 +126,6 @@ public class WaveEditorGUI implements Listener {
                 plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, new ArrayList<String>());
                 player.sendMessage(ChatUtils.colorize("&#FF5555✖ Semua spawner dihapus!"));
                 open(player, holder.dungeonId, holder.stageIndex);
-            }
-            case 33 -> {
-                player.closeInventory();
-                org.bukkit.Location loc = player.getLocation();
-                String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
-                        + loc.getBlockZ() + "," + String.format("%.1f", loc.getYaw()) + ","
-                        + String.format("%.1f", loc.getPitch());
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                        "stages." + (holder.stageIndex + 1) + ".safe-zone", locStr);
-                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Safe zone set: &f" + locStr));
-                GUIUtils.playSuccessSound(player);
-            }
-            case 34, 35 -> {
-                player.closeInventory();
-                org.bukkit.Location loc = player.getLocation();
-                String cornerStr = loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
-                String cfgKey = e.getSlot() == 34 ? "corner1" : "corner2";
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
-                        "stages." + (holder.stageIndex + 1) + ".arena-region." + cfgKey, cornerStr);
-                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Arena " + cfgKey + ": &f" + cornerStr));
-                GUIUtils.playSuccessSound(player);
             }
             default -> {
                 if (e.getSlot() >= 9 && e.getSlot() <= 26) {
