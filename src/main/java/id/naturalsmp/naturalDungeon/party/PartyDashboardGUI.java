@@ -33,7 +33,7 @@ public class PartyDashboardGUI implements Listener {
 
     public void open(Player player) {
         // Needs a party
-        id.naturalsmp.naturalcore.features.dungeon.party.Party party = plugin.getPartyManager().getParty(player);
+        id.naturalsmp.naturaldungeon.party.Party party = plugin.getPartyManager().getParty(player);
         if (party == null) {
             player.sendMessage(ChatUtils.colorize("&cYou must be in a party to view the dashboard!"));
             return;
@@ -64,7 +64,7 @@ public class PartyDashboardGUI implements Listener {
         GUIUtils.playSound(player, "click");
     }
 
-    private void renderDashboard(Inventory inv, id.naturalsmp.naturalcore.features.dungeon.party.Party party) {
+    private void renderDashboard(Inventory inv, id.naturalsmp.naturaldungeon.party.Party party) {
         List<UUID> members = new ArrayList<>(party.getMembers());
         members.add(0, party.getLeader()); // Leader first
 
