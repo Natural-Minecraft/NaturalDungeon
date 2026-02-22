@@ -58,6 +58,9 @@ public class DungeonInstance {
     // Dungeon Coins (in-run currency for safe room shop)
     private final Map<UUID, Integer> playerCoins = new HashMap<>();
 
+    // Roguelike path modifiers (from BranchPathGUI)
+    private final Map<String, Object> pathModifiers = new HashMap<>();
+
     // MVP Stats Tracking
     private final Map<UUID, Double> damageDealt = new HashMap<>();
     private final Map<UUID, Double> damageTaken = new HashMap<>();
@@ -851,6 +854,13 @@ public class DungeonInstance {
                     // Party player
                     if (participants.size() >= 4)
                         am.unlockAchievement(p, "party_player");
+
+                    // ─── Season Points ───
+                    id.naturalsmp.naturaldungeon.progression.SeasonManager sm = plugin.getSeasonManager();
+                    if (sm != null) {
+                        sm.awardSP(uuid, dungeon.getId(), difficulty.getId(),
+                                duration / 1000, totalDeaths, participants.size());
+                    }
                 }
             }
 
@@ -964,8 +974,17 @@ public class DungeonInstance {
         return dungeon.getStages().stream().filter(s -> s.getNumber() == stageNum).findFirst().orElse(null);
     }
 
-    public int getCurrentStage() {
-        return currentStage;
+    public int getInstanceId() {
+        return instanceId;
+    }
+
+    public void setPathModifier(String key, Object value) {
+        pathModifiers.put(key, value);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getPathModifier(String key, T defaultValue) {
+        return pathModifiers.containsKey(key) ? (T) pathModifiers.get(key) : defaultValue;
     }
 
     private void broadcast(String message) {

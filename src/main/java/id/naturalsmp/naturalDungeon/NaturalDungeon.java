@@ -57,6 +57,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private DungeonQueue dungeonQueue;
     private AchievementManager achievementManager;
     private id.naturalsmp.naturaldungeon.progression.MasteryManager masteryManager;
+    private id.naturalsmp.naturaldungeon.progression.SeasonManager seasonManager;
 
     // Hooks
     private VaultHook vaultHook;
@@ -122,6 +123,7 @@ public final class NaturalDungeon extends JavaPlugin {
         // Player Managers
         this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
         this.masteryManager = new id.naturalsmp.naturaldungeon.progression.MasteryManager(this);
+        this.seasonManager = new id.naturalsmp.naturaldungeon.progression.SeasonManager(this);
 
         // 4. Register Commands
         registerCommands();
@@ -282,6 +284,8 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.TemplatePresetGUI(this),
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.dungeon.SafeRoomShopGUI(this),
+                this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.dungeon.BranchPathGUI(this),
                 this);
     }
 
@@ -457,5 +461,9 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public id.naturalsmp.naturaldungeon.progression.MasteryManager getMasteryManager() {
         return masteryManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.progression.SeasonManager getSeasonManager() {
+        return seasonManager;
     }
 }
