@@ -920,8 +920,12 @@ public class DungeonInstance {
         removeBossBar();
     }
 
-    private Dungeon.Stage getStage(int stageNum) {
+    public Dungeon.Stage getStage(int stageNum) {
         return dungeon.getStages().stream().filter(s -> s.getNumber() == stageNum).findFirst().orElse(null);
+    }
+
+    public int getCurrentStage() {
+        return currentStage;
     }
 
     private void broadcast(String message) {

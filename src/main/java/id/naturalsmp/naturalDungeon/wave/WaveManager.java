@@ -42,6 +42,7 @@ public class WaveManager {
     private boolean bossShielded = false;
     private int bossTimer = 0;
     private List<UUID> bossCrystals = new ArrayList<>();
+    private BossPhaseManager bossPhaseManager = null;
 
     public WaveManager(NaturalDungeon plugin, DungeonInstance instance, World dungeonWorld) {
         this.plugin = plugin;
@@ -331,6 +332,11 @@ public class WaveManager {
             if (boss instanceof LivingEntity living)
                 living.setGlowing(true);
 
+            // Initialize multi-phase boss support
+            String dungeonId = instance.getDungeon().getId();
+            int stageIndex = instance.getCurrentStage();
+            bossPhaseManager = new BossPhaseManager(plugin, dungeonId, stageIndex);
+
             startBossMechanicsTask();
         }
         startWaveCheck();
@@ -358,6 +364,11 @@ public class WaveManager {
             }
 
             bossTimer++;
+
+            // Multi-phase boss check (from config)
+            if (bossPhaseManager != null && bossPhaseManager.hasPhases()) {
+                bossPhaseManager.tick(living, instance.getParticipants());
+            }
 
             // Enrage Mechanic
             if (bossTimer == 120) { // Enrage at 120 seconds
