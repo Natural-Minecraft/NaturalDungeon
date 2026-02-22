@@ -43,7 +43,7 @@ public class DifficultyMatrixGUI implements Listener {
         GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
         GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
-        List<DungeonDifficulty> diffs = dungeon.getDifficulties();
+        List<DungeonDifficulty> diffs = new ArrayList<>(dungeon.getDifficulties());
 
         // ─── Row Labels (column 0, slots 10/19/28/37) ───
         inv.setItem(10,
@@ -53,7 +53,7 @@ public class DifficultyMatrixGUI implements Listener {
         int[] colSlots = { 11, 12, 13, 14, 15, 16 }; // Max 6 difficulties
         for (int d = 0; d < Math.min(diffs.size(), colSlots.length); d++) {
             DungeonDifficulty diff = diffs.get(d);
-            String name = diff.getDisplay() != null ? diff.getDisplay() : diff.getId();
+            String name = diff.getDisplayName() != null ? diff.getDisplayName() : diff.getId();
             String color = getDiffColor(d);
 
             // Header
@@ -178,7 +178,7 @@ public class DifficultyMatrixGUI implements Listener {
         Dungeon dungeon = plugin.getDungeonManager().getDungeon(holder.dungeonId);
         if (dungeon == null)
             return;
-        List<DungeonDifficulty> diffs = dungeon.getDifficulties();
+        List<DungeonDifficulty> diffs = new ArrayList<>(dungeon.getDifficulties());
 
         for (int d = 0; d < Math.min(diffs.size(), colSlots.length); d++) {
             if (e.getSlot() == colSlots[d]) {

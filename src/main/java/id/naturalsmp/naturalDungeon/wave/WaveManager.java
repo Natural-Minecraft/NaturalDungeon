@@ -36,6 +36,7 @@ public class WaveManager {
     private Entity targetEntity = null; // for DEFEND_TARGET
     private Location captureCenter = null; // for CAPTURE_ZONE
     private double captureRadius = 5.0;
+    private Entity destructionTarget = null; // for DESTRUCTION wave type
 
     // Boss specific metadata
     private boolean bossShielded = false;
@@ -103,6 +104,14 @@ public class WaveManager {
             setupDefendTarget(wave.getTargetName(), center);
         } else if (wave.getType() == WaveType.CAPTURE_ZONE) {
             this.objectiveTimer = 0; // Starts at 0, captures up to targetTime
+        } else if (wave.getType() == WaveType.SURVIVAL) {
+            // Survival: countdown from targetTime to 0
+            this.objectiveTimer = wave.getTargetTime() > 0 ? wave.getTargetTime() : 60;
+        } else if (wave.getType() == WaveType.DESTRUCTION) {
+            // Spawn a target entity to destroy
+            setupDestructionTarget(wave.getTargetName(), center);
+        } else if (wave.getType() == WaveType.MINI_BOSS) {
+            // Nothing extra — the first mob is treated as a mini-boss (glowing, higher HP)
         }
 
         updateWaveHUD();
@@ -133,6 +142,28 @@ public class WaveManager {
         }
     }
 
+    private void setupDestructionTarget(String targetName, Location center) {
+        // Spawn an iron golem as the destructible target
+        destructionTarget = dungeonWorld.spawn(center, org.bukkit.entity.IronGolem.class,
+                org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM);
+        if (destructionTarget instanceof LivingEntity living) {
+            String name = targetName != null && !targetName.isEmpty() ? targetName : "Destruction Target";
+            living.setCustomName(ChatUtils.colorize("&c&l" + name));
+            living.setCustomNameVisible(true);
+            living.setGlowing(true);
+            living.setAI(false);
+            try {
+                org.bukkit.attribute.AttributeInstance attr = living
+                        .getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                if (attr != null) {
+                    attr.setBaseValue(200.0);
+                }
+            } catch (Exception ignored) {
+            }
+            living.setHealth(200.0);
+        }
+    }
+
     private void updateWaveHUD() {
         if (!active || currentWaveObj == null)
             return;
@@ -160,6 +191,30 @@ public class WaveManager {
             case CAPTURE_ZONE:
                 progress = (double) objectiveTimer / currentWaveObj.getTargetTime();
                 title = "&b&lCAPTURE ZONE &7- " + (int) (progress * 100) + "%";
+                break;
+            case SURVIVAL:
+                progress = currentWaveObj.getTargetTime() > 0 ? (double) objectiveTimer / currentWaveObj.getTargetTime()
+                        : 0;
+                title = "&6&lSURVIVE! &7- &f" + objectiveTimer + "s left";
+                break;
+            case ESCORT:
+                progress = currentWaveObj.getTargetTime() > 0 ? (double) objectiveTimer / currentWaveObj.getTargetTime()
+                        : 0;
+                title = "&a&lESCORT &a" + currentWaveObj.getTargetName() + " &7- &f" + objectiveTimer + "s";
+                break;
+            case DESTRUCTION:
+                if (destructionTarget instanceof LivingEntity living) {
+                    double hp = living.getHealth();
+                    progress = hp / 200.0;
+                    title = "&c&lDESTROY &c" + currentWaveObj.getTargetName() + " &7- &f" + (int) hp + " HP";
+                } else {
+                    title = "&c&lDESTROY &7- Target destroyed!";
+                    progress = 0;
+                }
+                break;
+            case MINI_BOSS:
+                progress = initialWaveCount > 0 ? (double) activeMobs.size() / initialWaveCount : 0;
+                title = "&d&lMINI-BOSS &7- &f" + activeMobs.size() + " left";
                 break;
         }
 
@@ -679,6 +734,43 @@ public class WaveManager {
                             spawnRandomActiveMobType(1);
                         }
                         break;
+                    case SURVIVAL:
+                        // Count down, keep spawning pressure
+                        objectiveTimer--;
+                        if (objectiveTimer <= 0) {
+                            endWave = true;
+                        } else if (objectiveTimer % 5 == 0 && activeMobs.size() < initialWaveCount) {
+                            spawnRandomActiveMobType(1 + (instance.getParticipants().size() / 2));
+                        }
+                        break;
+                    case DESTRUCTION:
+                        // Check if target is destroyed
+                        if (destructionTarget == null || destructionTarget.isDead()) {
+                            endWave = true;
+                        } else if (objectiveTimer % 5 == 0 && activeMobs.size() < initialWaveCount) {
+                            spawnRandomActiveMobType(1);
+                        }
+                        break;
+                    case MINI_BOSS:
+                        // Just kill the mini-boss (same as KILL_ALL)
+                        if (pendingSpawns <= 0 && activeMobs.isEmpty()) {
+                            endWave = true;
+                        }
+                        break;
+                    case ESCORT:
+                        // Escort: for now behaves like DEFEND_TARGET (protect NPC) with timer
+                        if (targetEntity == null || targetEntity.isDead()) {
+                            instance.broadcastTitle("&c&lESCORT FAILED", "&7The escort was killed!", 10, 40, 10);
+                            instance.forceEnd();
+                            return;
+                        }
+                        objectiveTimer--;
+                        if (objectiveTimer <= 0) {
+                            endWave = true;
+                        } else if (objectiveTimer % 5 == 0 && activeMobs.size() < initialWaveCount) {
+                            spawnRandomActiveMobType(1);
+                        }
+                        break;
                 }
 
                 updateWaveHUD();
@@ -805,6 +897,10 @@ public class WaveManager {
             case HUNT_TARGET -> "Hunt " + currentWaveObj.getTargetName() + " (" + activeMobs.size() + " left)";
             case DEFEND_TARGET -> "Defend " + currentWaveObj.getTargetName() + " (" + objectiveTimer + "s)";
             case CAPTURE_ZONE -> "Capture Zone (" + objectiveTimer + "s)";
+            case SURVIVAL -> "Survive! (" + objectiveTimer + "s left)";
+            case ESCORT -> "Escort " + currentWaveObj.getTargetName() + " (" + objectiveTimer + "s)";
+            case DESTRUCTION -> "Destroy Target! (" + activeMobs.size() + " mobs)";
+            case MINI_BOSS -> "Kill Mini-Boss (" + activeMobs.size() + " left)";
         };
     }
 }

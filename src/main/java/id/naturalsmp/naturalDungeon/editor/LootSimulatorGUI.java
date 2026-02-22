@@ -5,6 +5,8 @@ import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,9 +15,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 /**
@@ -39,7 +39,8 @@ public class LootSimulatorGUI implements Listener {
             return;
         }
 
-        List<Map<?, ?>> entries = plugin.getDungeonManager().getLootEntries(dungeonId);
+        List<String> entries = plugin.getDungeonManager().getLootEntries(dungeonId);
+        YamlConfiguration config = plugin.getDungeonManager().loadDungeonConfig(dungeonId);
 
         Inventory inv = GUIUtils.createGUI(new SimHolder(dungeonId), 54,
                 "&#FFD700🎁 ʟᴏᴏᴛ ᴇᴅɪᴛᴏʀ + ꜱɪᴍ");
@@ -53,14 +54,16 @@ public class LootSimulatorGUI implements Listener {
                 28, 29, 30, 31, 32, 33, 34 };
 
         for (int i = 0; i < Math.min(entries.size(), slots.length); i++) {
-            Map<?, ?> entry = entries.get(i);
-            String type = entry.get("type") != null ? entry.get("type").toString() : "VANILLA";
-            String item = entry.get("item") != null ? entry.get("item").toString() : "DIAMOND";
-            int minAmt = entry.get("min-amount") != null ? ((Number) entry.get("min-amount")).intValue() : 1;
-            int maxAmt = entry.get("max-amount") != null ? ((Number) entry.get("max-amount")).intValue() : 1;
-            double chance = entry.get("chance") != null ? ((Number) entry.get("chance")).doubleValue() : 100.0;
+            String entryKey = entries.get(i);
+            ConfigurationSection sec = config.getConfigurationSection("loot." + entryKey);
 
-            String icon_type = switch (type.toUpperCase()) {
+            String type = sec != null ? sec.getString("type", "VANILLA") : "VANILLA";
+            String item = sec != null ? sec.getString("item", "DIAMOND") : entryKey;
+            int minAmt = sec != null ? sec.getInt("min-amount", 1) : 1;
+            int maxAmt = sec != null ? sec.getInt("max-amount", 1) : 1;
+            double chance = sec != null ? sec.getDouble("chance", 100.0) : 100.0;
+
+            String iconColor = switch (type.toUpperCase()) {
                 case "MMOITEMS" -> "&#AA44FF";
                 case "COMMAND" -> "&#55CCFF";
                 default -> "&#55FF55";
@@ -77,7 +80,7 @@ public class LootSimulatorGUI implements Listener {
             String chanceColor = chance >= 75 ? "&#55FF55" : chance >= 30 ? "&#FFAA00" : "&#FF5555";
 
             inv.setItem(slots[i], GUIUtils.createItem(mat,
-                    icon_type + "&l" + item,
+                    iconColor + "&l" + item,
                     GUIUtils.separator(),
                     "&7Type: &f" + type,
                     "&7Amount: &f" + amtStr,
@@ -110,7 +113,9 @@ public class LootSimulatorGUI implements Listener {
     }
 
     private void runSimulation(Player player, String dungeonId) {
-        List<Map<?, ?>> entries = plugin.getDungeonManager().getLootEntries(dungeonId);
+        List<String> entries = plugin.getDungeonManager().getLootEntries(dungeonId);
+        YamlConfiguration config = plugin.getDungeonManager().loadDungeonConfig(dungeonId);
+
         if (entries.isEmpty()) {
             player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7No loot entries to simulate."));
             GUIUtils.playErrorSound(player);
@@ -118,16 +123,15 @@ public class LootSimulatorGUI implements Listener {
         }
 
         int runs = 100;
-        // Track total drops per entry
         int[] totalDrops = new int[entries.size()];
         int[] totalAmount = new int[entries.size()];
 
         for (int r = 0; r < runs; r++) {
             for (int i = 0; i < entries.size(); i++) {
-                Map<?, ?> entry = entries.get(i);
-                double chance = entry.get("chance") != null ? ((Number) entry.get("chance")).doubleValue() : 100.0;
-                int minAmt = entry.get("min-amount") != null ? ((Number) entry.get("min-amount")).intValue() : 1;
-                int maxAmt = entry.get("max-amount") != null ? ((Number) entry.get("max-amount")).intValue() : 1;
+                ConfigurationSection sec = config.getConfigurationSection("loot." + entries.get(i));
+                double chance = sec != null ? sec.getDouble("chance", 100.0) : 100.0;
+                int minAmt = sec != null ? sec.getInt("min-amount", 1) : 1;
+                int maxAmt = sec != null ? sec.getInt("max-amount", 1) : 1;
 
                 if (RNG.nextDouble() * 100 <= chance) {
                     totalDrops[i]++;
@@ -136,14 +140,13 @@ public class LootSimulatorGUI implements Listener {
             }
         }
 
-        // Display results
         player.sendMessage(ChatUtils.colorize(""));
         player.sendMessage(ChatUtils.colorize("&#FFD700&l🔄 Simulasi " + runs + " runs:"));
         player.sendMessage(ChatUtils.colorize("&#777" + GUIUtils.separator()));
 
         for (int i = 0; i < entries.size(); i++) {
-            Map<?, ?> entry = entries.get(i);
-            String item = entry.get("item") != null ? entry.get("item").toString() : "?";
+            ConfigurationSection sec = config.getConfigurationSection("loot." + entries.get(i));
+            String item = sec != null ? sec.getString("item", entries.get(i)) : entries.get(i);
             double avgAmt = runs > 0 ? (double) totalAmount[i] / runs : 0;
             double dropRate = runs > 0 ? (double) totalDrops[i] / runs * 100 : 0;
 
@@ -171,11 +174,26 @@ public class LootSimulatorGUI implements Listener {
 
         switch (e.getSlot()) {
             case 37 -> {
-                // Add loot entry
-                plugin.getDungeonManager().addLootEntry(holder.dungeonId);
-                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Loot entry ditambahkan!"));
-                GUIUtils.playSuccessSound(player);
-                open(player, holder.dungeonId);
+                // Add loot entry via chat input
+                player.closeInventory();
+                plugin.getEditorChatInput().requestInput(player,
+                        ChatUtils.colorize("&#FFD700&l🎁 &7Ketik nama entry baru (misal: diamond_reward):"), input -> {
+                            String key = input.toLowerCase().replace(" ", "_");
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + key + ".type", "VANILLA");
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + key + ".item", "DIAMOND");
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + key + ".min-amount", 1);
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + key + ".max-amount", 1);
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + key + ".chance", 100.0);
+                            player.sendMessage(
+                                    ChatUtils.colorize("&#55FF55✔ Loot entry &f" + key + " &#55FF55ditambahkan!"));
+                            GUIUtils.playSuccessSound(player);
+                            open(player, holder.dungeonId);
+                        });
             }
             case 40 -> {
                 // Simulate
@@ -197,10 +215,12 @@ public class LootSimulatorGUI implements Listener {
                     }
                 }
                 if (entryIdx >= 0) {
-                    List<Map<?, ?>> entries = plugin.getDungeonManager().getLootEntries(holder.dungeonId);
+                    List<String> entries = plugin.getDungeonManager().getLootEntries(holder.dungeonId);
                     if (entryIdx < entries.size()) {
                         if (e.isShiftClick()) {
-                            plugin.getDungeonManager().deleteLootEntry(holder.dungeonId, entryIdx);
+                            // Delete loot entry by setting section to null
+                            plugin.getDungeonManager().setDungeonConfig(holder.dungeonId,
+                                    "loot." + entries.get(entryIdx), null);
                             player.sendMessage(ChatUtils.colorize("&#FF5555✖ Loot entry dihapus!"));
                             open(player, holder.dungeonId);
                         } else {
