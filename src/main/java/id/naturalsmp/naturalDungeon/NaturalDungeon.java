@@ -273,6 +273,10 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.MobPickerGUI(this), this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.DifficultyMatrixGUI(this),
                 this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.BossDesignerGUI(this),
+                this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.LootSimulatorGUI(this),
+                this);
     }
 
     public void reload() {
