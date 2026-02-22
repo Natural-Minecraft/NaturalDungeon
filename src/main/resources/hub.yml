@@ -1,0 +1,15 @@
+# ---------------------------------------------------- #
+#              NaturalDungeon Hub Config               #
+# ---------------------------------------------------- #
+# Konfigurasi ini menyimpan lokasi Dungeon Hub dan     #
+# hologram text display secara otomatis.               #
+# Gunakan command ingame untuk mengubahnya:            #
+# /nd sethub                                           #
+# /nd hub setboard <type>                              #
+# ---------------------------------------------------- #
+
+# Lokasi spawn tempat pemain akan berpusat
+hub-location: null
+
+# Lokasi papan hologram yang aktif
+boards: {}
