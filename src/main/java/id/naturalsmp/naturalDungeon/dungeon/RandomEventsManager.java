@@ -91,7 +91,7 @@ public class RandomEventsManager {
         goblin.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, Integer.MAX_VALUE, 0, false, false));
 
         goblin.getEquipment().setHelmet(new ItemStack(Material.GOLD_BLOCK));
-        loc.getWorld().spawnParticle(Particle.TOTEM, loc, 50, 1, 1, 1, 0.1);
+        loc.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, loc, 50, 1, 1, 1, 0.1);
 
         // We mark it so it drops extra coins/loot on death using
         // PersistentDataContainer if needed,
@@ -108,9 +108,9 @@ public class RandomEventsManager {
         LivingEntity elite = (LivingEntity) loc.getWorld().spawnEntity(loc, EntityType.WITHER_SKELETON);
         elite.setCustomName(ChatUtils.colorize("&#FF4444Elite Guardian"));
         elite.setCustomNameVisible(true);
-        elite.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, Integer.MAX_VALUE, 1, false, false));
+        elite.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, Integer.MAX_VALUE, 1, false, false));
         elite.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST, Integer.MAX_VALUE, 4, false, false));
-        elite.setHealth(elite.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue());
+        elite.setHealth(elite.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue());
 
         loc.getWorld().spawnParticle(Particle.FLAME, loc, 50, 1, 1, 1, 0.05);
 
@@ -132,7 +132,7 @@ public class RandomEventsManager {
             // In a real implementation we might populate it directly or use LootManager
         }
 
-        loc.getWorld().spawnParticle(Particle.VILLAGER_HAPPY, loc, 30, 0.5, 0.5, 0.5, 0);
+        loc.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, loc, 30, 0.5, 0.5, 0.5, 0);
 
         // Note: For actual functionality, players opening it should get loot.
         // Needs an EventListener catching InventoryOpenEvent or PlayerInteractEvent.

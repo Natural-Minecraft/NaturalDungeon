@@ -229,6 +229,55 @@ public class SQLiteStorage {
         return cal.get(Calendar.YEAR) * 100 + cal.get(Calendar.WEEK_OF_YEAR);
     }
 
+    public int getAnalyticsCount(String dungeonId, String eventType) {
+        int count = 0;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT COUNT(*) AS total FROM dungeon_analytics WHERE dungeon_id = ? AND event_type = ?")) {
+            ps.setString(1, dungeonId);
+            ps.setString(2, eventType);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    count = rs.getInt("total");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to query analytics count: " + e.getMessage());
+        }
+        return count;
+    }
+
+    public long getAnalyticsAverageClearTime(String dungeonId) {
+        long avg = 0;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT AVG(duration_ms) AS avg_time FROM dungeon_analytics WHERE dungeon_id = ? AND event_type = 'CLEAR'")) {
+            ps.setString(1, dungeonId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    avg = rs.getLong("avg_time");
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to query analytics average time: " + e.getMessage());
+        }
+        return avg;
+    }
+
+    public Map<Integer, Integer> getDeathHeatmap(String dungeonId) {
+        Map<Integer, Integer> heatmap = new HashMap<>();
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT stage, SUM(deaths) AS total_deaths FROM dungeon_analytics WHERE dungeon_id = ? AND deaths > 0 GROUP BY stage")) {
+            ps.setString(1, dungeonId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    heatmap.put(rs.getInt("stage"), rs.getInt("total_deaths"));
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to query death heatmap: " + e.getMessage());
+        }
+        return heatmap;
+    }
+
     public void close() {
         try {
             if (connection != null && !connection.isClosed()) {
