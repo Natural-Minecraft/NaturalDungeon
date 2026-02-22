@@ -982,7 +982,7 @@ public class DungeonInstance {
         }
 
         // Clear buffs
-        buffChoiceGUI.clearBuffs(participants);
+        buffChoiceGUI.clearBuffs(new ArrayList<>(participants));
     }
 
     private void cleanupAndTeleport() {
@@ -1020,7 +1020,7 @@ public class DungeonInstance {
             }
         }
         // Clear buffs
-        buffChoiceGUI.clearBuffs(participants);
+        buffChoiceGUI.clearBuffs(new ArrayList<>(participants));
     }
 
     private void cancelAllTasks() {

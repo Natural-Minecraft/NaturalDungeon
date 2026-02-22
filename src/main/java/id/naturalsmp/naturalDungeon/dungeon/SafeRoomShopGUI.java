@@ -136,7 +136,7 @@ public class SafeRoomShopGUI implements Listener {
         }
 
         // Deduct coins
-        instance.addPlayerCoins(player.getUniqueId(), -item.cost);
+        instance.addCoins(player.getUniqueId(), -item.cost);
 
         // Execute action
         switch (item.action) {

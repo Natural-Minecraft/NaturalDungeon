@@ -183,7 +183,7 @@ public class DungeonListener implements Listener {
                                 vaultMoney = 1;
                         }
 
-                        instance.addPlayerCoins(killer.getUniqueId(), inRunCoins);
+                        instance.addCoins(killer.getUniqueId(), inRunCoins);
                         if (vaultMoney > 0 && plugin.getVaultHook() != null
                                 && plugin.getVaultHook().isEnabled()) {
                             plugin.getVaultHook().deposit(killer, vaultMoney);
