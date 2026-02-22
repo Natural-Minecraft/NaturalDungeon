@@ -69,15 +69,15 @@ public class DungeonCompletionGUI implements Listener {
                 "&#FFD700&l🏆 ᴍᴠᴘ",
                 GUIUtils.separator(),
                 "&7Player: &#FFAA00" + mvpName,
-                "&7Damage Dealt: &f" + ChatUtils.formatLarge(instance.getDamageDealt(mvpUUID)),
+                "&7Damage Dealt: &f" + String.format("%.0f", instance.getDamageDealt(mvpUUID)),
                 "&7Mobs Killed: &f" + instance.getMobsKilled(mvpUUID)));
 
         // ─── Personal Stats (slot 22) ───
         inv.setItem(22, GUIUtils.createItem(Material.BOOK,
                 "&#AA44FF&l📊 ꜱᴛᴀᴛɪꜱᴛɪᴋ ᴋᴀᴍᴜ",
                 GUIUtils.separator(),
-                "&7Damage: &f" + ChatUtils.formatLarge(instance.getDamageDealt(player.getUniqueId())),
-                "&7Taken: &f" + ChatUtils.formatLarge(instance.getDamageTaken(player.getUniqueId())),
+                "&7Damage: &f" + String.format("%.0f", instance.getDamageDealt(player.getUniqueId())),
+                "&7Taken: &f" + String.format("%.0f", instance.getDamageTaken(player.getUniqueId())),
                 "&7Kills: &f" + instance.getMobsKilled(player.getUniqueId()),
                 "&7Deaths: &c" + instance.getTotalDeaths()));
 
@@ -119,7 +119,7 @@ public class DungeonCompletionGUI implements Listener {
         inv.setItem(22, GUIUtils.createItem(Material.BOOK,
                 "&#AA44FF&l📊 ꜱᴛᴀᴛɪꜱᴛɪᴋ",
                 GUIUtils.separator(),
-                "&7Damage: &f" + ChatUtils.formatLarge(instance.getDamageDealt(player.getUniqueId())),
+                "&7Damage: &f" + String.format("%.0f", instance.getDamageDealt(player.getUniqueId())),
                 "&7Kills: &f" + instance.getMobsKilled(player.getUniqueId())));
     }
 
