@@ -262,6 +262,14 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MobEditorGUI(this), this);
         getServer().getPluginManager().registerEvents(new BossEditorGUI(this), this);
         getServer().getPluginManager().registerEvents(new MobSkillEditorGUI(this), this);
+
+        // Admin GUIs
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.AdminDashboardGUI(this),
+                this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.SetupWizardGUI(this),
+                this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.DiagnosticsGUI(this),
+                this);
     }
 
     public void reload() {

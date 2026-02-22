@@ -1,7 +1,10 @@
 package id.naturalsmp.naturaldungeon.commands;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
+import id.naturalsmp.naturaldungeon.admin.AdminDashboardGUI;
+import id.naturalsmp.naturaldungeon.admin.DiagnosticsGUI;
 import id.naturalsmp.naturaldungeon.admin.SetupManager;
+import id.naturalsmp.naturaldungeon.admin.SetupWizardGUI;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonInstance;
 import id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI;
@@ -159,8 +162,51 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(ChatUtils.colorize("&7Tier: &f" + dungeon.getMinTier()));
                 sender.sendMessage(ChatUtils.colorize("&7Stages: &f" + dungeon.getTotalStages()));
             }
-            case "admin" -> {
-                sender.sendMessage(ChatUtils.colorize("&cCommand obsolete. Use /nd editor."));
+            case "admin", "dashboard" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                new AdminDashboardGUI(plugin).open(player);
+            }
+            case "create", "wizard" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                new SetupWizardGUI(plugin).open(player);
+            }
+            case "diag", "diagnostics" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                if (args.length < 2) {
+                    player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Gunakan: /nd diag <dungeon_id>"));
+                    return true;
+                }
+                new DiagnosticsGUI(plugin).open(player, args[1]);
+            }
+            case "wand" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                if (args.length < 3) {
+                    player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Gunakan: /nd wand <dungeon_id> <stage>"));
+                    return true;
+                }
+                Dungeon dungeon = plugin.getDungeonManager().getDungeon(args[1]);
+                if (dungeon == null) {
+                    player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Dungeon tidak ditemukan: &f" + args[1]));
+                    return true;
+                }
+                try {
+                    int stageNum = Integer.parseInt(args[2]);
+                    setupManager.enterStageEditor(player, dungeon, stageNum);
+                } catch (NumberFormatException e) {
+                    player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Stage harus berupa angka!"));
+                }
             }
             case "editor" -> {
                 if (!(sender instanceof Player player)) {
@@ -240,6 +286,10 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd info <dungeon> &7- Dungeon info"));
 
         sender.sendMessage(ChatUtils.colorize("&e/nd editor [dungeon] [stage] &7- Editor/Setup Mode"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd dashboard &7- Admin Dashboard GUI"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd create &7- Setup Wizard (buat dungeon baru)"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd diag <dungeon> &7- Visual Diagnostics GUI"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd wand <dungeon> <stage> &7- Setup wand tools"));
         sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd maintenance &7- Toggle maintenance mode"));
@@ -289,10 +339,12 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             completions.addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info",
-                    "editor", "clone", "status", "maintenance", "debug", "check"));
+                    "editor", "dashboard", "create", "diag", "wand", "clone", "status", "maintenance", "debug",
+                    "check"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
+                    || sub.equals("diag") || sub.equals("wand")
                     || sub.equals("debug")) {
                 if (sub.equals("debug")) {
                     completions.add("bossspawn");
