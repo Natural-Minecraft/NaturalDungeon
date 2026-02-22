@@ -56,6 +56,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private SkillExecutor skillExecutor;
     private DungeonQueue dungeonQueue;
     private AchievementManager achievementManager;
+    private id.naturalsmp.naturaldungeon.progression.MasteryManager masteryManager;
 
     // Hooks
     private VaultHook vaultHook;
@@ -120,6 +121,7 @@ public final class NaturalDungeon extends JavaPlugin {
         this.dungeonQueue = new DungeonQueue(this);
         // Player Managers
         this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
+        this.masteryManager = new id.naturalsmp.naturaldungeon.progression.MasteryManager(this);
 
         // 4. Register Commands
         registerCommands();
@@ -449,5 +451,9 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public id.naturalsmp.naturaldungeon.player.AchievementManager getAchievementManager() {
         return achievementManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.progression.MasteryManager getMasteryManager() {
+        return masteryManager;
     }
 }

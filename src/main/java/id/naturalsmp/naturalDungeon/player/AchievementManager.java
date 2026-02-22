@@ -57,6 +57,15 @@ public class AchievementManager {
         registeredAchievements
                 .add(new Achievement("flawless", "Flawless Victory", "Clear a dungeon with 0 deaths.", 10000));
         registeredAchievements.add(new Achievement("mvp", "Star Player", "Get MVP in a dungeon party.", 5000));
+        // Phase 3 Milestones
+        registeredAchievements
+                .add(new Achievement("speed_runner", "Speed Runner", "Clear a dungeon in under 5 minutes.", 15000));
+        registeredAchievements.add(new Achievement("solo_warrior", "Solo Warrior", "Clear a dungeon alone.", 20000));
+        registeredAchievements
+                .add(new Achievement("party_player", "Party Player", "Clear a dungeon with 4 players.", 10000));
+        registeredAchievements.add(new Achievement("boss_slayer", "Boss Slayer", "Kill 10 bosses total.", 30000));
+        registeredAchievements.add(new Achievement("mastery_5", "Apprentice", "Reach mastery level 5.", 15000));
+        registeredAchievements.add(new Achievement("mastery_20", "Legend", "Reach max mastery level 20.", 100000));
     }
 
     public List<Achievement> getAchievements() {

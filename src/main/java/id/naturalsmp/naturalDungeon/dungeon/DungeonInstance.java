@@ -811,6 +811,35 @@ public class DungeonInstance {
                     plugin.getPlayerStatsManager().recordClear(uuid, dungeon.getId(), duration, totalDeaths);
                     plugin.getSqliteStorage().recordCompletion(uuid, dungeon.getId(), difficulty.getId(), duration,
                             totalDeaths);
+
+                    // ─── Mastery XP + New Achievements ───
+                    id.naturalsmp.naturaldungeon.progression.MasteryManager mm = plugin.getMasteryManager();
+                    if (mm != null) {
+                        int masteryXP = 50 + (dungeon.getTotalStages() * 10)
+                                + (participants.size() > 1 ? 20 : 0) // party bonus
+                                + (totalDeaths == 0 ? 25 : 0); // flawless bonus
+                        mm.awardXP(uuid, dungeon.getId(), masteryXP);
+                        mm.recordClear(uuid, dungeon.getId(), duration / 1000);
+
+                        // Mastery level achievements
+                        int masteryLevel = mm.getLevel(uuid, dungeon.getId());
+                        if (masteryLevel >= 5)
+                            am.unlockAchievement(p, "mastery_5");
+                        if (masteryLevel >= 20)
+                            am.unlockAchievement(p, "mastery_20");
+                    }
+
+                    // Speed runner (under 5 min = 300s)
+                    if (duration / 1000 < 300)
+                        am.unlockAchievement(p, "speed_runner");
+
+                    // Solo warrior
+                    if (participants.size() == 1)
+                        am.unlockAchievement(p, "solo_warrior");
+
+                    // Party player
+                    if (participants.size() >= 4)
+                        am.unlockAchievement(p, "party_player");
                 }
             }
 
