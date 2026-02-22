@@ -3,16 +3,17 @@ package id.naturalsmp.naturaldungeon.party;
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 
 import java.util.*;
@@ -26,25 +27,26 @@ public class PartyGUI implements Listener {
     public PartyGUI(NaturalDungeon plugin, PartyManager manager) {
         this.plugin = plugin;
         this.manager = manager;
-        // Listener registered as singleton in NaturalDungeon.registerListeners()
     }
 
     public void open(Player player) {
-        String title = ConfigUtils.getMessage("gui.party.title");
-        Inventory inv = Bukkit.createInventory(new PartyHolder(), 45, title);
+        Inventory inv = GUIUtils.createGUI(new PartyHolder(), 45,
+                "&#55CCFF👥 ᴘᴀʀᴛʏ ᴍᴀɴᴀɢᴇʀ");
+
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
         Party party = manager.getParty(player.getUniqueId());
 
-        // Fill background
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 45; i++)
-            inv.setItem(i, filler);
-
         if (party == null) {
             // No party - show create button
-            inv.setItem(22, createItem(Material.LIME_DYE, "&#55FF55&l✚ BUAT PARTY",
-                    "&7Klik untuk membuat party baru!",
-                    "&7Max: &f2 &7pemain (upgrade untuk &e4-24&7)"));
+            inv.setItem(22, GUIUtils.createItem(Material.LIME_DYE,
+                    "&#55FF55&l✚ ʙᴜᴀᴛ ᴘᴀʀᴛʏ",
+                    GUIUtils.separator(),
+                    "&7Buat party baru!",
+                    "&7Max: &f2 &7pemain (upgrade → &e4-24&7)",
+                    "",
+                    "&#FFAA00&l➥ KLIK"));
         } else {
             // Show party members
             int[] memberSlots = { 10, 11, 12, 13, 14, 15, 16 };
@@ -61,10 +63,11 @@ public class PartyGUI implements Listener {
                 meta.setDisplayName(ChatUtils.colorize(
                         (isLeader ? "&#FFAA00&l★ " : "&f") + (member != null ? member.getName() : "Offline")));
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatUtils.colorize(isLeader ? "&6Leader" : "&7Member"));
+                lore.add(ChatUtils.colorize(GUIUtils.separator()));
+                lore.add(ChatUtils.colorize(isLeader ? "&#FFD700Leader" : "&7Member"));
                 if (party.isLeader(player.getUniqueId()) && !isLeader) {
                     lore.add("");
-                    lore.add(ChatUtils.colorize("&cKlik untuk kick"));
+                    lore.add(ChatUtils.colorize("&#FF5555&l✖ Klik untuk kick"));
                 }
                 meta.setLore(lore);
                 skull.setItemMeta(meta);
@@ -72,9 +75,11 @@ public class PartyGUI implements Listener {
             }
 
             // Info panel
-            inv.setItem(30, createItem(Material.BOOK, "&#00AAFF&lPARTY INFO",
-                    "&7Tier: &e" + party.getTier(),
-                    "&7Max Players: &f" + party.getMaxPlayers(),
+            inv.setItem(30, GUIUtils.createItem(Material.BOOK,
+                    "&#55CCFF&l📋 ᴘᴀʀᴛʏ ɪɴꜰᴏ",
+                    GUIUtils.separator(),
+                    "&7Tier: &#FFD700" + party.getTier(),
+                    "&7Max: &f" + party.getMaxPlayers(),
                     "&7Members: &f" + party.getMembers().size() + "/" + party.getMaxPlayers()));
 
             // Upgrade button (leader only)
@@ -87,26 +92,33 @@ public class PartyGUI implements Listener {
                     case 4 -> 24;
                     default -> 24;
                 };
-                inv.setItem(31, createItem(Material.GOLD_INGOT, "&#FFAA00&l⬆ UPGRADE",
+                inv.setItem(31, GUIUtils.createItem(Material.GOLD_INGOT,
+                        "&#FFAA00&l⬆ ᴜᴘɢʀᴀᴅᴇ",
+                        GUIUtils.separator(),
                         "&7Upgrade ke Tier " + (party.getTier() + 1),
-                        "&7Max Players: &e" + nextMax,
+                        "&7Max Players: &#FFD700" + nextMax,
                         "",
-                        "&6Harga: &f$" + ChatUtils.formatLarge(cost)));
+                        "&#FFAA00Harga: &f$" + String.format("%,d", cost)));
             }
 
             // Invite button
             if (party.isLeader(player.getUniqueId())) {
-                inv.setItem(32, createItem(Material.WRITABLE_BOOK, "&#55FF55&l+ INVITE",
-                        "&7Ketik &b/party invite <player>",
+                inv.setItem(32, GUIUtils.createItem(Material.WRITABLE_BOOK,
+                        "&#55FF55&l+ ɪɴᴠɪᴛᴇ",
+                        GUIUtils.separator(),
+                        "&7Ketik &#55CCFF/party invite <player>",
                         "&7untuk mengundang pemain."));
             }
 
             // Leave button
-            inv.setItem(40, createItem(Material.BARRIER, "&#FF5555&l✕ LEAVE",
-                    party.isLeader(player.getUniqueId()) ? "&cDisbandkan party" : "&7Keluar dari party"));
+            inv.setItem(40, GUIUtils.createItem(Material.BARRIER,
+                    "&#FF5555&l✕ ʟᴇᴀᴠᴇ",
+                    GUIUtils.separator(),
+                    party.isLeader(player.getUniqueId()) ? "&#FF5555Disbandkan party" : "&7Keluar dari party"));
         }
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
@@ -114,16 +126,18 @@ public class PartyGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof PartyHolder))
             return;
         e.setCancelled(true);
-
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
         if (e.getCurrentItem() == null)
             return;
-        Player player = (Player) e.getWhoClicked();
 
-        // Anti-spam click (1 second cooldown)
+        Player player = (Player) e.getWhoClicked();
+        GUIUtils.playClickSound(player);
+
+        // Anti-spam (1s cooldown)
         long now = System.currentTimeMillis();
-        if (lastClick.containsKey(player.getUniqueId()) && now - lastClick.get(player.getUniqueId()) < 1000) {
+        if (lastClick.containsKey(player.getUniqueId()) && now - lastClick.get(player.getUniqueId()) < 1000)
             return;
-        }
         lastClick.put(player.getUniqueId(), now);
 
         Party party = manager.getParty(player.getUniqueId());
@@ -132,6 +146,7 @@ public class PartyGUI implements Listener {
         if (type == Material.LIME_DYE) {
             player.closeInventory();
             manager.createParty(player);
+            GUIUtils.playSuccessSound(player);
             Bukkit.getScheduler().runTaskLater(plugin, () -> open(player), 5L);
         } else if (type == Material.GOLD_INGOT) {
             if (party != null)
@@ -144,7 +159,6 @@ public class PartyGUI implements Listener {
             player.closeInventory();
             player.sendMessage(ConfigUtils.getMessage("party.invite-prompt"));
         } else if (type == Material.PLAYER_HEAD) {
-            // Kick member
             if (party != null && party.isLeader(player.getUniqueId())) {
                 SkullMeta meta = (SkullMeta) e.getCurrentItem().getItemMeta();
                 if (meta.getOwningPlayer() != null) {
@@ -158,16 +172,10 @@ public class PartyGUI implements Listener {
         }
     }
 
-    private ItemStack createItem(Material material, String name, String... lore) {
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof PartyHolder)
+            e.setCancelled(true);
     }
 
     public static class PartyHolder implements InventoryHolder {

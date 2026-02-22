@@ -4,13 +4,14 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonDifficulty;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -28,23 +29,23 @@ public class LootPreviewGUI implements Listener {
     }
 
     public void open(Player player, Dungeon dungeon, DungeonDifficulty difficulty) {
-        Inventory inv = Bukkit.createInventory(new PreviewHolder(dungeon.getId()), 54,
-                ChatUtils.colorize("&8Loot Preview: " + difficulty.getDisplayName()));
+        Inventory inv = GUIUtils.createGUI(new PreviewHolder(dungeon.getId()), 54,
+                "&#FFD700🎁 ʟᴏᴏᴛ ᴘʀᴇᴠɪᴇᴡ: &f" + difficulty.getDisplayName());
 
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 54; i++) {
-            if (i < 9 || i >= 45 || i % 9 == 0 || i % 9 == 8) {
-                inv.setItem(i, filler);
-            }
-        }
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
-        // Title Headers
-        inv.setItem(4, createItem(Material.DIAMOND, "&#00FFFF&lLOOT PREVIEW", "&7Menampilkan kemungkinan drop",
-                "&7dari " + dungeon.getDisplayName() + " - " + difficulty.getDisplayName()));
+        // Title Header
+        inv.setItem(4, GUIUtils.createItem(Material.DIAMOND,
+                "&#55CCFF&lʟᴏᴏᴛ ᴘʀᴇᴠɪᴇᴡ",
+                GUIUtils.separator(),
+                "&7Kemungkinan drop dari",
+                "&f" + dungeon.getDisplayName() + " &7- &f" + difficulty.getDisplayName()));
 
         ConfigurationSection lootSection = difficulty.getLootSection();
         if (lootSection == null) {
-            inv.setItem(22, createItem(Material.BARRIER, "&cTidak ada loot yang dikonfigurasi."));
+            inv.setItem(22, GUIUtils.createItem(Material.BARRIER,
+                    "&#FF5555&l✖ Tidak ada loot."));
         } else {
             List<ItemStack> bossLoot = buildPreviewItems(lootSection, "boss");
             List<ItemStack> compLoot = buildPreviewItems(lootSection, "completion");
@@ -53,22 +54,26 @@ public class LootPreviewGUI implements Listener {
             int[] compSlots = { 29, 30, 31, 32, 33, 38, 39, 40, 41, 42 };
 
             if (!bossLoot.isEmpty()) {
-                inv.setItem(10, createItem(Material.WITHER_SKELETON_SKULL, "&#FF5555&lBoss Drops"));
+                inv.setItem(10, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
+                        "&#FF5555&l🐉 ʙᴏꜱꜱ ᴅʀᴏᴘꜱ"));
                 for (int i = 0; i < Math.min(bossLoot.size(), bossSlots.length); i++) {
                     inv.setItem(bossSlots[i], bossLoot.get(i));
                 }
             }
 
             if (!compLoot.isEmpty()) {
-                inv.setItem(28, createItem(Material.CHEST, "&#55FF55&lCompletion Drops"));
+                inv.setItem(28, GUIUtils.createItem(Material.CHEST,
+                        "&#55FF55&l🎁 ᴄᴏᴍᴘʟᴇᴛɪᴏɴ ᴅʀᴏᴘꜱ"));
                 for (int i = 0; i < Math.min(compLoot.size(), compSlots.length); i++) {
                     inv.setItem(compSlots[i], compLoot.get(i));
                 }
             }
         }
 
-        inv.setItem(49, createItem(Material.ARROW, "&cKembali"));
+        inv.setItem(49, GUIUtils.createItem(Material.ARROW, "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
+
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     private List<ItemStack> buildPreviewItems(ConfigurationSection section, String path) {
@@ -122,7 +127,7 @@ public class LootPreviewGUI implements Listener {
                 }
                 List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
                 lore.add("");
-                lore.add(ChatUtils.colorize("&6Drop Info &8&m         "));
+                lore.add(ChatUtils.colorize(GUIUtils.separator()));
                 lore.add(ChatUtils.colorize("&7Amount: &f" + amountStr));
                 lore.add(ChatUtils.colorize("&7Chance: &f" + chance + "%"));
                 meta.setLore(lore);
@@ -137,24 +142,21 @@ public class LootPreviewGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (e.getInventory().getHolder() instanceof PreviewHolder holder) {
-            e.setCancelled(true);
-            if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.ARROW) {
-                plugin.getDungeonGUI().open((Player) e.getWhoClicked()); // Go back to Dungeon selection for now
-            }
+        if (!(e.getInventory().getHolder() instanceof PreviewHolder))
+            return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
+        if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.ARROW) {
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
+            plugin.getDungeonGUI().open((Player) e.getWhoClicked());
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof PreviewHolder)
+            e.setCancelled(true);
     }
 
     private static class PreviewHolder implements InventoryHolder {

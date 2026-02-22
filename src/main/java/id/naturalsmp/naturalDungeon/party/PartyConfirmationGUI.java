@@ -4,20 +4,18 @@ import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonDifficulty;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import id.naturalsmp.naturaldungeon.utils.ConfigUtils;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 
@@ -37,7 +35,8 @@ public class PartyConfirmationGUI implements Listener {
 
         // Validate Key (Leader Only)
         if (!checkKey(leader, difficulty)) {
-            leader.sendMessage(ConfigUtils.getMessage("dungeon.key-required", "%key%", difficulty.getKeyReq()));
+            leader.sendMessage(ChatUtils.colorize("&#FF5555✖ Key dibutuhkan: &f" + difficulty.getKeyReq()));
+            GUIUtils.playErrorSound(leader);
             return;
         }
 
@@ -51,8 +50,10 @@ public class PartyConfirmationGUI implements Listener {
     }
 
     private void openInventory(Player player, ConfirmationSession session) {
-        Inventory inv = Bukkit.createInventory(new ConfirmationHolder(), 27,
-                ChatUtils.colorize("&8Ready Check: " + session.dungeon.getDisplayName()));
+        Inventory inv = GUIUtils.createGUI(new ConfirmationHolder(), 27,
+                "&#55CCFF⚔ ʀᴇᴀᴅʏ ᴄʜᴇᴄᴋ: &f" + session.dungeon.getDisplayName());
+
+        GUIUtils.fillAll(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         // Members Status
         int[] slots = { 10, 11, 12, 13, 14, 15 };
@@ -62,18 +63,25 @@ public class PartyConfirmationGUI implements Listener {
                 break;
             boolean isReady = session.readyStatus.getOrDefault(uuid, false);
             String name = Bukkit.getOfflinePlayer(uuid).getName();
-            ItemStack head = createItem(isReady ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE,
-                    (isReady ? "&a" : "&c") + name,
-                    isReady ? "&7Status: &aREADY" : "&7Status: &cWAITING");
-            inv.setItem(slots[idx++], head);
+            inv.setItem(slots[idx++], GUIUtils.createItem(
+                    isReady ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE,
+                    (isReady ? "&#55FF55" : "&#FF5555") + "&l" + name,
+                    GUIUtils.separator(),
+                    isReady ? "&#55FF55✔ READY" : "&#FF5555⏳ WAITING"));
         }
 
         // Ready Button
         boolean myStatus = session.readyStatus.getOrDefault(player.getUniqueId(), false);
-        inv.setItem(22,
-                createItem(myStatus ? Material.LIME_DYE : Material.GRAY_DYE, "&a&lSIAP!", "&7Klik untuk konfirmasi."));
+        inv.setItem(22, GUIUtils.createItem(
+                myStatus ? Material.LIME_DYE : Material.GRAY_DYE,
+                myStatus ? "&#55FF55&l✔ ꜱɪᴀᴘ!" : "&#FFAA00&l⚔ ꜱɪᴀᴘ!",
+                GUIUtils.separator(),
+                "&7Klik untuk konfirmasi.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     private void updateAllInventories(ConfirmationSession session) {
@@ -90,7 +98,7 @@ public class PartyConfirmationGUI implements Listener {
         if (req == null || req.equalsIgnoreCase("none"))
             return true;
 
-        String[] parts = req.split(":"); // TYPE:ID:AMOUNT
+        String[] parts = req.split(":");
         if (parts.length < 3)
             return true;
 
@@ -134,6 +142,9 @@ public class PartyConfirmationGUI implements Listener {
         if (!(e.getInventory().getHolder() instanceof ConfirmationHolder))
             return;
         e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
+
         Player player = (Player) e.getWhoClicked();
         ConfirmationSession session = sessions.get(player.getUniqueId());
 
@@ -145,10 +156,9 @@ public class PartyConfirmationGUI implements Listener {
         if (e.getCurrentItem() != null && (e.getCurrentItem().getType() == Material.LIME_DYE
                 || e.getCurrentItem().getType() == Material.GRAY_DYE)) {
             session.readyStatus.put(player.getUniqueId(), true);
-            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 2f);
+            GUIUtils.playSuccessSound(player);
             updateAllInventories(session);
 
-            // Check if all ready
             if (session.isAllReady()) {
                 startDungeon(session);
             }
@@ -156,32 +166,23 @@ public class PartyConfirmationGUI implements Listener {
     }
 
     @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof ConfirmationHolder)
+            e.setCancelled(true);
+    }
+
+    @EventHandler
     public void onClose(InventoryCloseEvent e) {
     }
 
     private void startDungeon(ConfirmationSession session) {
-        // Cleanup sessions
         for (UUID uuid : session.participants) {
             sessions.remove(uuid);
             Player p = Bukkit.getPlayer(uuid);
             if (p != null)
                 p.closeInventory();
         }
-
-        // Call startDungeon with difficulty support (requires update to DungeonManager)
         plugin.getDungeonManager().startDungeon(session.participants, session.dungeon, session.difficulty);
-    }
-
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
     }
 
     private static class ConfirmationSession {

@@ -1,17 +1,15 @@
 package id.naturalsmp.naturaldungeon.player;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
-import id.naturalsmp.naturaldungeon.utils.ChatUtils;
-import org.bukkit.Bukkit;
+import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,14 +23,11 @@ public class AchievementGUI implements Listener {
     }
 
     public void open(Player player) {
-        Inventory inv = Bukkit.createInventory(new AchievementHolder(), 45,
-                ChatUtils.colorize("&8Dungeon Achievements"));
+        Inventory inv = GUIUtils.createGUI(new AchievementHolder(), 45,
+                "&#FFD700🏆 ᴅᴜɴɢᴇᴏɴ ᴀᴄʜɪᴇᴠᴇᴍᴇɴᴛꜱ");
 
-        // BG Filler
-        ItemStack filler = createItem(Material.GRAY_STAINED_GLASS_PANE, " ");
-        for (int i = 0; i < 45; i++) {
-            inv.setItem(i, filler);
-        }
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
+        GUIUtils.fillEmpty(inv, Material.GRAY_STAINED_GLASS_PANE);
 
         AchievementManager manager = plugin.getAchievementManager();
         List<AchievementManager.Achievement> achievements = manager.getAchievements();
@@ -46,44 +41,45 @@ public class AchievementGUI implements Listener {
 
             boolean unlocked = manager.hasAchievement(player.getUniqueId(), ach.getId());
             Material mat = unlocked ? Material.NETHER_STAR : Material.MINECART;
-            String color = unlocked ? "&#FFFF00&l" : "&8&l";
-            String status = unlocked ? "&a✔ Sudah Terbuka" : "&c✘ Belum Terbuka";
+            String color = unlocked ? "&#FFD700" : "&#555555";
+            String status = unlocked ? "&#55FF55✔ Sudah Terbuka" : "&#FF5555✘ Belum Terbuka";
 
             List<String> lore = new ArrayList<>();
+            lore.add(GUIUtils.separator());
             lore.add("&7" + ach.getDescription());
             lore.add("");
-            lore.add("&fHadiah: &eRp " + ach.getRewardMoney());
+            lore.add("&fHadiah: &#55FF55Rp " + ach.getRewardMoney());
             lore.add(status);
 
-            inv.setItem(slots[slotIdx], createItem(mat, color + ach.getName(), lore.toArray(new String[0])));
+            inv.setItem(slots[slotIdx], GUIUtils.createItem(mat,
+                    color + "&l" + ach.getName(), lore));
             slotIdx++;
         }
 
-        inv.setItem(40, createItem(Material.BARRIER, "&cTutup", "&7Klik untuk menutup."));
+        inv.setItem(40, GUIUtils.createItem(Material.BARRIER,
+                "&#FF5555&l✕ ᴛᴜᴛᴜᴘ"));
 
         player.openInventory(inv);
+        GUIUtils.playOpenSound(player);
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (e.getInventory().getHolder() instanceof AchievementHolder) {
-            e.setCancelled(true);
-            if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.BARRIER) {
-                e.getWhoClicked().closeInventory();
-            }
+        if (!(e.getInventory().getHolder() instanceof AchievementHolder))
+            return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != e.getView().getTopInventory())
+            return;
+        if (e.getCurrentItem() != null && e.getCurrentItem().getType() == Material.BARRIER) {
+            GUIUtils.playClickSound((Player) e.getWhoClicked());
+            e.getWhoClicked().closeInventory();
         }
     }
 
-    private ItemStack createItem(Material mat, String name, String... lore) {
-        ItemStack item = new ItemStack(mat);
-        ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(ChatUtils.colorize(name));
-        List<String> loreList = new ArrayList<>();
-        for (String l : lore)
-            loreList.add(ChatUtils.colorize(l));
-        meta.setLore(loreList);
-        item.setItemMeta(meta);
-        return item;
+    @EventHandler
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof AchievementHolder)
+            e.setCancelled(true);
     }
 
     private static class AchievementHolder implements InventoryHolder {
