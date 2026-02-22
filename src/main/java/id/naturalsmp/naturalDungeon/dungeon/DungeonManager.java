@@ -301,7 +301,7 @@ public class DungeonManager implements Listener {
 
         DungeonDifficulty difficulty = dungeon.getDifficulty("normal");
         if (difficulty == null && !dungeon.getDifficulties().isEmpty()) {
-            difficulty = dungeon.getDifficulties().values().iterator().next(); // Grab first available
+            difficulty = dungeon.getDifficulties().iterator().next(); // Grab first available
         }
 
         if (difficulty == null) {

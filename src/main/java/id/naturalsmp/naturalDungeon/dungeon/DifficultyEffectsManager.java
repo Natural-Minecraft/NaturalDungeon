@@ -100,7 +100,8 @@ public class DifficultyEffectsManager {
                 // Heartbeat / screen shake / wither ambiance
                 p.playSound(loc, Sound.ENTITY_WARDEN_HEARTBEAT, 1f, 1f);
                 if (Math.random() < 0.5) {
-                    p.getWorld().spawnParticle(Particle.SMOKE_LARGE, loc.add(0, 1, 0), 10, 2, 2, 2, 0.05);
+                    p.spawnParticle(org.bukkit.Particle.LARGE_SMOKE, p.getLocation().add(0, 1, 0), 10, 0.5, 0.5, 0.5,
+                            0.05);
                 }
                 break;
         }

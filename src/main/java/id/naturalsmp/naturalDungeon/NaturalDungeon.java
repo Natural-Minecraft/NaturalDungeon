@@ -3,6 +3,7 @@ package id.naturalsmp.naturaldungeon;
 import id.naturalsmp.naturaldungeon.party.PartyManager;
 import id.naturalsmp.naturaldungeon.party.PartyGUI;
 import id.naturalsmp.naturaldungeon.party.PartyConfirmationGUI;
+import id.naturalsmp.naturaldungeon.party.PartyRoleManager;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonManager;
 import id.naturalsmp.naturaldungeon.dungeon.DungeonListener;
 import id.naturalsmp.naturaldungeon.dungeon.DifficultyGUI;
@@ -29,6 +30,7 @@ import id.naturalsmp.naturaldungeon.leaderboard.SQLiteStorage;
 import id.naturalsmp.naturaldungeon.stats.PlayerStatsManager;
 import id.naturalsmp.naturaldungeon.stats.StatsGUI;
 import id.naturalsmp.naturaldungeon.editor.*;
+import id.naturalsmp.naturaldungeon.admin.AdminDashboardGUI;
 import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
 import id.naturalsmp.naturaldungeon.mob.CustomMobSpawner;
 import id.naturalsmp.naturaldungeon.skill.SkillRegistry;
@@ -43,13 +45,28 @@ public final class NaturalDungeon extends JavaPlugin {
 
     // Managers
     private PartyManager partyManager;
+    private PartyRoleManager partyRoleManager;
     private DungeonManager dungeonManager;
     private LootManager lootManager;
     private id.naturalsmp.naturaldungeon.leaderboard.LeaderboardManager leaderboardManager;
     private PlayerStatsManager playerStatsManager;
     private SQLiteStorage sqliteStorage;
     private StatsGUI statsGUI;
+
+    public AdminDashboardGUI getAdminDashboardGUI() {
+        return adminDashboardGUI;
+    }
+
+    public PartyRoleManager getPartyRoleManager() {
+        return partyRoleManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI getAnalyticsDashboardGUI() {
+        return analyticsDashboardGUI;
+    }
+
     private id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI analyticsDashboardGUI;
+    private AdminDashboardGUI adminDashboardGUI;
     private CustomMobManager customMobManager;
     private CustomMobSpawner customMobSpawner;
     private ChatInputHandler editorChatInput;
@@ -112,6 +129,7 @@ public final class NaturalDungeon extends JavaPlugin {
 
         // 3. Init Managers
         this.partyManager = new PartyManager(this);
+        this.partyRoleManager = new PartyRoleManager();
         this.dungeonManager = new DungeonManager(this);
         this.lootManager = new LootManager(this);
         this.leaderboardManager = new id.naturalsmp.naturaldungeon.leaderboard.LeaderboardManager(this);
@@ -142,6 +160,8 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.loot.LootPreviewGUI(this), this);
         this.analyticsDashboardGUI = new id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI(this);
         getServer().getPluginManager().registerEvents(analyticsDashboardGUI, this);
+        this.adminDashboardGUI = new AdminDashboardGUI(this);
+        getServer().getPluginManager().registerEvents(adminDashboardGUI, this);
 
         // 6. Register PAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {

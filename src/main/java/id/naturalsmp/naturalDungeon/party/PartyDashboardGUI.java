@@ -33,14 +33,14 @@ public class PartyDashboardGUI implements Listener {
 
     public void open(Player player) {
         // Needs a party
-        id.naturalsmp.naturaldungeon.party.Party party = plugin.getPartyManager().getParty(player);
+        id.naturalsmp.naturaldungeon.party.Party party = plugin.getPartyManager().getParty(player.getUniqueId());
         if (party == null) {
             player.sendMessage(ChatUtils.colorize("&cYou must be in a party to view the dashboard!"));
             return;
         }
 
-        Inventory inv = GUIUtils.createGUI(54, "&#55FF55&lᴘᴀʀᴛʏ ᴅᴀsʜʙᴏᴀʀᴅ", new DashboardHolder(party.getId()));
-        GUIUtils.fillBorder(inv);
+        Inventory inv = GUIUtils.createGUI(new DashboardHolder(party.getLeader()), 54, "&#55FF55&lᴘᴀʀᴛʏ ᴅᴀsʜʙᴏᴀʀᴅ");
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         // Render immediately
         renderDashboard(inv, party);
@@ -50,7 +50,7 @@ public class PartyDashboardGUI implements Listener {
         // Start live update task (every 1 second)
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (player.getOpenInventory().getTopInventory().getHolder() instanceof DashboardHolder holder) {
-                if (holder.partyId.equals(party.getId())) {
+                if (holder.leaderId.equals(party.getLeader())) {
                     renderDashboard(inv, party);
                 } else {
                     stopTask(player.getUniqueId());
@@ -61,7 +61,7 @@ public class PartyDashboardGUI implements Listener {
         }, 20L, 20L);
 
         updateTasks.put(player.getUniqueId(), task);
-        GUIUtils.playSound(player, "click");
+        player.playSound(player.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.5f, 1f);
     }
 
     private void renderDashboard(Inventory inv, id.naturalsmp.naturaldungeon.party.Party party) {
@@ -86,10 +86,11 @@ public class PartyDashboardGUI implements Listener {
                     List<String> lore = new ArrayList<>();
                     // Role
                     PartyRoleManager.Role role = plugin.getPartyRoleManager().getRole(target.getUniqueId());
-                    String roleName = role != null ? role.getDisplayName() : "&7Unassigned";
+                    String roleName = role != null && role != PartyRoleManager.Role.NONE ? role.display
+                            : "&7Unassigned";
 
                     int hp = (int) target.getHealth();
-                    int maxHp = (int) target.getAttribute(org.bukkit.attribute.Attribute.GENERIC_MAX_HEALTH).getValue();
+                    int maxHp = (int) target.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH).getValue();
                     String hpColor = hp > maxHp * 0.5 ? "&a" : (hp > maxHp * 0.2 ? "&e" : "&c");
 
                     lore.add(ChatUtils.colorize(""));
@@ -155,7 +156,7 @@ public class PartyDashboardGUI implements Listener {
             e.setCancelled(true);
             if (e.getCurrentItem() != null && e.getCurrentItem().getType() != Material.AIR) {
                 Player p = (Player) e.getWhoClicked();
-                GUIUtils.playSound(p, "error");
+                p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             }
         }
     }
@@ -168,10 +169,10 @@ public class PartyDashboardGUI implements Listener {
     }
 
     private static class DashboardHolder implements InventoryHolder {
-        private final UUID partyId;
+        private final UUID leaderId;
 
-        public DashboardHolder(UUID partyId) {
-            this.partyId = partyId;
+        public DashboardHolder(UUID leaderId) {
+            this.leaderId = leaderId;
         }
 
         @Override

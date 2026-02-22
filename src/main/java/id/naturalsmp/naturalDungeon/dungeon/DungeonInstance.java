@@ -25,8 +25,9 @@ public class DungeonInstance {
     private final Dungeon dungeon;
     private final DungeonDifficulty difficulty;
     private final int instanceId;
-    private final CopyOnWriteArrayList<UUID> participants;
+    private final Set<UUID> participants; // Changed from CopyOnWriteArrayList to Set
     private final Map<UUID, Integer> lives = new HashMap<>();
+    private final Map<UUID, Integer> rawDeaths = new HashMap<>(); // Added rawDeaths field
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Boolean> inSafeZone = new HashMap<>();
     private final Set<UUID> invulnerable = new HashSet<>(); // Respawn invulnerability
@@ -77,21 +78,13 @@ public class DungeonInstance {
     private final Map<UUID, Double> damageTaken = new HashMap<>();
     private final Map<UUID, Integer> mobsKilled = new HashMap<>();
 
-    public int getPlayerCoins(UUID playerId) {
-        return playerCoins.getOrDefault(playerId, 0);
-    }
-
-    public void addPlayerCoins(UUID playerId, int amount) {
-        playerCoins.merge(playerId, amount, Integer::sum);
-    }
-
     public DungeonInstance(NaturalDungeon plugin, Dungeon dungeon, DungeonDifficulty difficulty, int instanceId,
             List<UUID> participants) {
         this.plugin = plugin;
         this.dungeon = dungeon;
         this.difficulty = difficulty;
         this.instanceId = instanceId;
-        this.participants = new CopyOnWriteArrayList<>(participants);
+        this.participants = new HashSet<>(participants); // Initialized as HashSet
         this.lootManager = new LootManager(plugin);
         this.buffChoiceGUI = plugin.getBuffChoiceGUI();
 
@@ -277,7 +270,12 @@ public class DungeonInstance {
             // 15% chance to spawn a lava geyser every 2 seconds
             if (Math.random() < 0.15 && !participants.isEmpty()) {
                 // Pick a random player
-                UUID randomTarget = participants.get(new Random().nextInt(participants.size()));
+                UUID randomTarget = new ArrayList<>(participants).get(new Random().nextInt(participants.size())); // Changed
+                                                                                                                  // to
+                                                                                                                  // use
+                                                                                                                  // ArrayList
+                                                                                                                  // from
+                                                                                                                  // Set
                 Player p = Bukkit.getPlayer(randomTarget);
                 if (p != null && p.isValid() && getLives(randomTarget) > 0) {
                     Location hazardLoc = p.getLocation().clone().add(
@@ -527,10 +525,10 @@ public class DungeonInstance {
         int vaultMoney = 1 + (int) (Math.random() * 3); // 1-3 Vault money
         for (UUID uuid : participants) {
             addCoins(uuid, runCoins);
-            if (vaultMoney > 0 && plugin.getVaultHook() != null && plugin.getVaultHook().isEconomyEnabled()) {
+            if (vaultMoney > 0 && plugin.getVaultHook() != null && plugin.getVaultHook().isEnabled()) {
                 Player p = Bukkit.getPlayer(uuid);
                 if (p != null) {
-                    plugin.getVaultHook().giveMoney(p, vaultMoney);
+                    plugin.getVaultHook().deposit(p, vaultMoney);
                     p.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
                             .colorize("&e&l+[Wave Clear] &f10 Run Coins & &a$" + vaultMoney));
                 }
@@ -688,6 +686,7 @@ public class DungeonInstance {
         if (!active)
             return;
         totalDeaths++;
+        rawDeaths.merge(player.getUniqueId(), 1, Integer::sum); // Track individual player deaths
         int remaining = lives.getOrDefault(player.getUniqueId(), 0) - 1;
         lives.put(player.getUniqueId(), remaining);
 
@@ -772,6 +771,7 @@ public class DungeonInstance {
         lives.remove(player.getUniqueId());
         inSafeZone.remove(player.getUniqueId());
         invulnerable.remove(player.getUniqueId());
+        rawDeaths.remove(player.getUniqueId()); // Remove rawDeaths entry
         Location returnLoc = returnLocations.remove(player.getUniqueId());
         if (returnLoc != null && player.isOnline())
             player.teleport(returnLoc);
@@ -796,7 +796,8 @@ public class DungeonInstance {
             // 1. Determine loot center location
             Location center = dungeonWorld.getSpawnLocation(); // Fallback
             if (!participants.isEmpty()) {
-                Player lead = Bukkit.getPlayer(participants.get(0));
+                Player lead = Bukkit.getPlayer(new ArrayList<>(participants).get(0)); // Changed to use ArrayList from
+                                                                                      // Set
                 if (lead != null) {
                     center = lead.getLocation();
                 }
@@ -817,7 +818,8 @@ public class DungeonInstance {
             this.lootChestLocation = center;
             if (!testMode) {
                 if (difficulty.getLootSection() != null) {
-                    collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false,
+                    collectedLoot = lootManager.distributeLoot(new ArrayList<>(participants),
+                            difficulty.getLootSection(), false, // Changed to use ArrayList from Set
                             difficulty.getRewardMultiplier());
                     lootManager.spawnLootChest(center, collectedLoot);
                 } else {
@@ -825,7 +827,8 @@ public class DungeonInstance {
                     center.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
                     dungeonWorld.strikeLightningEffect(center);
                 }
-                lootManager.giveXpReward(participants, dungeon.getTotalStages());
+                lootManager.giveXpReward(new ArrayList<>(participants), dungeon.getTotalStages()); // Changed to use
+                                                                                                   // ArrayList from Set
             } else {
                 broadcast(ChatUtils.colorize("&6&l[TEST MODE] &7Loot generation skipped."));
             }
@@ -856,7 +859,8 @@ public class DungeonInstance {
                     }
                 }
                 // Give bonus XP for flawless clear
-                lootManager.giveXpReward(participants, 2); // extra 2 stages worth of XP
+                lootManager.giveXpReward(new ArrayList<>(participants), 2); // extra 2 stages worth of XP // Changed to
+                                                                            // use ArrayList from Set
             }
 
             // Achievements & Stats Tracking (skip if test mode)
@@ -939,7 +943,8 @@ public class DungeonInstance {
 
             // Server-wide completion announcement
             if (ConfigUtils.getBoolean("dungeon.announce-completion")) {
-                Player announcePlayer = !participants.isEmpty() ? Bukkit.getPlayer(participants.get(0)) : null;
+                Player announcePlayer = !participants.isEmpty() ? Bukkit.getPlayer(new ArrayList<>(participants).get(0))
+                        : null; // Changed to use ArrayList from Set
                 String playerName = announcePlayer != null ? announcePlayer.getName() : "Unknown";
                 String announcement = ConfigUtils.getMessage("broadcast.completion",
                         "%player%", playerName,
@@ -981,7 +986,7 @@ public class DungeonInstance {
     }
 
     private void cleanupAndTeleport() {
-        for (UUID uuid : new ArrayList<>(participants)) {
+        for (UUID uuid : new ArrayList<>(participants)) { // Changed to use ArrayList from Set
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 Location returnLoc = returnLocations.get(uuid);
@@ -1086,8 +1091,8 @@ public class DungeonInstance {
         return difficulty;
     }
 
-    public List<UUID> getParticipants() {
-        return participants;
+    public Set<UUID> getParticipants() { // Changed return type to Set
+        return Collections.unmodifiableSet(participants);
     }
 
     public int getCurrentStage() {
@@ -1168,11 +1173,30 @@ public class DungeonInstance {
         return mobsKilled.getOrDefault(uuid, 0);
     }
 
+    public void addCoins(UUID uuid, int amount) {
+        playerCoins.put(uuid, playerCoins.getOrDefault(uuid, 0) + amount);
+    }
+
+    public int getPlayerCoins(UUID uuid) {
+        return playerCoins.getOrDefault(uuid, 0);
+    }
+
+    public UUID getLeader() {
+        if (participants.isEmpty())
+            return null;
+        if (participants.size() == 1)
+            return participants.iterator().next(); // Get the single participant from the set
+
+        // Assuming the first participant added is the leader, or some other logic
+        // For now, just return the first one in the set if multiple exist
+        return participants.iterator().next();
+    }
+
     public UUID getMVP() {
         if (participants.isEmpty())
             return null;
         if (participants.size() == 1)
-            return participants.get(0);
+            return participants.iterator().next(); // Changed to use iterator from Set
 
         UUID mvp = null;
         double highestScore = -1;

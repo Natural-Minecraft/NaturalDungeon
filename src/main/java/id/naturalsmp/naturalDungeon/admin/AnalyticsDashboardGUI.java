@@ -30,13 +30,13 @@ public class AnalyticsDashboardGUI implements Listener {
     }
 
     public void open(Player player) {
-        Inventory inv = GUIUtils.createGUI(54, TITLE);
-        GUIUtils.fillBorder(inv, GUIUtils.createFiller(Material.BLACK_STAINED_GLASS_PANE, "§8"));
+        Inventory inv = GUIUtils.createGUI(null, 54, "§aAnalytics Dashboard");
+        GUIUtils.fillBorder(inv, Material.BLACK_STAINED_GLASS_PANE);
 
         player.sendMessage(ChatUtils.colorize("&eLoading analytics data..."));
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<Dungeon> dungeons = new ArrayList<>(plugin.getDungeonManager().getDungeons().values());
+            List<Dungeon> dungeons = new ArrayList<>(plugin.getDungeonManager().getDungeons());
 
             // Add overall server stats in the center top (Slot 4)
             // But we will just list dungeons with their analytics
@@ -71,10 +71,16 @@ public class AnalyticsDashboardGUI implements Listener {
 
                 double winRate = starts > 0 ? (double) clears / starts * 100 : 0.0;
 
-                ItemStack icon = new ItemStack(dungeon.getIcon());
+                Material mat;
+                try {
+                    mat = Material.valueOf(dungeon.getMaterial());
+                } catch (Exception ex) {
+                    mat = Material.SPAWNER;
+                }
+                ItemStack icon = new ItemStack(mat);
                 ItemMeta meta = icon.getItemMeta();
                 if (meta != null) {
-                    meta.setDisplayName(ChatUtils.colorize("&6&l" + dungeon.getName()));
+                    meta.setDisplayName(ChatUtils.colorize("&6&l" + dungeon.getDisplayName()));
                     List<String> lore = new ArrayList<>();
                     lore.add(ChatUtils.colorize("&8Analytics ID: " + dungeon.getId()));
                     lore.add("");
@@ -117,7 +123,7 @@ public class AnalyticsDashboardGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (!e.getView().title().equals(TITLE))
+        if (!e.getView().getTitle().equals("§aAnalytics Dashboard"))
             return;
         e.setCancelled(true);
         if (e.getClickedInventory() == null || e.getClickedInventory() != e.getView().getTopInventory())

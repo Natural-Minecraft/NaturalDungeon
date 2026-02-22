@@ -104,13 +104,14 @@ public class WeeklyChallengeManager {
                         ChatUtils.colorize("&7Kamu telah menyelesaikan " + TARGET_CLEARS + " dungeon minggu ini."));
                 p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
 
-                // Reward: e.g. 5000 economy money or Vault hook
-                if (plugin.getVaultHook() != null && plugin.getVaultHook().isEconomyEnabled()) {
-                    plugin.getVaultHook().giveMoney(p, 5000);
-                    p.sendMessage(ChatUtils.colorize("&#55FF55&l+ $5,000"));
+                // Reward: e.g. 5000 economy money or Vault
+                int rewardCoins = 5000;
+                if (rewardCoins > 0 && plugin.getVaultHook() != null && plugin.getVaultHook().isEnabled()) {
+                    plugin.getVaultHook().deposit(p, rewardCoins);
+                    p.sendMessage(ChatUtils.colorize("&#55FF55&l+ $" + rewardCoins));
                 } else {
                     // Fallback command or NaturalCoin
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "eco give " + p.getName() + " 5000");
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "eco give " + p.getName() + " " + rewardCoins);
                 }
             }
         } else {
