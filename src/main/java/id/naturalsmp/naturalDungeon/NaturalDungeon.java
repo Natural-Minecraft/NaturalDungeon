@@ -76,6 +76,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private AchievementManager achievementManager;
     private id.naturalsmp.naturaldungeon.progression.MasteryManager masteryManager;
     private id.naturalsmp.naturaldungeon.progression.SeasonManager seasonManager;
+    private id.naturalsmp.naturaldungeon.admin.HubManager hubManager;
     private id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager difficultyEffectsManager;
     private id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager randomEventsManager;
     private id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager weeklyChallengeManager;
@@ -146,6 +147,7 @@ public final class NaturalDungeon extends JavaPlugin {
         this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
         this.masteryManager = new id.naturalsmp.naturaldungeon.progression.MasteryManager(this);
         this.seasonManager = new id.naturalsmp.naturaldungeon.progression.SeasonManager(this);
+        this.hubManager = new id.naturalsmp.naturaldungeon.admin.HubManager(this);
         this.difficultyEffectsManager = new id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager(this);
         this.randomEventsManager = new id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager(this);
         this.weeklyChallengeManager = new id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager(this);
@@ -455,6 +457,10 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public SQLiteStorage getSqliteStorage() {
         return sqliteStorage;
+    }
+
+    public id.naturalsmp.naturaldungeon.admin.HubManager getHubManager() {
+        return hubManager;
     }
 
     public StatsGUI getStatsGUI() {

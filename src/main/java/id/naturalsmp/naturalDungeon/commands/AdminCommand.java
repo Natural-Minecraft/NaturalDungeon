@@ -286,13 +286,41 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 handleCheck(sender, args);
             }
 
-            default -> sendUsage(sender);
+            case "sethub" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                plugin.getHubManager().setHubLocation(player.getLocation());
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Lokasi Dungeon Hub berhasil diatur!"));
+            }
+            case "hub" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                if (args.length < 3 || !args[1].equalsIgnoreCase("setboard")) {
+                    player.sendMessage(
+                            ChatUtils.colorize("&#FF5555✖ &7Gunakan: /nd hub setboard <portal|stats|weekly>"));
+                    return true;
+                }
+                String type = args[2].toLowerCase();
+                if (!type.equals("portal") && !type.equals("stats") && !type.equals("weekly")) {
+                    player.sendMessage(
+                            ChatUtils.colorize("&#FF5555✖ &7Tipe board tidak valid! Pilih: portal, stats, weekly"));
+                    return true;
+                }
+                plugin.getHubManager().createOrUpdateBoard(type, player.getLocation());
+                player.sendMessage(
+                        ChatUtils.colorize("&#55FF55✔ &7Board Hologram (&e" + type + "&7) berhasil ditempatkan!"));
+            }
+            default -> sendHelp(sender);
         }
         return true;
     }
 
     // Removed old debugspawn
-    private void sendUsage(CommandSender sender) {
+    private void sendHelp(CommandSender sender) {
         sender.sendMessage(ChatUtils.colorize("&6&lNaturalDungeon Admin"));
         sender.sendMessage(ChatUtils.colorize("&e/nd reload &7- Reload configs"));
         sender.sendMessage(ChatUtils.colorize("&e/nd check &7- Run diagnostic checks"));
