@@ -24,7 +24,7 @@ import java.util.function.Consumer;
 public class MobPickerGUI implements Listener {
 
     private final NaturalDungeon plugin;
-    private final Map<UUID, PickerSession> sessions = new HashMap<>();
+    private static final Map<UUID, PickerSession> sessions = new HashMap<>();
 
     // Commonly used hostile mobs for dungeon scenarios
     private static final EntityType[] VANILLA_MOBS = {

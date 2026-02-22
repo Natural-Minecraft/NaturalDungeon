@@ -57,6 +57,7 @@ public class PlayerStatsManager implements Listener {
             }
             stats.setDungeonClears(clears);
         }
+        stats.setDungeonCoins(config.getInt("dungeon-coins", 0));
         return stats;
     }
 
@@ -82,6 +83,7 @@ public class PlayerStatsManager implements Listener {
         for (Map.Entry<String, Integer> entry : stats.getDungeonClears().entrySet()) {
             config.set("dungeon-clears." + entry.getKey(), entry.getValue());
         }
+        config.set("dungeon-coins", stats.getDungeonCoins());
 
         try {
             config.save(file);
@@ -102,6 +104,12 @@ public class PlayerStatsManager implements Listener {
     public void recordClear(UUID uuid, String dungeonId, long timeMs, int deaths) {
         PlayerStats stats = getStats(uuid);
         stats.addClear(dungeonId, timeMs, deaths);
+        saveStats(uuid);
+    }
+
+    public void addDungeonCoins(UUID uuid, int count) {
+        PlayerStats stats = getStats(uuid);
+        stats.addDungeonCoins(count);
         saveStats(uuid);
     }
 

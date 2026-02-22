@@ -22,6 +22,7 @@ public class PlayerStats {
     private long lastWeeklyReset = 0;
 
     private final Map<String, Integer> dungeonClears = new HashMap<>(); // dungeonId -> count
+    private int dungeonCoins = 0; // New economy
 
     public PlayerStats(UUID playerId) {
         this.playerId = playerId;
@@ -165,5 +166,17 @@ public class PlayerStats {
     public void setDungeonClears(Map<String, Integer> map) {
         dungeonClears.clear();
         dungeonClears.putAll(map);
+    }
+
+    public int getDungeonCoins() {
+        return dungeonCoins;
+    }
+
+    public void setDungeonCoins(int amount) {
+        this.dungeonCoins = amount;
+    }
+
+    public void addDungeonCoins(int amount) {
+        this.dungeonCoins += amount;
     }
 }
