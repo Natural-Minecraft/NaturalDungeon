@@ -58,7 +58,9 @@ public class AdminDashboardGUI implements Listener {
                 GUIUtils.separator(),
                 "&7Active Instances: &#FFAA00" + activeInstances,
                 "&7Total Dungeons: &f" + dungeons.size(),
-                "&7Online Players: &#55FF55" + totalPlayers));
+                "&7Online Players: &#55FF55" + totalPlayers,
+                "",
+                "&#FFAA00&l➥ KLIK untuk Analytics Dashboard"));
 
         // Reload (slot 6)
         inv.setItem(6, GUIUtils.createItem(Material.REDSTONE,
@@ -144,6 +146,7 @@ public class AdminDashboardGUI implements Listener {
         GUIUtils.playClickSound(player);
 
         switch (e.getSlot()) {
+            case 2 -> plugin.getAnalyticsDashboardGUI().open(player);
             case 6 -> {
                 // Reload
                 plugin.getDungeonManager().loadDungeons();

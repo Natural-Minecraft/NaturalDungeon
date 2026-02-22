@@ -63,6 +63,31 @@ public class DungeonGUI implements Listener {
             lore.add("&7Tier: &#FFAA00" + dungeon.getMinTier() + "+");
             lore.add("&7Players: &f1-" + dungeon.getMaxPlayers());
             lore.add("&7Stages: &f" + dungeon.getTotalStages());
+            lore.add("");
+
+            // Personal Best
+            long pbMs = -1;
+            if (plugin.getSqliteStorage() != null) {
+                pbMs = plugin.getSqliteStorage().getPersonalBest(player.getUniqueId(), dungeon.getId());
+            }
+            if (pbMs > 0) {
+                lore.add("&7Best Time: &e" + ChatUtils.formatTime(pbMs / 1000));
+            } else {
+                lore.add("&7Best Time: &8-");
+            }
+
+            // Mastery
+            int masteryLv = plugin.getMasteryManager() != null
+                    ? plugin.getMasteryManager().getLevel(player.getUniqueId(), dungeon.getId())
+                    : 0;
+            lore.add("&7Mastery: &bLv." + masteryLv);
+
+            // Season Rank
+            if (plugin.getSeasonManager() != null) {
+                id.naturalsmp.naturaldungeon.progression.SeasonManager.SeasonRank rank = plugin.getSeasonManager()
+                        .getRank(player.getUniqueId());
+                lore.add("&7Season Rank: " + rank.icon + " &f" + rank.name);
+            }
 
             // Cooldown check
             long cooldown = plugin.getDungeonManager().getRemainingCooldown(player, dungeon);

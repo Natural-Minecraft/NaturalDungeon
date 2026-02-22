@@ -279,6 +279,45 @@ public class DungeonManager implements Listener {
         }
     }
 
+    public void startTestDungeon(Player player, Dungeon dungeon) {
+        // SMART ROUTER (Check instance availability early)
+        int instanceId = -1;
+        Set<Integer> occupiedIds = new HashSet<>();
+        for (DungeonInstance active : activeInstances.values()) {
+            if (active.getDungeon().getId().equals(dungeon.getId())) {
+                occupiedIds.add(active.getInstanceId());
+            }
+        }
+        for (int i = 1; i <= 3; i++) {
+            if (!occupiedIds.contains(i)) {
+                instanceId = i;
+                break;
+            }
+        }
+        if (instanceId == -1) {
+            player.sendMessage(ChatUtils.colorize("&cSemua arena sedang digunakan!"));
+            return;
+        }
+
+        DungeonDifficulty difficulty = dungeon.getDifficulty("normal");
+        if (difficulty == null && !dungeon.getDifficulties().isEmpty()) {
+            difficulty = dungeon.getDifficulties().values().iterator().next(); // Grab first available
+        }
+
+        if (difficulty == null) {
+            player.sendMessage(ChatUtils.colorize("&cDungeon ini belum memiliki level difficulty untuk di test!"));
+            return;
+        }
+
+        List<UUID> participants = Collections.singletonList(player.getUniqueId());
+        DungeonInstance instance = new DungeonInstance(plugin, dungeon, difficulty, instanceId, participants);
+        instance.setTestMode(true);
+
+        activeInstances.put(player.getUniqueId(), instance);
+        player.sendMessage(ChatUtils.colorize("&6&l[TEST MODE] &7Memulai dungeon tanpa cooldown..."));
+        instance.start();
+    }
+
     private boolean checkKey(Player player, DungeonDifficulty diff) {
         String req = diff.getKeyReq();
         if (req == null || req.equalsIgnoreCase("none"))

@@ -52,6 +52,61 @@ public class WaveManager {
 
     public void spawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon,
             List<String> spawnerLocs) {
+
+        if (wave.getType() == WaveType.MINI_BOSS) {
+            playBossEntryCinematic(wave);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                executeSpawnWave(wave, center, playerCount, bloodMoon, spawnerLocs);
+            }, 80L); // 4 seconds delay
+            return;
+        }
+
+        executeSpawnWave(wave, center, playerCount, bloodMoon, spawnerLocs);
+    }
+
+    private void playBossEntryCinematic(Dungeon.Wave wave) {
+        // Find Boss Name (first mob in the list)
+        String bossName = "Unknown Boss";
+        String bossId = null;
+        if (!wave.getMobCounts().isEmpty()) {
+            bossId = wave.getMobCounts().keySet().iterator().next();
+        } else if (!wave.getMobs().isEmpty()) {
+            bossId = wave.getMobs().get(0);
+        }
+
+        if (bossId != null) {
+            id.naturalsmp.naturaldungeon.mob.CustomMob customMob = plugin.getCustomMobManager().getMob(bossId);
+            if (customMob != null) {
+                bossName = customMob.getName();
+            } else {
+                bossName = bossId; // fallback
+            }
+        }
+
+        String finalBossName = bossName;
+
+        for (UUID uuid : instance.getParticipants()) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) {
+                // Apply effects: Blindness and Slowness for 4 seconds
+                p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.BLINDNESS, 80,
+                        1, false, false));
+                p.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 80, 5,
+                        false, false));
+
+                // Sound and VFX
+                p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 0.5f);
+                p.playSound(p.getLocation(), Sound.AMBIENT_CAVE, 1.0f, 0.5f);
+
+                // Title
+                p.sendTitle(ChatUtils.colorize("&4&lWARNING"),
+                        ChatUtils.colorize("&c" + finalBossName + " is approaching..."), 10, 60, 10);
+            }
+        }
+    }
+
+    private void executeSpawnWave(Dungeon.Wave wave, Location center, int playerCount, boolean bloodMoon,
+            List<String> spawnerLocs) {
         active = true;
         this.currentWaveObj = wave;
         this.objectiveTimer = wave.getTargetTime();
@@ -830,7 +885,7 @@ public class WaveManager {
         }
     }
 
-    private void completeWave() {
+    public void completeWave() {
         if (targetEntity != null && !targetEntity.isDead()) {
             targetEntity.remove(); // Cleanup defend target
         }

@@ -49,6 +49,18 @@ public class SQLiteStorage {
                                 "  completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP," +
                                 "  PRIMARY KEY (uuid, dungeon_id, difficulty, week_number)" +
                                 ")");
+
+                // Analytics
+                stmt.executeUpdate(
+                        "CREATE TABLE IF NOT EXISTS dungeon_analytics (" +
+                                "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                                "  dungeon_id TEXT NOT NULL," +
+                                "  event_type TEXT NOT NULL," +
+                                "  duration_ms BIGINT," +
+                                "  deaths INTEGER," +
+                                "  stage INTEGER," +
+                                "  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP" +
+                                ")");
             }
         } catch (SQLException e) {
             plugin.getLogger().severe("Failed to initialize SQLite leaderboard: " + e.getMessage());
@@ -98,12 +110,56 @@ public class SQLiteStorage {
     }
 
     /**
+     * Record an analytics event (START, CLEAR, WIPE, DEATH).
+     */
+    public void recordAnalytics(String dungeonId, String eventType, long durationMs, int deaths, int stage) {
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(
+                org.bukkit.Bukkit.getPluginManager().getPlugin("NaturalDungeon"), () -> {
+                    try (PreparedStatement stmt = connection.prepareStatement(
+                            "INSERT INTO dungeon_analytics (dungeon_id, event_type, duration_ms, deaths, stage) VALUES (?, ?, ?, ?, ?)")) {
+                        stmt.setString(1, dungeonId);
+                        stmt.setString(2, eventType);
+                        stmt.setLong(3, durationMs);
+                        stmt.setInt(4, deaths);
+                        stmt.setInt(5, stage);
+                        stmt.executeUpdate();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+    /**
      * Get top entries for a dungeon+difficulty (all-time).
      */
     public List<LeaderboardEntry> getTopEntries(String dungeonId, String difficulty, int limit) {
         return queryEntries(
                 "SELECT uuid, time_ms, deaths FROM leaderboard WHERE dungeon_id = ? AND difficulty = ? ORDER BY time_ms ASC LIMIT ?",
                 dungeonId, difficulty, limit);
+    }
+
+    /**
+     * Get personal best time for a specific player and dungeon.
+     * Returns -1 if no record exists.
+     */
+    public long getPersonalBest(UUID uuid, String dungeonId) {
+        long bestTime = -1;
+        try (PreparedStatement ps = connection.prepareStatement(
+                "SELECT MIN(time_ms) as pb FROM leaderboard WHERE uuid = ? AND dungeon_id = ?")) {
+            ps.setString(1, uuid.toString());
+            ps.setString(2, dungeonId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    long pb = rs.getLong("pb");
+                    if (!rs.wasNull()) {
+                        bestTime = pb;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().warning("Failed to query personal best: " + e.getMessage());
+        }
+        return bestTime;
     }
 
     /**

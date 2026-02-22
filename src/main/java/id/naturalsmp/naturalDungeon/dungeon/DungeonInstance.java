@@ -61,6 +61,17 @@ public class DungeonInstance {
     // Roguelike path modifiers (from BranchPathGUI)
     private final Map<String, Object> pathModifiers = new HashMap<>();
 
+    // Test Mode flag for admins
+    private boolean testMode = false;
+
+    public boolean isTestMode() {
+        return testMode;
+    }
+
+    public void setTestMode(boolean testMode) {
+        this.testMode = testMode;
+    }
+
     // MVP Stats Tracking
     private final Map<UUID, Double> damageDealt = new HashMap<>();
     private final Map<UUID, Double> damageTaken = new HashMap<>();
@@ -126,6 +137,11 @@ public class DungeonInstance {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             teleportToStage(currentStage);
 
+            // Apply difficulty effects
+            if (plugin.getDifficultyEffectsManager() != null) {
+                plugin.getDifficultyEffectsManager().applyDifficultyEffects(this);
+            }
+
             // Randomly select 1-2 mutators
             rollMutators();
 
@@ -145,6 +161,12 @@ public class DungeonInstance {
             startSafeZoneCheck();
             startTimerLimit();
             startHazardTask();
+
+            // Record Analytics
+            if (!testMode && plugin.getSqliteStorage() != null) {
+                plugin.getSqliteStorage().recordAnalytics(dungeon.getId(), "START", 0, 0, currentStage);
+            }
+
             Bukkit.getScheduler().runTaskLater(plugin, () -> startStage(currentStage), 60L);
         }, 100L);
     }
@@ -374,6 +396,21 @@ public class DungeonInstance {
                 buffChoiceGUI.open(p, this);
         }
 
+        // Try triggering a random event in the arena/safezone center
+        if (plugin.getRandomEventsManager() != null) {
+            Dungeon.StageLocation loc = stage.getLocation(instanceId);
+            String regionName = loc.getArenaRegion();
+            if (regionName == null || regionName.isEmpty())
+                regionName = loc.getSafeZone();
+
+            if (regionName != null) {
+                Optional<Location> centerOpt = plugin.getWorldGuardHook().getRegionCenter(dungeonWorld, regionName);
+                if (centerOpt.isPresent()) {
+                    plugin.getRandomEventsManager().tryTriggerEvent(this, centerOpt.get());
+                }
+            }
+        }
+
         currentWave = 0;
         bossSpawned = false;
         Bukkit.getScheduler().runTaskLater(plugin, this::startNextWave, 60L);
@@ -484,6 +521,21 @@ public class DungeonInstance {
             return;
         broadcastTitle("&a✔ WAVE CLEAR", "", 5, 20, 5);
         playSound(Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f);
+
+        // Economy: Wave Clear Bonus
+        int runCoins = 10;
+        int vaultMoney = 1 + (int) (Math.random() * 3); // 1-3 Vault money
+        for (UUID uuid : participants) {
+            addCoins(uuid, runCoins);
+            if (vaultMoney > 0 && plugin.getVaultHook() != null && plugin.getVaultHook().isEconomyEnabled()) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    plugin.getVaultHook().giveMoney(p, vaultMoney);
+                    p.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
+                            .colorize("&e&l+[Wave Clear] &f10 Run Coins & &a$" + vaultMoney));
+                }
+            }
+        }
 
         Dungeon.Stage stage = getStage(currentStage);
         if (stage == null)
@@ -712,7 +764,7 @@ public class DungeonInstance {
     }
 
     public boolean isInvulnerable(UUID uuid) {
-        return invulnerable.contains(uuid);
+        return testMode || invulnerable.contains(uuid);
     }
 
     public void handlePlayerLeave(Player player) {
@@ -761,20 +813,29 @@ public class DungeonInstance {
                 }
             }
 
-            // 2. Spawn Loot Chest with premium VFX
+            // 2. Spawn Loot Chest with premium VFX (skip if test mode)
             this.lootChestLocation = center;
-            if (difficulty.getLootSection() != null) {
-                collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false,
-                        difficulty.getRewardMultiplier());
-                lootManager.spawnLootChest(center, collectedLoot);
+            if (!testMode) {
+                if (difficulty.getLootSection() != null) {
+                    collectedLoot = lootManager.distributeLoot(participants, difficulty.getLootSection(), false,
+                            difficulty.getRewardMultiplier());
+                    lootManager.spawnLootChest(center, collectedLoot);
+                } else {
+                    // No loot configured, just place chest
+                    center.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
+                    dungeonWorld.strikeLightningEffect(center);
+                }
+                lootManager.giveXpReward(participants, dungeon.getTotalStages());
             } else {
-                // No loot configured, just place chest
-                center.getBlock().setType(org.bukkit.Material.ENDER_CHEST);
-                dungeonWorld.strikeLightningEffect(center);
+                broadcast(ChatUtils.colorize("&6&l[TEST MODE] &7Loot generation skipped."));
             }
-            lootManager.giveXpReward(participants, dungeon.getTotalStages());
 
             // 3. Events & Announcement
+            if (!testMode && plugin.getSqliteStorage() != null) {
+                plugin.getSqliteStorage().recordAnalytics(dungeon.getId(), "CLEAR", duration, totalDeaths,
+                        currentStage);
+            }
+
             Bukkit.getPluginManager().callEvent(
                     new id.naturalsmp.naturaldungeon.event.DungeonCompleteEvent(
                             dungeon.getId(),
@@ -798,68 +859,80 @@ public class DungeonInstance {
                 lootManager.giveXpReward(participants, 2); // extra 2 stages worth of XP
             }
 
-            // Achievements & Stats Tracking
+            // Achievements & Stats Tracking (skip if test mode)
             UUID mvpUuid = getMVP();
             for (UUID uuid : participants) {
                 Player p = Bukkit.getPlayer(uuid);
                 if (p != null) {
-                    id.naturalsmp.naturaldungeon.player.AchievementManager am = plugin.getAchievementManager();
+                    if (!testMode) {
+                        id.naturalsmp.naturaldungeon.player.AchievementManager am = plugin.getAchievementManager();
 
-                    // Increment clear count
-                    am.incrementStat(uuid, "dungeons_cleared");
-                    int clears = am.getStat(uuid, "dungeons_cleared");
+                        // Increment clear count
+                        am.incrementStat(uuid, "dungeons_cleared");
+                        int clears = am.getStat(uuid, "dungeons_cleared");
 
-                    if (clears >= 1)
-                        am.unlockAchievement(p, "novice");
-                    if (clears >= 10)
-                        am.unlockAchievement(p, "expert");
-                    if (clears >= 100)
-                        am.unlockAchievement(p, "master");
+                        if (clears >= 1)
+                            am.unlockAchievement(p, "novice");
+                        if (clears >= 10)
+                            am.unlockAchievement(p, "expert");
+                        if (clears >= 100)
+                            am.unlockAchievement(p, "master");
 
-                    // MVP Achievement
-                    if (uuid.equals(mvpUuid)) {
-                        am.unlockAchievement(p, "mvp");
-                    }
+                        // MVP Achievement
+                        if (uuid.equals(mvpUuid)) {
+                            am.unlockAchievement(p, "mvp");
+                        }
 
-                    // Stats Tracking
-                    plugin.getPlayerStatsManager().recordClear(uuid, dungeon.getId(), duration, totalDeaths);
-                    plugin.getSqliteStorage().recordCompletion(uuid, dungeon.getId(), difficulty.getId(), duration,
-                            totalDeaths);
+                        // Stats Tracking
+                        plugin.getPlayerStatsManager().recordClear(uuid, dungeon.getId(), duration, totalDeaths);
+                        plugin.getSqliteStorage().recordCompletion(uuid, dungeon.getId(), difficulty.getId(), duration,
+                                totalDeaths);
 
-                    // ─── Mastery XP + New Achievements ───
-                    id.naturalsmp.naturaldungeon.progression.MasteryManager mm = plugin.getMasteryManager();
-                    if (mm != null) {
-                        int masteryXP = 50 + (dungeon.getTotalStages() * 10)
-                                + (participants.size() > 1 ? 20 : 0) // party bonus
-                                + (totalDeaths == 0 ? 25 : 0); // flawless bonus
-                        mm.awardXP(uuid, dungeon.getId(), masteryXP);
-                        mm.recordClear(uuid, dungeon.getId(), duration / 1000);
+                        // ─── Mastery XP + New Achievements ───
+                        id.naturalsmp.naturaldungeon.progression.MasteryManager mm = plugin.getMasteryManager();
+                        if (mm != null) {
+                            int masteryXP = 50 + (dungeon.getTotalStages() * 10)
+                                    + (participants.size() > 1 ? 20 : 0) // party bonus
+                                    + (totalDeaths == 0 ? 25 : 0); // flawless bonus
+                            mm.awardXP(uuid, dungeon.getId(), masteryXP);
+                            mm.recordClear(uuid, dungeon.getId(), duration / 1000);
 
-                        // Mastery level achievements
-                        int masteryLevel = mm.getLevel(uuid, dungeon.getId());
-                        if (masteryLevel >= 5)
-                            am.unlockAchievement(p, "mastery_5");
-                        if (masteryLevel >= 20)
-                            am.unlockAchievement(p, "mastery_20");
-                    }
+                            // Mastery level achievements
+                            int masteryLevel = mm.getLevel(uuid, dungeon.getId());
+                            if (masteryLevel >= 5)
+                                am.unlockAchievement(p, "mastery_5");
+                            if (masteryLevel >= 20)
+                                am.unlockAchievement(p, "mastery_20");
+                        }
 
-                    // Speed runner (under 5 min = 300s)
-                    if (duration / 1000 < 300)
-                        am.unlockAchievement(p, "speed_runner");
+                        // Speed runner (under 5 min = 300s)
+                        if (duration / 1000 < 300)
+                            am.unlockAchievement(p, "speed_runner");
 
-                    // Solo warrior
-                    if (participants.size() == 1)
-                        am.unlockAchievement(p, "solo_warrior");
+                        // Solo warrior
+                        if (participants.size() == 1)
+                            am.unlockAchievement(p, "solo_warrior");
 
-                    // Party player
-                    if (participants.size() >= 4)
-                        am.unlockAchievement(p, "party_player");
+                        // Party player
+                        if (participants.size() >= 4)
+                            am.unlockAchievement(p, "party_player");
 
-                    // ─── Season Points ───
-                    id.naturalsmp.naturaldungeon.progression.SeasonManager sm = plugin.getSeasonManager();
-                    if (sm != null) {
-                        sm.awardSP(uuid, dungeon.getId(), difficulty.getId(),
-                                duration / 1000, totalDeaths, participants.size());
+                        // ─── Season Points ───
+                        id.naturalsmp.naturaldungeon.progression.SeasonManager sm = plugin.getSeasonManager();
+                        if (sm != null) {
+                            sm.awardSP(uuid, dungeon.getId(), difficulty.getId(),
+                                    duration / 1000, totalDeaths, participants.size());
+                        }
+
+                        // ─── Weekly Challenge ───
+                        id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager wcm = plugin
+                                .getWeeklyChallengeManager();
+                        if (wcm != null) {
+                            wcm.addProgress(uuid);
+                        }
+                    } else {
+                        // Test mode active
+                        p.sendMessage(ChatUtils.colorize("&6&l[TEST MODE] &7Stats & Progression not recorded."));
                     }
                 }
             }
@@ -888,6 +961,9 @@ public class DungeonInstance {
             Bukkit.getScheduler().runTaskLater(plugin, this::cleanupAndTeleport, 200L);
 
         } else {
+            if (!testMode && plugin.getSqliteStorage() != null) {
+                plugin.getSqliteStorage().recordAnalytics(dungeon.getId(), "WIPE", duration, totalDeaths, currentStage);
+            }
             broadcast(ConfigUtils.getMessage("dungeon.dungeon-failed"));
             playSound(Sound.ENTITY_WITHER_DEATH, 0.5f);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -966,6 +1042,9 @@ public class DungeonInstance {
         if (safeRoomTask != null) {
             safeRoomTask.cancel();
             safeRoomTask = null;
+        }
+        if (plugin.getDifficultyEffectsManager() != null) {
+            plugin.getDifficultyEffectsManager().stopEffects(getInstanceId());
         }
         removeBossBar();
     }

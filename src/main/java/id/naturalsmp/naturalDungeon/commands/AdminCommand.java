@@ -66,7 +66,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 player.sendMessage(ChatUtils.colorize("&aMemulai test dungeon: " + args[1]));
-                plugin.getDungeonManager().startDungeon(player, dungeon);
+                plugin.getDungeonManager().startTestDungeon(player, dungeon);
             }
             case "forceend" -> {
                 if (!(sender instanceof Player player)) {
@@ -80,6 +80,23 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 }
                 plugin.getDungeonManager().endDungeon(instance, false);
                 player.sendMessage(ChatUtils.colorize("&aDungeon di-force end."));
+            }
+            case "skipwave" -> {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                    return true;
+                }
+                var instance = plugin.getDungeonManager().getActiveInstance(player);
+                if (instance == null) {
+                    player.sendMessage(ChatUtils.colorize("&cKamu tidak dalam dungeon!"));
+                    return true;
+                }
+                if (instance.getWaveManager() == null) {
+                    player.sendMessage(ChatUtils.colorize("&cWave manager belum aktif!"));
+                    return true;
+                }
+                player.sendMessage(ChatUtils.colorize("&e&l[TEST MODE] &7Memaksa Wave Complete..."));
+                instance.getWaveManager().completeWave();
             }
             case "clone" -> {
                 if (args.length < 3) {

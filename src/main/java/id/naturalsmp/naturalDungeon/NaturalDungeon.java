@@ -49,6 +49,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private PlayerStatsManager playerStatsManager;
     private SQLiteStorage sqliteStorage;
     private StatsGUI statsGUI;
+    private id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI analyticsDashboardGUI;
     private CustomMobManager customMobManager;
     private CustomMobSpawner customMobSpawner;
     private ChatInputHandler editorChatInput;
@@ -58,6 +59,9 @@ public final class NaturalDungeon extends JavaPlugin {
     private AchievementManager achievementManager;
     private id.naturalsmp.naturaldungeon.progression.MasteryManager masteryManager;
     private id.naturalsmp.naturaldungeon.progression.SeasonManager seasonManager;
+    private id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager difficultyEffectsManager;
+    private id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager randomEventsManager;
+    private id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager weeklyChallengeManager;
 
     // Hooks
     private VaultHook vaultHook;
@@ -124,6 +128,9 @@ public final class NaturalDungeon extends JavaPlugin {
         this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
         this.masteryManager = new id.naturalsmp.naturaldungeon.progression.MasteryManager(this);
         this.seasonManager = new id.naturalsmp.naturaldungeon.progression.SeasonManager(this);
+        this.difficultyEffectsManager = new id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager(this);
+        this.randomEventsManager = new id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager(this);
+        this.weeklyChallengeManager = new id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager(this);
 
         // 4. Register Commands
         registerCommands();
@@ -133,6 +140,8 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.player.AchievementGUI(this),
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.loot.LootPreviewGUI(this), this);
+        this.analyticsDashboardGUI = new id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI(this);
+        getServer().getPluginManager().registerEvents(analyticsDashboardGUI, this);
 
         // 6. Register PAPI
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
@@ -165,6 +174,9 @@ public final class NaturalDungeon extends JavaPlugin {
         }
         if (playerStatsManager != null) {
             playerStatsManager.saveAll();
+        }
+        if (difficultyEffectsManager != null) {
+            difficultyEffectsManager.shutdown();
         }
         if (sqliteStorage != null) {
             sqliteStorage.close();
@@ -249,6 +261,8 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PartyConfirmationGUI(this), this);
         getServer().getPluginManager().registerEvents(statsGUI, this);
         getServer().getPluginManager().registerEvents(playerStatsManager, this); // Cache eviction on quit
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.party.PartyDashboardGUI(this),
+                this);
 
         // Editor GUI listeners
         getServer().getPluginManager().registerEvents(editorChatInput, this);
@@ -465,5 +479,17 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public id.naturalsmp.naturaldungeon.progression.SeasonManager getSeasonManager() {
         return seasonManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager getDifficultyEffectsManager() {
+        return difficultyEffectsManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager getRandomEventsManager() {
+        return randomEventsManager;
+    }
+
+    public id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager getWeeklyChallengeManager() {
+        return weeklyChallengeManager;
     }
 }

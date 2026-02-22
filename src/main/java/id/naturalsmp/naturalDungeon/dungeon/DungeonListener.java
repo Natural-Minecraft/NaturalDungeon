@@ -33,6 +33,10 @@ public class DungeonListener implements Listener {
         DungeonInstance instance = plugin.getDungeonManager().getActiveInstance(player);
         if (instance != null) {
             e.setCancelled(true); // Prevent vanilla death screen and respawn logic
+            if (!instance.isTestMode() && plugin.getSqliteStorage() != null) {
+                plugin.getSqliteStorage().recordAnalytics(instance.getDungeon().getId(), "DEATH", 0, 0,
+                        instance.getCurrentStage());
+            }
             instance.handleFakeDeath(player);
         }
     }
@@ -95,6 +99,11 @@ public class DungeonListener implements Listener {
                 // Spawn damage number VFX and track MVP stats
                 if (e instanceof EntityDamageByEntityEvent damageEvent) {
                     if (damageEvent.getDamager() instanceof Player player) {
+                        // Instakill for test mode admins
+                        if (instance.isTestMode()) {
+                            e.setDamage(99999);
+                        }
+
                         boolean isCrit = damageEvent.isCritical();
                         double damage = e.getFinalDamage();
                         plugin.getDamageNumberManager().spawnDamageNumber(living.getLocation(), damage, isCrit);
@@ -136,12 +145,49 @@ public class DungeonListener implements Listener {
         for (DungeonInstance instance : plugin.getDungeonManager().getActiveInstances()) {
             if (instance.getWaveManager() != null && instance.getWaveManager().isDungeonMob(living.getUniqueId())) {
 
-                // Track MVP Kill stat
+                // Track MVP Kill stat & Award Coins
                 if (living.getKiller() != null) {
                     Player killer = living.getKiller();
                     if (instance.getParticipants().contains(killer.getUniqueId())) {
                         instance.addMobKill(killer.getUniqueId());
                         plugin.getAchievementManager().unlockAchievement(killer, "first_blood");
+
+                        // Economy: In-Run Coins & Global Vault Money
+                        int inRunCoins = 1;
+                        int vaultMoney = 0;
+                        org.bukkit.persistence.PersistentDataContainer pdc = living.getPersistentDataContainer();
+                        org.bukkit.NamespacedKey goblinKey = new org.bukkit.NamespacedKey(plugin, "treasure_goblin");
+                        org.bukkit.NamespacedKey eliteKey = new org.bukkit.NamespacedKey(plugin, "elite_mob");
+
+                        if (pdc.has(goblinKey, org.bukkit.persistence.PersistentDataType.BYTE)) {
+                            inRunCoins = 50;
+                            vaultMoney = 20;
+                            killer.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
+                                    .colorize("&6&l+[Goblin Loot] &e50 Run Coins & &a$" + vaultMoney));
+                        } else if (pdc.has(eliteKey, org.bukkit.persistence.PersistentDataType.BYTE)) {
+                            inRunCoins = 20;
+                            vaultMoney = 10;
+                            killer.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
+                                    .colorize("&c&l+[Elite Loot] &e20 Run Coins & &a$" + vaultMoney));
+                        } else if (instance.getWaveManager() != null
+                                && instance.getWaveManager().isBossMob(living.getUniqueId())) {
+                            inRunCoins = 100;
+                            vaultMoney = 50;
+                            killer.sendMessage(id.naturalsmp.naturaldungeon.utils.ChatUtils
+                                    .colorize("&d&l+[Boss Loot] &e100 Run Coins & &a$" + vaultMoney));
+                        } else {
+                            // Normal Mob
+                            inRunCoins = 1;
+                            // small chance for vault money
+                            if (Math.random() < 0.05)
+                                vaultMoney = 1;
+                        }
+
+                        instance.addPlayerCoins(killer.getUniqueId(), inRunCoins);
+                        if (vaultMoney > 0 && plugin.getVaultHook() != null
+                                && plugin.getVaultHook().isEnabled()) {
+                            plugin.getVaultHook().deposit(killer, vaultMoney);
+                        }
                     }
                 }
 

@@ -231,4 +231,22 @@ public class PartyManager implements Listener {
             }
         }
     }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOW)
+    public void onPartyChat(org.bukkit.event.player.AsyncPlayerChatEvent e) {
+        if (e.getMessage().startsWith("#")) {
+            Player player = e.getPlayer();
+            Party party = getParty(player.getUniqueId());
+            if (party != null) {
+                e.setCancelled(true);
+                String msg = e.getMessage().substring(1).trim();
+                // Avoid empty messages
+                if (!msg.isEmpty()) {
+                    chatToParty(player, msg);
+                } else {
+                    player.sendMessage(ChatUtils.colorize("&cPlease enter a message after #"));
+                }
+            }
+        }
+    }
 }
