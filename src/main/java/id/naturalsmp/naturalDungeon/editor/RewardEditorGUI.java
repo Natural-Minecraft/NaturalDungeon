@@ -55,6 +55,14 @@ public class RewardEditorGUI implements Listener {
         inv.setItem(27, GUIUtils.createItem(Material.ARROW,
                 "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
+        inv.setItem(35, GUIUtils.createItem(Material.HOPPER,
+                "&#FFD700&l🔄 ʟᴏᴏᴛ ꜱɪᴍᴜʟᴀᴛᴏʀ",
+                GUIUtils.separator(),
+                "&7Jalankan uji coba Monte Carlo",
+                "&7dan evaluasi probabilitas drop.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
         player.openInventory(inv);
         GUIUtils.playOpenSound(player);
     }
@@ -74,6 +82,10 @@ public class RewardEditorGUI implements Listener {
 
         if (e.getSlot() == 27) {
             new DungeonMainEditorGUI(plugin).open(player, holder.dungeonId);
+            return;
+        }
+        if (e.getSlot() == 35) {
+            new LootSimulatorGUI(plugin).open(player, holder.dungeonId);
             return;
         }
         if (e.getSlot() == 31) {

@@ -73,6 +73,14 @@ public class DifficultyEditorGUI implements Listener {
         inv.setItem(18, GUIUtils.createItem(Material.ARROW,
                 "&#FF5555&l← ᴋᴇᴍʙᴀʟɪ"));
 
+        inv.setItem(26, GUIUtils.createItem(Material.COMPARATOR,
+                "&#FFAA00&l⚙ ᴅɪꜰꜰɪᴄᴜʟᴛʏ ᴍᴀᴛʀɪx",
+                GUIUtils.separator(),
+                "&7Bandingkan semua difficulties",
+                "&7secara side-by-side.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
         player.openInventory(inv);
         GUIUtils.playOpenSound(player);
     }
@@ -92,6 +100,10 @@ public class DifficultyEditorGUI implements Listener {
 
         if (e.getSlot() == 18) {
             new DungeonMainEditorGUI(plugin).open(player, holder.dungeonId);
+            return;
+        }
+        if (e.getSlot() == 26) {
+            new DifficultyMatrixGUI(plugin).open(player, holder.dungeonId);
             return;
         }
         if (e.getSlot() == 22) {
