@@ -974,10 +974,6 @@ public class DungeonInstance {
         return dungeon.getStages().stream().filter(s -> s.getNumber() == stageNum).findFirst().orElse(null);
     }
 
-    public int getInstanceId() {
-        return instanceId;
-    }
-
     public void setPathModifier(String key, Object value) {
         pathModifiers.put(key, value);
     }
