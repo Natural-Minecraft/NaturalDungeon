@@ -301,13 +301,16 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("setboard")) {
                     player.sendMessage(
-                            ChatUtils.colorize("&#FF5555✖ &7Gunakan: /nd hub setboard <portal|stats|weekly>"));
+                            ChatUtils.colorize(
+                                    "&#FF5555✖ &7Gunakan: /nd hub setboard <portal|stats|weekly|leaderboard>"));
                     return true;
                 }
                 String type = args[2].toLowerCase();
-                if (!type.equals("portal") && !type.equals("stats") && !type.equals("weekly")) {
+                if (!type.equals("portal") && !type.equals("stats") && !type.equals("weekly")
+                        && !type.equals("leaderboard")) {
                     player.sendMessage(
-                            ChatUtils.colorize("&#FF5555✖ &7Tipe board tidak valid! Pilih: portal, stats, weekly"));
+                            ChatUtils.colorize(
+                                    "&#FF5555✖ &7Tipe board tidak valid! Pilih: portal, stats, weekly, leaderboard"));
                     return true;
                 }
                 plugin.getHubManager().createOrUpdateBoard(type, player.getLocation());
@@ -338,6 +341,9 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd clone <source> <new_id> &7- Clone dungeon config"));
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd maintenance &7- Toggle maintenance mode"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd sethub &7- Set hub target location"));
+        sender.sendMessage(ChatUtils.colorize(
+                "&e/nd hub setboard <type> &7- Place Native Bukkit TextDisplay: portal, stats, weekly, leaderboard"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debug bossspawn <bossId> &7- Spawn test boss"));
     }
 
@@ -385,7 +391,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             completions.addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info",
                     "editor", "dashboard", "create", "diag", "wand", "clone", "status", "maintenance", "debug",
-                    "check"));
+                    "check", "sethub", "hub"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
@@ -396,6 +402,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                     return completions;
                 }
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
+            } else if (sub.equals("hub")) {
+                completions.add("setboard");
             }
         } else if (args.length == 3) {
             String sub = args[0].toLowerCase();
@@ -415,6 +423,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 return completions;
             } else if (sub.equalsIgnoreCase("editor")) {
                 completions.addAll(Arrays.asList("1", "2", "3", "4", "5"));
+            } else if (sub.equalsIgnoreCase("hub") && args[1].equalsIgnoreCase("setboard")) {
+                completions.addAll(Arrays.asList("portal", "stats", "weekly", "leaderboard"));
             }
         }
         return completions;

@@ -123,6 +123,9 @@ public class HubManager {
         // Set slightly transparent black background
         display.setBackgroundColor(Color.fromARGB(100, 0, 0, 0));
 
+        // Move slightly up so it's not inside blocks
+        loc.add(0, 1.5, 0);
+
         activeHolograms.put(type, display);
         updateContent(type, display);
     }
@@ -160,6 +163,9 @@ public class HubManager {
                 break;
             case "weekly":
                 display.text(buildWeeklyContent());
+                break;
+            case "leaderboard":
+                display.text(buildLeaderboardContent());
                 break;
             default:
                 display.text(Component.text("Unknown Board"));
@@ -201,6 +207,42 @@ public class HubManager {
         sb.append("&7Target: &fClears\n");
         sb.append("&7Progress: &a0/10\n");
         sb.append("&7Reward: &e1000 NaturalCoin\n");
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand()
+                .deserialize(ChatUtils.colorize(sb.toString()));
+    }
+
+    private Component buildLeaderboardContent() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("&#FF4444👑 ᴛᴏᴘ 10 ᴅᴜɴɢᴇᴏɴ ᴄʟᴇᴀʀꜱ 👑\n");
+        sb.append("&f\n");
+        // We will just show the top times globally or for the first dungeon as an
+        // example
+        // Or alternatively, summarize top players
+        boolean foundAny = false;
+        if (!plugin.getDungeonManager().getDungeons().isEmpty()) {
+            Dungeon firstDungeon = plugin.getDungeonManager().getDungeons().iterator().next();
+            List<Map<?, ?>> topEntries = plugin.getLeaderboardManager().getTopEntries(firstDungeon.getId());
+            if (topEntries != null && !topEntries.isEmpty()) {
+                foundAny = true;
+                sb.append("&7Dungeon: &e").append(firstDungeon.getDisplayName()).append("\n");
+                int rank = 1;
+                for (Map<?, ?> entry : topEntries) {
+                    if (rank > 10)
+                        break;
+                    List<String> players = (List<String>) entry.get("players");
+                    long timeMs = (long) entry.get("time");
+                    String timeStr = ChatUtils.formatTime(timeMs / 1000);
+                    sb.append("&e").append(rank).append(". &f").append(String.join(", ", players))
+                            .append(" &7(").append(timeStr).append(")\n");
+                    rank++;
+                }
+            }
+        }
+
+        if (!foundAny) {
+            sb.append("&7Belum ada rekor yang tercatat!\n");
+        }
+
         return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand()
                 .deserialize(ChatUtils.colorize(sb.toString()));
     }
