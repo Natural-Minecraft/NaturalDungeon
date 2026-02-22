@@ -277,6 +277,8 @@ public final class NaturalDungeon extends JavaPlugin {
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.LootSimulatorGUI(this),
                 this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.TemplatePresetGUI(this),
+                this);
     }
 
     public void reload() {
