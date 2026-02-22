@@ -144,6 +144,16 @@ public class DungeonMainEditorGUI implements Listener {
                 "",
                 "&#FFAA00&l➥ KLIK"));
 
+        // Auto-Fix (slot 44)
+        inv.setItem(44, GUIUtils.createItem(Material.ANVIL,
+                "&#FFAA00&l🔧 ᴀᴜᴛᴏ-ꜰɪx",
+                GUIUtils.separator(),
+                "&7Perbaiki masalah umum.",
+                "&7Buat default difficulty,",
+                "&7stage, region names.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
         player.openInventory(inv);
         GUIUtils.playOpenSound(player);
     }
@@ -182,6 +192,25 @@ public class DungeonMainEditorGUI implements Listener {
                 // Start test mode
                 player.closeInventory();
                 player.performCommand("nd test " + dungeonId);
+            }
+            case 44 -> {
+                // Auto-fix
+                Dungeon dungeon = plugin.getDungeonManager().getDungeon(dungeonId);
+                if (dungeon != null) {
+                    java.util.List<String> fixes = DungeonValidator.autoFix(plugin, dungeon);
+                    if (fixes.isEmpty()) {
+                        player.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Tidak ada yang perlu diperbaiki!"));
+                        GUIUtils.playSuccessSound(player);
+                    } else {
+                        player.sendMessage(ChatUtils.colorize("&#FFAA00&l🔧 Auto-Fix Applied:"));
+                        for (String fix : fixes) {
+                            player.sendMessage(ChatUtils.colorize("  " + fix));
+                        }
+                        GUIUtils.playSuccessSound(player);
+                    }
+                    // Refresh the GUI
+                    open(player, dungeonId);
+                }
             }
         }
     }
