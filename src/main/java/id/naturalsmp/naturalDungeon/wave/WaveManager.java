@@ -533,12 +533,11 @@ public class WaveManager {
         }
 
         return spawnVanillaEntity(entityType, mobId, location, playerCount);
-    }*
+    }
 
-    Spawn a
-    vanilla entity
-    with standard
-    stat scaling.*/
+    /**
+     * Spawn a vanilla entity with standard stat scaling.
+     */
 
     private Entity spawnVanillaEntity(EntityType entityType, String mobId, Location location, int playerCount) {
         try {
