@@ -65,14 +65,6 @@ public class WaveEditorGUI implements Listener {
                 "",
                 "&#FF5555&l➥ KLIK"));
 
-        // Boss Config
-        inv.setItem(30, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
-                "&#AA44FF&l🐉 ʙᴏꜱꜱ ᴅᴇꜱɪɢɴᴇʀ",
-                GUIUtils.separator(),
-                "&7Desain boss + multi-phase battle.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
         // Add Wave
         inv.setItem(31, GUIUtils.createItem(Material.EMERALD,
                 "&#55FF55&l✚ ᴛᴀᴍʙᴀʜ ᴡᴀᴠᴇ",
@@ -100,7 +92,7 @@ public class WaveEditorGUI implements Listener {
 
         switch (e.getSlot()) {
             case 27 -> new StageEditorGUI(plugin).open(player, holder.dungeonId);
-            case 30 -> new BossDesignerGUI(plugin).open(player, holder.dungeonId, holder.stageIndex);
+            case 32 -> new SimpleBossGUI(plugin).open(player, holder.dungeonId, holder.stageIndex);
             case 31 -> {
                 plugin.getDungeonManager().addWave(holder.dungeonId, holder.stageIndex);
                 player.sendMessage(ChatUtils.colorize("&#55FF55✔ Wave baru ditambahkan!"));

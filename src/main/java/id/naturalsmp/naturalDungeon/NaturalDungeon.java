@@ -31,8 +31,6 @@ import id.naturalsmp.naturaldungeon.stats.PlayerStatsManager;
 import id.naturalsmp.naturaldungeon.stats.StatsGUI;
 import id.naturalsmp.naturaldungeon.editor.*;
 import id.naturalsmp.naturaldungeon.admin.AdminDashboardGUI;
-import id.naturalsmp.naturaldungeon.mob.CustomMobManager;
-import id.naturalsmp.naturaldungeon.mob.CustomMobSpawner;
 import id.naturalsmp.naturaldungeon.skill.SkillRegistry;
 import id.naturalsmp.naturaldungeon.skill.SkillExecutor;
 import id.naturalsmp.naturaldungeon.player.AchievementManager;
@@ -67,8 +65,6 @@ public final class NaturalDungeon extends JavaPlugin {
 
     private id.naturalsmp.naturaldungeon.admin.AnalyticsDashboardGUI analyticsDashboardGUI;
     private AdminDashboardGUI adminDashboardGUI;
-    private CustomMobManager customMobManager;
-    private CustomMobSpawner customMobSpawner;
     private ChatInputHandler editorChatInput;
     private SkillRegistry skillRegistry;
     private SkillExecutor skillExecutor;
@@ -137,8 +133,6 @@ public final class NaturalDungeon extends JavaPlugin {
         this.playerStatsManager = new PlayerStatsManager(this);
         this.sqliteStorage = new SQLiteStorage(this);
         this.statsGUI = new StatsGUI(this);
-        this.customMobManager = new CustomMobManager(this);
-        this.customMobSpawner = new CustomMobSpawner(this);
         this.editorChatInput = new ChatInputHandler();
         this.skillRegistry = new SkillRegistry(this);
         this.skillExecutor = new SkillExecutor(this, skillRegistry);
@@ -203,9 +197,7 @@ public final class NaturalDungeon extends JavaPlugin {
         if (sqliteStorage != null) {
             sqliteStorage.close();
         }
-        if (customMobManager != null) {
-            customMobManager.saveAll();
-        }
+
         if (dungeonQueue != null) {
             dungeonQueue.clearAll();
         }
@@ -295,13 +287,11 @@ public final class NaturalDungeon extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new DifficultyConfigGUI(this), this);
         getServer().getPluginManager().registerEvents(new StageEditorGUI(this), this);
         getServer().getPluginManager().registerEvents(new WaveEditorGUI(this), this);
+        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.SimpleBossGUI(this),
+                this);
         getServer().getPluginManager().registerEvents(new WaveConfigGUI(this), this);
-        getServer().getPluginManager().registerEvents(new BossConfigGUI(this), this);
         getServer().getPluginManager().registerEvents(new RewardEditorGUI(this), this);
         getServer().getPluginManager().registerEvents(new LootEntryEditorGUI(this), this);
-        getServer().getPluginManager().registerEvents(new MobEditorGUI(this), this);
-        getServer().getPluginManager().registerEvents(new BossEditorGUI(this), this);
-        getServer().getPluginManager().registerEvents(new MobSkillEditorGUI(this), this);
 
         // Admin GUIs
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.admin.AdminDashboardGUI(this),
@@ -312,8 +302,6 @@ public final class NaturalDungeon extends JavaPlugin {
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.MobPickerGUI(this), this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.DifficultyMatrixGUI(this),
-                this);
-        getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.BossDesignerGUI(this),
                 this);
         getServer().getPluginManager().registerEvents(new id.naturalsmp.naturaldungeon.editor.LootSimulatorGUI(this),
                 this);
@@ -466,14 +454,7 @@ public final class NaturalDungeon extends JavaPlugin {
     public StatsGUI getStatsGUI() {
         return statsGUI;
     }
-
-    public CustomMobManager getCustomMobManager() {
-        return customMobManager;
-    }
-
-    public CustomMobSpawner getCustomMobSpawner() {
-        return customMobSpawner;
-    }
+    // End getters
 
     public ChatInputHandler getEditorChatInput() {
         return editorChatInput;

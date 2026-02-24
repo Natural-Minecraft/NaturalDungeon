@@ -40,7 +40,11 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         }
 
         if (args.length == 0) {
-            sendHelp(sender);
+            if (sender instanceof Player player) {
+                new AdminDashboardGUI(plugin).open(player);
+            } else {
+                sendHelp(sender);
+            }
             return true;
         }
 
@@ -267,16 +271,20 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 if (args.length >= 3 && args[1].equalsIgnoreCase("bossspawn")) {
                     String bossId = args[2];
                     player.sendMessage(ChatUtils.colorize("&aMencoba spawn boss: &e" + bossId));
-                    if (plugin.getCustomMobManager().getMob(bossId) != null) {
-                        plugin.getCustomMobSpawner().spawnMob(bossId, player.getLocation());
-                        player.sendMessage(ChatUtils.colorize("&a✔ Boss (Custom Mob) berhasil di-spawn."));
-                    } else if (plugin.getServer().getPluginManager().getPlugin("MythicMobs") != null
+                    if (plugin.getServer().getPluginManager().getPlugin("MythicMobs") != null
                             && plugin.getMythicMobsHook().isValidMob(bossId)) {
                         plugin.getMythicMobsHook().spawnMythicMob(bossId, player.getLocation());
                         player.sendMessage(ChatUtils.colorize("&a✔ Boss (MythicMobs) berhasil di-spawn."));
                     } else {
-                        player.sendMessage(ChatUtils
-                                .colorize("&c✖ Gagal! Boss ID tidak dikenali (bukan CustomMob atau MythicMob)."));
+                        try {
+                            org.bukkit.entity.EntityType type = org.bukkit.entity.EntityType
+                                    .valueOf(bossId.toUpperCase());
+                            player.getWorld().spawnEntity(player.getLocation(), type);
+                            player.sendMessage(ChatUtils.colorize("&a✔ Boss (Vanilla) berhasil di-spawn."));
+                        } catch (IllegalArgumentException e) {
+                            player.sendMessage(ChatUtils
+                                    .colorize("&c✖ Gagal! Boss ID tidak dikenali (bukan MythicMob / Vanilla)."));
+                        }
                     }
                 } else {
                     player.sendMessage(ChatUtils.colorize("&cGunakan: /nd debug bossspawn <bossId>"));
@@ -408,10 +416,6 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         } else if (args.length == 3) {
             String sub = args[0].toLowerCase();
             if (sub.equals("debug") && args[1].equalsIgnoreCase("bossspawn")) {
-                for (id.naturalsmp.naturaldungeon.mob.CustomMob m : plugin.getCustomMobManager().getAllMobs()) {
-                    if (m.isBoss())
-                        completions.add(m.getId());
-                }
                 if (plugin.getServer().getPluginManager().getPlugin("MythicMobs") != null) {
                     try {
                         for (String mm : io.lumine.mythic.bukkit.MythicBukkit.inst().getMobManager().getMobNames()) {

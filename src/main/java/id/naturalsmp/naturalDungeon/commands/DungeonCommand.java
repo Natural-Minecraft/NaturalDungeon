@@ -43,7 +43,24 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             return true;
         }
 
-        if (args.length > 0 && args[0].equalsIgnoreCase("create")) {
+        if (args.length == 0) {
+            Location hub = plugin.getHubManager().getHubLocation();
+            if (hub != null) {
+                player.teleport(hub);
+                player.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Teleporting to Dungeon Hub..."));
+                id.naturalsmp.naturaldungeon.utils.GUIUtils.playOpenSound(player);
+            } else {
+                player.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Lokasi Dungeon Hub belum di set oleh admin!"));
+            }
+            return true;
+        }
+
+        if (args.length > 0 && args[0].equalsIgnoreCase("start")) {
+            plugin.getDungeonManager().openDungeonGUI(player);
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("create")) {
             if (!player.hasPermission("naturaldungeon.admin")) {
                 player.sendMessage(ConfigUtils.getMessage("general.no-permission"));
                 return true;
@@ -80,7 +97,7 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             return true;
         }
 
-        if (args.length > 0 && args[0].equalsIgnoreCase("loot") && args.length > 1
+        if (args[0].equalsIgnoreCase("loot") && args.length > 1
                 && args[1].equalsIgnoreCase("autogen")) {
             if (!player.hasPermission("naturaldungeon.admin")) {
                 player.sendMessage(ConfigUtils.getMessage("general.no-permission"));
@@ -114,7 +131,7 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             return true;
         }
 
-        if (args.length > 0 && args[0].equalsIgnoreCase("scan")) {
+        if (args[0].equalsIgnoreCase("scan")) {
             if (!player.hasPermission("naturaldungeon.admin")) {
                 player.sendMessage(ConfigUtils.getMessage("general.no-permission"));
                 return true;
@@ -157,12 +174,12 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             return true;
         }
 
-        if (args.length > 0 && args[0].equalsIgnoreCase("achievements")) {
+        if (args[0].equalsIgnoreCase("achievements")) {
             new id.naturalsmp.naturaldungeon.player.AchievementGUI(plugin).open(player);
             return true;
         }
 
-        plugin.getDungeonManager().openDungeonGUI(player);
+        player.sendMessage(ChatUtils.colorize("&cUnknown command. Use /dungeon start or /dungeon"));
         return true;
     }
 
@@ -171,13 +188,17 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
             @NotNull String[] args) {
         List<String> completions = new ArrayList<>();
 
-        if (!sender.hasPermission("naturaldungeon.admin"))
-            return completions;
-
         if (args.length == 1) {
-            completions.addAll(Arrays.asList("create", "loot", "scan"));
+            completions.add("start");
+            completions.add("achievements");
+            if (sender.hasPermission("naturaldungeon.admin")) {
+                completions.addAll(Arrays.asList("create", "loot", "scan"));
+            }
             return filter(completions, args[0]);
         }
+
+        if (!sender.hasPermission("naturaldungeon.admin"))
+            return completions;
 
         if (args.length == 2) {
             if (args[0].equalsIgnoreCase("create")) {

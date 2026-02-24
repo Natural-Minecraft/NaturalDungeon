@@ -92,30 +92,12 @@ public class DungeonMainEditorGUI implements Listener {
                 "",
                 "&#FFAA00&l➥ KLIK"));
 
-        // Boss Editor (slot 22)
-        inv.setItem(22, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
-                "&#AA44FF&l🐉 ʙᴏꜱꜱ ᴇᴅɪᴛᴏʀ",
-                GUIUtils.separator(),
-                "&7Edit boss config & skills.",
-                "&7Multi-phase, health, drops.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
         // Rewards (slot 23)
         inv.setItem(23, GUIUtils.createItem(Material.CHEST,
                 "&#55FF55&l🎁 ʀᴇᴡᴀʀᴅꜱ",
                 GUIUtils.separator(),
                 "&7Edit loot table.",
                 "&7Vanilla, MMOItems, Command.",
-                "",
-                "&#FFAA00&l➥ KLIK"));
-
-        // Mobs (slot 24)
-        inv.setItem(24, GUIUtils.createItem(Material.ZOMBIE_HEAD,
-                "&#FF69B4&l👹 ᴍᴏʙꜱ",
-                GUIUtils.separator(),
-                "&7Kelola custom mobs.",
-                "&7MythicMobs, Vanilla, Skills.",
                 "",
                 "&#FFAA00&l➥ KLIK"));
 
@@ -176,9 +158,7 @@ public class DungeonMainEditorGUI implements Listener {
             case 19 -> new BasicInfoEditorGUI(plugin).open(player, dungeonId);
             case 20 -> new DifficultyEditorGUI(plugin).open(player, dungeonId);
             case 21 -> new StageEditorGUI(plugin).open(player, dungeonId);
-            case 22 -> new BossEditorGUI(plugin).open(player, dungeonId);
             case 23 -> new RewardEditorGUI(plugin).open(player, dungeonId);
-            case 24 -> new MobEditorGUI(plugin).open(player, dungeonId);
             case 25 -> {
                 // Setup tools info
                 player.closeInventory();

@@ -75,12 +75,7 @@ public class WaveManager {
         }
 
         if (bossId != null) {
-            id.naturalsmp.naturaldungeon.mob.CustomMob customMob = plugin.getCustomMobManager().getMob(bossId);
-            if (customMob != null) {
-                bossName = customMob.getName();
-            } else {
-                bossName = bossId; // fallback
-            }
+            bossName = bossId;
         }
 
         String finalBossName = bossName;
@@ -530,13 +525,6 @@ public class WaveManager {
             return plugin.getModelEngineHook().spawnModelMob(modelId, baseType, location);
         }
 
-        // Custom Mob Integration (CUSTOM: prefix or direct ID match)
-        String customId = mobId.startsWith("CUSTOM:") ? mobId.substring(7) : mobId;
-        id.naturalsmp.naturaldungeon.mob.CustomMob customMob = plugin.getCustomMobManager().getMob(customId);
-        if (customMob != null) {
-            return spawnCustomMob(customMob, location, playerCount);
-        }
-
         // Vanilla Fallback
         EntityType entityType = parseVanillaMob(mobId);
         if (entityType == null) {
@@ -545,109 +533,13 @@ public class WaveManager {
         }
 
         return spawnVanillaEntity(entityType, mobId, location, playerCount);
-    }
+    }*
 
-    /**
-     * Spawn a CustomMob with all configured stats, equipment, and skills.
-     */
-    private Entity spawnCustomMob(id.naturalsmp.naturaldungeon.mob.CustomMob customMob, Location location,
-            int playerCount) {
-        try {
-            Entity entity = dungeonWorld.spawn(location, customMob.getEntityType().getEntityClass(),
-                    org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.CUSTOM);
-            if (entity instanceof LivingEntity living) {
-                double hpMultiplier = 1 + (playerCount - 1) * (ConfigUtils.getDouble("scaling.hp-per-player") - 1);
-                double maxHp = customMob.getHealth() * hpMultiplier;
+    Spawn a
+    vanilla entity
+    with standard
+    stat scaling.*/
 
-                // Apply HP
-                try {
-                    org.bukkit.attribute.AttributeInstance attr = living
-                            .getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-                    if (attr != null) {
-                        attr.setBaseValue(maxHp);
-                    }
-                } catch (Throwable e) {
-                    living.setMaxHealth(maxHp);
-                }
-                living.setHealth(maxHp);
-
-                // Apply Damage
-                try {
-                    org.bukkit.attribute.AttributeInstance dmgAttr = living
-                            .getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
-                    if (dmgAttr != null) {
-                        dmgAttr.setBaseValue(customMob.getDamage() * hpMultiplier);
-                    }
-                } catch (Throwable ignored) {
-                }
-
-                // Apply Speed
-                try {
-                    org.bukkit.attribute.AttributeInstance spdAttr = living
-                            .getAttribute(org.bukkit.attribute.Attribute.MOVEMENT_SPEED);
-                    if (spdAttr != null) {
-                        spdAttr.setBaseValue(customMob.getSpeed());
-                    }
-                } catch (Throwable ignored) {
-                }
-
-                // Apply Equipment
-                if (entity instanceof org.bukkit.entity.Mob mob) {
-                    org.bukkit.inventory.EntityEquipment eq = mob.getEquipment();
-                    if (eq != null) {
-                        for (java.util.Map.Entry<String, Object> entry : customMob.getEquipment().entrySet()) {
-                            try {
-                                org.bukkit.Material mat = org.bukkit.Material
-                                        .valueOf(entry.getValue().toString().toUpperCase());
-                                org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(mat);
-                                switch (entry.getKey().toUpperCase()) {
-                                    case "HELMET" -> eq.setHelmet(item);
-                                    case "CHESTPLATE" -> eq.setChestplate(item);
-                                    case "LEGGINGS" -> eq.setLeggings(item);
-                                    case "BOOTS" -> eq.setBoots(item);
-                                    case "HAND" -> eq.setItemInMainHand(item);
-                                    case "OFFHAND" -> eq.setItemInOffHand(item);
-                                }
-                            } catch (IllegalArgumentException ignored) {
-                            }
-                        }
-                    }
-                }
-
-                // Apply ModelEngine Model (Hybrid Support)
-                if (customMob.getModelId() != null && plugin.hasModelEngine()) {
-                    plugin.getModelEngineHook().applyModel(entity, customMob.getModelId());
-                }
-
-                // Apply Skills via SkillRegistry
-                if (!customMob.getSkillIds().isEmpty()) {
-                    plugin.getSkillRegistry().applySkills(living, customMob.getSkillIds());
-                }
-
-                // AuraMobs Integration
-                if (plugin.getAuraMobsHook().isEnabled()) {
-                    int level = instance.getDungeon().getMinTier() * 10 + (instance.getCurrentStage() * 5);
-                    plugin.getAuraMobsHook().setLevel(living, level);
-                }
-
-                // Custom Name
-                String name = ChatUtils.colorize("&7[Lv." + instance.getDungeon().getMinTier() + "] &f"
-                        + customMob.getName() + " &c❤ " + (int) living.getHealth() + "/"
-                        + (int) maxHp);
-                living.setCustomName(name);
-                living.setCustomNameVisible(true);
-            }
-            return entity;
-        } catch (Exception e) {
-            plugin.getLogger().severe("Error spawning custom mob " + customMob.getId() + ": " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Spawn a vanilla entity with standard stat scaling.
-     */
     private Entity spawnVanillaEntity(EntityType entityType, String mobId, Location location, int playerCount) {
         try {
             Entity entity = dungeonWorld.spawn(location, entityType.getEntityClass(),

@@ -510,13 +510,31 @@ public class DungeonManager implements Listener {
     }
 
     public void addWaveMob(String dungeonId, int stageIndex, int waveIndex, String mobId) {
+        setWaveMobCount(dungeonId, stageIndex, waveIndex, mobId, 1);
+    }
+
+    public void setWaveMobCount(String dungeonId, int stageIndex, int waveIndex, String mobId, int amount) {
         YamlConfiguration config = loadDungeonConfig(dungeonId);
         String path = "stages." + (stageIndex + 1) + ".waves." + (waveIndex + 1) + ".mobs";
-        List<String> mobs = config.getStringList(path);
-        mobs.add(mobId);
-        config.set(path, mobs);
+
+        // If it was a list (legacy), clear it first
+        if (config.isList(path)) {
+            config.set(path, null);
+        }
+
+        config.set(path + "." + mobId, amount);
         saveDungeonConfig(dungeonId, config);
         reloadDungeon(dungeonId);
+    }
+
+    public void removeWaveMob(String dungeonId, int stageIndex, int waveIndex, String mobId) {
+        YamlConfiguration config = loadDungeonConfig(dungeonId);
+        String path = "stages." + (stageIndex + 1) + ".waves." + (waveIndex + 1) + ".mobs";
+        if (config.isConfigurationSection(path)) {
+            config.set(path + "." + mobId, null);
+            saveDungeonConfig(dungeonId, config);
+            reloadDungeon(dungeonId);
+        }
     }
 
     public List<String> getLootEntries(String dungeonId) {

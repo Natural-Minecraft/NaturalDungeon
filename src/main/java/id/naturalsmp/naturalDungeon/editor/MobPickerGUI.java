@@ -1,7 +1,6 @@
 package id.naturalsmp.naturaldungeon.editor;
 
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
-import id.naturalsmp.naturaldungeon.mob.CustomMob;
 import id.naturalsmp.naturaldungeon.utils.GUIUtils;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -122,14 +121,6 @@ public class MobPickerGUI implements Listener {
                     }
                 } catch (Exception ignored) {
                 }
-            }
-        }
-
-        // Custom mobs
-        if (filter.equals("ALL") || filter.equals("CUSTOM")) {
-            for (CustomMob mob : plugin.getCustomMobManager().getAllMobs()) {
-                list.add(new MobEntry("CUSTOM:" + mob.getId(), mob.getId(), "Custom", "&#FFAA00",
-                        Material.PLAYER_HEAD));
             }
         }
 
