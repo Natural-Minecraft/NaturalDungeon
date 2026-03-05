@@ -45,7 +45,44 @@ public class PlaceholderAPIHook extends PlaceholderExpansion {
         DungeonInstance instance = p != null ? plugin.getDungeonManager().getActiveInstance(p) : null;
         Party party = p != null ? plugin.getPartyManager().getParty(p.getUniqueId()) : null;
 
-        return switch (params.toLowerCase()) {
+        String lowerParams = params.toLowerCase();
+        if (lowerParams.startsWith("leaderboard_")) {
+            String[] parts = params.split("_");
+            if (parts.length >= 4) {
+                String type = parts[parts.length - 1];
+                int rank;
+                try {
+                    rank = Integer.parseInt(parts[parts.length - 2]);
+                } catch (NumberFormatException e) {
+                    return "InvalidRank";
+                }
+
+                StringBuilder dungeonIdBuilder = new StringBuilder();
+                for (int i = 1; i < parts.length - 2; i++) {
+                    dungeonIdBuilder.append(parts[i]);
+                    if (i < parts.length - 3)
+                        dungeonIdBuilder.append("_");
+                }
+                String dungeonId = dungeonIdBuilder.toString();
+
+                java.util.List<java.util.Map<?, ?>> topEntries = plugin.getLeaderboardManager()
+                        .getTopEntries(dungeonId);
+                if (topEntries == null || topEntries.isEmpty() || rank < 1 || rank > topEntries.size()) {
+                    return type.equalsIgnoreCase("name") ? "Empty" : "00:00";
+                }
+
+                java.util.Map<?, ?> entry = topEntries.get(rank - 1);
+                if (type.equalsIgnoreCase("name")) {
+                    java.util.List<String> players = (java.util.List<String>) entry.get("players");
+                    return String.join(", ", players);
+                } else if (type.equalsIgnoreCase("time")) {
+                    long timeMs = (long) entry.get("time");
+                    return id.naturalsmp.naturaldungeon.utils.ChatUtils.formatTime(timeMs / 1000);
+                }
+            }
+        }
+
+        return switch (lowerParams) {
             case "in_dungeon" -> String.valueOf(instance != null);
             case "dungeon_id" -> instance != null ? instance.getDungeon().getId() : "None";
             case "current_stage" -> instance != null ? String.valueOf(instance.getCurrentStage()) : "0";

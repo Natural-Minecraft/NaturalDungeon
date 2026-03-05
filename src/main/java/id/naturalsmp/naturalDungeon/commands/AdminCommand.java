@@ -302,6 +302,28 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 plugin.getHubManager().setHubLocation(player.getLocation());
                 player.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Lokasi Dungeon Hub berhasil diatur!"));
             }
+            case "hologram" -> {
+                if (args.length >= 2 && args[1].equalsIgnoreCase("purge")) {
+                    if (!(sender instanceof Player player)) {
+                        sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
+                        return true;
+                    }
+                    int count = 0;
+                    org.bukkit.entity.Entity[] entities = player.getLocation().getChunk().getEntities();
+                    for (org.bukkit.entity.Entity ent : player.getWorld()
+                            .getEntitiesByClass(org.bukkit.entity.TextDisplay.class)) {
+                        if (ent.getPersistentDataContainer().has(new org.bukkit.NamespacedKey(plugin, "nd_holo_type"),
+                                org.bukkit.persistence.PersistentDataType.STRING)) {
+                            ent.remove();
+                            count++;
+                        }
+                    }
+                    player.sendMessage(ChatUtils.colorize(
+                            "&#55FF55✔ &7Berhasil membersihkan &e" + count + " &7hologram native di dunia ini!"));
+                } else {
+                    sender.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Gunakan: /nd hologram purge"));
+                }
+            }
             case "hub" -> {
                 if (!(sender instanceof Player player)) {
                     sender.sendMessage(ConfigUtils.getMessage("general.player-only"));
@@ -350,6 +372,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatUtils.colorize("&e/nd status &7- Show active dungeon instances"));
         sender.sendMessage(ChatUtils.colorize("&e/nd maintenance &7- Toggle maintenance mode"));
         sender.sendMessage(ChatUtils.colorize("&e/nd sethub &7- Set hub target location"));
+        sender.sendMessage(ChatUtils.colorize("&e/nd hologram purge &7- Clear duplicated Native Holograms"));
         sender.sendMessage(ChatUtils.colorize(
                 "&e/nd hub setboard <type> &7- Place Native Bukkit TextDisplay: portal, stats, weekly, leaderboard"));
         sender.sendMessage(ChatUtils.colorize("&e/nd debug bossspawn <bossId> &7- Spawn test boss"));
@@ -399,7 +422,7 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             completions.addAll(Arrays.asList("reload", "version", "test", "forceend", "list", "info",
                     "editor", "dashboard", "create", "diag", "wand", "clone", "status", "maintenance", "debug",
-                    "check", "sethub", "hub"));
+                    "check", "sethub", "hub", "hologram"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("editor") || sub.equals("test") || sub.equals("info") || sub.equals("clone")
@@ -412,6 +435,8 @@ public class AdminCommand implements CommandExecutor, TabCompleter {
                 completions.addAll(plugin.getDungeonManager().getDungeonIds());
             } else if (sub.equals("hub")) {
                 completions.add("setboard");
+            } else if (sub.equals("hologram")) {
+                completions.add("purge");
             }
         } else if (args.length == 3) {
             String sub = args[0].toLowerCase();
