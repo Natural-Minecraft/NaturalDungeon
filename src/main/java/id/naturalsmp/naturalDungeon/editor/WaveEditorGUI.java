@@ -52,10 +52,11 @@ public class WaveEditorGUI implements Listener {
         inv.setItem(28, GUIUtils.createItem(Material.BLAZE_POWDER,
                 "&#FFAA00&l📍 ᴀᴅᴅ ꜱᴘᴀᴡɴᴇʀ",
                 GUIUtils.separator(),
-                "&7Tambah lokasi mob spawn.",
-                "&7Lokasi: &fposisi kamu saat ini.",
+                "&7Gunakan Wand Tool untuk",
+                "&7menambah titik mob spawner",
+                "&7secara fisik.",
                 "",
-                "&#FFAA00&l➥ KLIK"));
+                "&#FFAA00&l➥ KLIK (Ambil Wand Tool)"));
 
         // Clear Spawners
         inv.setItem(29, GUIUtils.createItem(Material.BARRIER,
@@ -101,17 +102,8 @@ public class WaveEditorGUI implements Listener {
             }
             case 28 -> {
                 player.closeInventory();
-                org.bukkit.Location loc = player.getLocation();
-                String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
-                        + loc.getBlockZ() + "," + String.format("%.1f", loc.getYaw()) + ","
-                        + String.format("%.1f", loc.getPitch());
-                String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
-                List<String> spawns = plugin.getDungeonManager().loadDungeonConfig(holder.dungeonId)
-                        .getStringList(path);
-                spawns.add(locStr);
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, spawns);
-                player.sendMessage(ChatUtils.colorize("&#55FF55✔ Spawner #" + spawns.size() + ": &f" + locStr));
-                GUIUtils.playSuccessSound(player);
+                plugin.getSetupManager().enterStageEditor(player,
+                        plugin.getDungeonManager().getDungeon(holder.dungeonId), holder.stageIndex + 1);
             }
             case 29 -> {
                 String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";

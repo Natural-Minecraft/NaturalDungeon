@@ -406,10 +406,17 @@ public class SetupWizardGUI implements Listener {
         player.sendMessage(ChatUtils.colorize(""));
         player.sendMessage(ChatUtils.colorize("&#55FF55&l✔ Dungeon &f" + id + " &#55FF55&lberhasil dibuat!"));
         player.sendMessage(ChatUtils.colorize("&#FFAA00⚙ &7" + session.stageCount + " stages, default waves siap."));
-        player.sendMessage(ChatUtils.colorize("&#55CCFF📐 &7Selanjutnya: set region dengan &f/nd wand"));
-        player.sendMessage(ChatUtils.colorize("&#FFD700⚙ &7Atau edit via &f/nd editor"));
+        player.sendMessage(ChatUtils.colorize("&#55CCFF📐 &7Memasuki mode Setup untuk Stage 1..."));
         player.sendMessage(ChatUtils.colorize(""));
         GUIUtils.playSuccessSound(player);
+
+        // Auto enter setup mode
+        Dungeon d = plugin.getDungeonManager().getDungeon(id);
+        if (d != null) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                plugin.getSetupManager().enterStageEditor(player, d, 1);
+            }, 10L); // slight delay to ensure UI closes safely
+        }
     }
 
     @EventHandler

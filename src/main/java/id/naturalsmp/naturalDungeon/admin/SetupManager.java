@@ -39,11 +39,33 @@ public class SetupManager implements Listener {
         EditorSession session = new EditorSession(player, dungeon, stageNum, player.getInventory().getContents());
         sessions.put(player.getUniqueId(), session);
 
+        // Load existing spawners into session
+        org.bukkit.configuration.file.YamlConfiguration config = plugin.getDungeonManager()
+                .loadDungeonConfig(dungeon.getId());
+        List<String> spawnerStrs = config.getStringList("stages." + stageNum + ".mob-spawns");
+        for (String s : spawnerStrs) {
+            String[] split = s.split(",");
+            if (split.length >= 4) {
+                World w = Bukkit.getWorld(split[0]);
+                if (w != null) {
+                    try {
+                        double x = Double.parseDouble(split[1]);
+                        double y = Double.parseDouble(split[2]);
+                        double z = Double.parseDouble(split[3]);
+                        session.mobSpawners.add(new Location(w, x, y, z));
+                        session.spawnerHolos
+                                .add(createOrMoveHolo(null, new Location(w, x, y, z), "&#FFAA00📍 Spawner"));
+                    } catch (Exception ignored) {
+                    }
+                }
+            }
+        }
+
         player.getInventory().clear();
         giveEditorTools(player);
 
         player.sendMessage(ChatUtils.colorize("&#55FF55&l✔ &7Entered Editor Mode: &#FFD700Stage " + stageNum));
-        player.sendMessage(ChatUtils.colorize("&#FFAA00⚙ &7Use the hotbar tools to edit the stage."));
+        player.sendMessage(ChatUtils.colorize("&#FFAA00⚙ &7Gunakan hotbar tool untuk mengatur stage."));
         GUIUtils.playSuccessSound(player);
 
         // Auto-teleport if stage safezone exists
@@ -84,6 +106,11 @@ public class SetupManager implements Listener {
         player.getInventory().setItem(4,
                 createTool(Material.REDSTONE_BLOCK, "&#FF5555&l✔ ꜱᴀᴠᴇ ᴀʀᴇɴᴀ", "SAVE_ARENA",
                         "&7Click to confirm arena region."));
+
+        player.getInventory().setItem(5,
+                createTool(Material.BLAZE_POWDER, "&#FFAA00&l📍 ᴀᴅᴅ ᴍᴏʙ ꜱᴘᴀᴡɴᴇʀ", "ADD_SPAWNER",
+                        "&7R-Click blok untuk",
+                        "&7menambah titik mob spawn."));
 
         player.getInventory().setItem(6,
                 createTool(Material.WITHER_SKELETON_SKULL, "&#AA44FF&l🐉 ꜱᴇᴛ ʙᴏꜱꜱ ꜱᴘᴀᴡɴ", "SET_BOSS",
@@ -141,7 +168,17 @@ public class SetupManager implements Listener {
                     saveBossSpawn(p, session, loc);
                 }
             }
-            case "OPEN_GUI" -> new id.naturalsmp.naturaldungeon.editor.DungeonListEditorGUI(plugin).open(p);
+            case "ADD_SPAWNER" -> {
+                if (e.getAction() == Action.RIGHT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_AIR) {
+                    Location loc = e.getClickedBlock() != null ? e.getClickedBlock().getLocation().add(0.5, 1, 0.5)
+                            : p.getLocation();
+                    saveMobSpawner(p, session, loc);
+                }
+            }
+            case "OPEN_GUI" -> {
+                exitSetupMode(p);
+                new id.naturalsmp.naturaldungeon.editor.StageEditorGUI(plugin).open(p, session.dungeon.getId());
+            }
             case "EXIT" -> exitSetupMode(p);
         }
     }
@@ -251,6 +288,26 @@ public class SetupManager implements Listener {
         GUIUtils.playSuccessSound(p);
     }
 
+    private void saveMobSpawner(Player p, EditorSession session, Location loc) {
+        String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
+                + loc.getBlockZ() + "," + String.format(Locale.US, "%.1f", loc.getYaw()) + ","
+                + String.format(Locale.US, "%.1f", loc.getPitch());
+
+        String path = "stages." + session.stage + ".mob-spawns";
+        org.bukkit.configuration.file.YamlConfiguration config = plugin.getDungeonManager()
+                .loadDungeonConfig(session.dungeon.getId());
+        List<String> spawns = config.getStringList(path);
+        spawns.add(locStr);
+        saveConfig(session.dungeon.getId(), path, spawns);
+
+        session.mobSpawners.add(loc);
+        session.spawnerHolos.add(createOrMoveHolo(null, loc, "&#FFAA00📍 Spawner"));
+
+        p.sendMessage(
+                ChatUtils.colorize("&#55FF55✔ &7Spawner #" + spawns.size() + " ditambahkan: &f" + formatLoc(loc)));
+        GUIUtils.playSuccessSound(p);
+    }
+
     private void saveConfig(String dungeonId, String path, Object value) {
         File file = new File(plugin.getDataFolder(), "dungeons/" + dungeonId + ".yml");
         org.bukkit.configuration.file.YamlConfiguration config = org.bukkit.configuration.file.YamlConfiguration
@@ -292,6 +349,33 @@ public class SetupManager implements Listener {
                     drawBoxOutline(p, session.pos1, session.pos2, Color.LIME);
                 if (session.arenaPos1 != null && session.arenaPos2 != null)
                     drawBoxOutline(p, session.arenaPos1, session.arenaPos2, Color.RED);
+
+                // Draw Spawners
+                for (Location loc : session.mobSpawners) {
+                    drawParticle(p, loc, Color.ORANGE);
+                }
+
+                // Action Bar Guide Task
+                String taskMsg = "";
+                org.bukkit.configuration.file.YamlConfiguration cfg = plugin.getDungeonManager()
+                        .loadDungeonConfig(session.dungeon.getId());
+                boolean hasSafeZone = cfg.getString("stages." + session.stage + ".safe-zone") != null;
+                boolean hasArena = cfg.getString("stages." + session.stage + ".arena-region") != null;
+                boolean hasBoss = cfg.getString("stages." + session.stage + ".boss.spawn-location") != null;
+
+                if (!hasSafeZone)
+                    taskMsg = "&#FF5555Silakan set Safezone Pos 1 & 2 (lalu Save)";
+                else if (!hasArena)
+                    taskMsg = "&#FFAA00Silakan set Arena Pos 1 & 2 (lalu Save)";
+                else if (session.mobSpawners.isEmpty())
+                    taskMsg = "&#55CCFFSilakan tambah Mob Spawner point setidaknya 1";
+                else if (!hasBoss)
+                    taskMsg = "&#AA44FFSilakan set lokasi Boss Spawn";
+                else
+                    taskMsg = "&#55FF55✔ Ruangan Stage " + session.stage + " siap! Lanjut ke Editor GUI.";
+
+                p.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,
+                        net.md_5.bungee.api.chat.TextComponent.fromLegacyText(ChatUtils.colorize(taskMsg)));
             }
         }, 10L, 10L);
     }
@@ -357,6 +441,9 @@ public class SetupManager implements Listener {
         TextDisplay arena1Holo, arena2Holo;
         TextDisplay bossHolo;
 
+        List<Location> mobSpawners = new ArrayList<>();
+        List<TextDisplay> spawnerHolos = new ArrayList<>();
+
         public EditorSession(Player p, Dungeon dungeon, int stage, ItemStack[] savedInventory) {
             this.dungeon = dungeon;
             this.stage = stage;
@@ -375,6 +462,10 @@ public class SetupManager implements Listener {
                 arena2Holo.remove();
             if (bossHolo != null)
                 bossHolo.remove();
+            for (TextDisplay td : spawnerHolos) {
+                if (td != null)
+                    td.remove();
+            }
         }
     }
 }
