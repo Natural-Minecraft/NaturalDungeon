@@ -216,7 +216,12 @@ public class Dungeon {
                     this.mobSpawns.addAll(config.getStringList("mob-spawns"));
                 }
             } else {
-                this.bossSpawnLocation = parseDoubleList(config, "boss-spawn");
+                // Try non-legacy key first, then fallback to legacy key
+                List<Double> coords = parseDoubleList(config, "boss-spawn");
+                if (coords.isEmpty()) {
+                    coords = parseDoubleList(config, "boss.spawn-location");
+                }
+                this.bossSpawnLocation = coords;
             }
         }
 
@@ -291,9 +296,21 @@ public class Dungeon {
                     total += amount;
                 }
                 this.count = total;
-            } else {
-                // Legacy Format
+            } else if (config.isList("mobs")) {
+                // Legacy Format (list of mob IDs)
                 this.mobs = config.getStringList("mobs");
+                this.count = config.getInt("count", 5);
+            } else if (config.contains("mob")) {
+                // Single mob field (from wizard or simple config)
+                String singleMob = config.getString("mob", "ZOMBIE");
+                int singleCount = config.getInt("count", 5);
+                this.mobs = new ArrayList<>();
+                this.mobs.add(singleMob);
+                this.mobCounts.put(singleMob, singleCount);
+                this.count = singleCount;
+            } else {
+                // Fallback: empty
+                this.mobs = new ArrayList<>();
                 this.count = config.getInt("count", 5);
             }
         }

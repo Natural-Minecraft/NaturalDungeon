@@ -42,7 +42,7 @@ public class SetupManager implements Listener {
         // Load existing spawners into session
         org.bukkit.configuration.file.YamlConfiguration config = plugin.getDungeonManager()
                 .loadDungeonConfig(dungeon.getId());
-        List<String> spawnerStrs = config.getStringList("stages." + stageNum + ".mob-spawns");
+        List<String> spawnerStrs = config.getStringList("stages." + stageNum + ".locations.1.mob-spawns");
         for (String s : spawnerStrs) {
             String[] split = s.split(",");
             if (split.length >= 4) {
@@ -250,7 +250,7 @@ public class SetupManager implements Listener {
 
         String regionName = session.dungeon.getId() + "_stage" + session.stage + "_safe";
         boolean created = plugin.getWorldGuardHook().createRegion(regionName, session.pos1, session.pos2);
-        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".safe-zone", regionName);
+        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".locations.1.safe-zone", regionName);
 
         p.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Safezone saved! &8(Region: " + regionName + ")"));
         if (created)
@@ -269,7 +269,7 @@ public class SetupManager implements Listener {
 
         String regionName = session.dungeon.getId() + "_stage" + session.stage + "_arena";
         boolean created = plugin.getWorldGuardHook().createRegion(regionName, session.arenaPos1, session.arenaPos2);
-        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".arena-region", regionName);
+        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".locations.1.arena-region", regionName);
 
         p.sendMessage(ChatUtils.colorize("&#FF5555✔ &7Arena saved! &8(Region: " + regionName + ")"));
         if (created)
@@ -282,7 +282,7 @@ public class SetupManager implements Listener {
     private void saveBossSpawn(Player p, EditorSession session, Location loc) {
         List<Double> coords = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
         session.bossHolo = createOrMoveHolo(session.bossHolo, loc, "&#AA44FF🐉 Boss Spawn\n&7Stage " + session.stage);
-        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".boss.spawn-location", coords);
+        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".locations.1.boss-spawn", coords);
         saveConfig(session.dungeon.getId(), "stages." + session.stage + ".boss.id", "ZOMBIE");
         p.sendMessage(ChatUtils.colorize("&#AA44FF🐉 &7Boss Spawn set: &#FFAA00" + formatLoc(loc)));
         GUIUtils.playSuccessSound(p);
@@ -293,7 +293,7 @@ public class SetupManager implements Listener {
                 + loc.getBlockZ() + "," + String.format(Locale.US, "%.1f", loc.getYaw()) + ","
                 + String.format(Locale.US, "%.1f", loc.getPitch());
 
-        String path = "stages." + session.stage + ".mob-spawns";
+        String path = "stages." + session.stage + ".locations.1.mob-spawns";
         org.bukkit.configuration.file.YamlConfiguration config = plugin.getDungeonManager()
                 .loadDungeonConfig(session.dungeon.getId());
         List<String> spawns = config.getStringList(path);
@@ -359,9 +359,10 @@ public class SetupManager implements Listener {
                 String taskMsg = "";
                 org.bukkit.configuration.file.YamlConfiguration cfg = plugin.getDungeonManager()
                         .loadDungeonConfig(session.dungeon.getId());
-                boolean hasSafeZone = cfg.getString("stages." + session.stage + ".safe-zone") != null;
-                boolean hasArena = cfg.getString("stages." + session.stage + ".arena-region") != null;
-                boolean hasBoss = cfg.getString("stages." + session.stage + ".boss.spawn-location") != null;
+                boolean hasSafeZone = cfg.getString("stages." + session.stage + ".locations.1.safe-zone") != null;
+                boolean hasArena = cfg.getString("stages." + session.stage + ".locations.1.arena-region") != null;
+                boolean hasBoss = cfg.getString("stages." + session.stage + ".locations.1.boss-spawn") != null
+                        || cfg.getList("stages." + session.stage + ".locations.1.boss-spawn") != null;
 
                 if (!hasSafeZone)
                     taskMsg = "&#FF5555Silakan set Safezone Pos 1 & 2 (lalu Save)";

@@ -388,9 +388,8 @@ public class SetupWizardGUI implements Listener {
 
         // Create stages with default waves
         for (int s = 1; s <= session.stageCount; s++) {
-            plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".waves.1.type", "VANILLA");
-            plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".waves.1.mob", "ZOMBIE");
-            plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".waves.1.count", 3 + (s * 2));
+            int mobCount = 3 + (s * 2);
+            plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".waves.1.mobs.ZOMBIE", mobCount);
             // Auto-generate region names
             plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".locations.1.safe-zone",
                     id + "_stage" + s + "_safe");

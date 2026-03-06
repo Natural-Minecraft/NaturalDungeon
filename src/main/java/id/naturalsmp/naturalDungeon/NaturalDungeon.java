@@ -76,6 +76,7 @@ public final class NaturalDungeon extends JavaPlugin {
     private id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager difficultyEffectsManager;
     private id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager randomEventsManager;
     private id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager weeklyChallengeManager;
+    private id.naturalsmp.naturaldungeon.admin.SetupManager setupManager;
 
     // Hooks
     private VaultHook vaultHook;
@@ -145,6 +146,7 @@ public final class NaturalDungeon extends JavaPlugin {
         this.difficultyEffectsManager = new id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager(this);
         this.randomEventsManager = new id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager(this);
         this.weeklyChallengeManager = new id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager(this);
+        this.setupManager = new id.naturalsmp.naturaldungeon.admin.SetupManager(this);
 
         // 4. Register Commands
         registerCommands();
@@ -453,6 +455,10 @@ public final class NaturalDungeon extends JavaPlugin {
 
     public StatsGUI getStatsGUI() {
         return statsGUI;
+    }
+
+    public id.naturalsmp.naturaldungeon.admin.SetupManager getSetupManager() {
+        return setupManager;
     }
     // End getters
 
