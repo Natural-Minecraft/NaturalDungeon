@@ -3,6 +3,7 @@ package id.naturalsmp.naturaldungeon.admin;
 import id.naturalsmp.naturaldungeon.NaturalDungeon;
 import id.naturalsmp.naturaldungeon.utils.ChatUtils;
 import id.naturalsmp.naturaldungeon.utils.GUIUtils;
+import id.naturalsmp.naturaldungeon.dungeon.Dungeon;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
