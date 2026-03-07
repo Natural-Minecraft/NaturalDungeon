@@ -396,6 +396,7 @@ public class SetupWizardGUI implements Listener {
                     id + "_stage" + s + "_safe");
             plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".locations.1.arena-region",
                     id + "_stage" + s + "_arena");
+            plugin.getDungeonManager().setDungeonConfig(id, "stages." + s + ".boss.id", "None");
         }
 
         // Reload

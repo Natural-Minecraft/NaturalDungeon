@@ -26,9 +26,8 @@ public class SimpleBossGUI implements Listener {
         Inventory inv = Bukkit.createInventory(new BossHolder(dungeonId, stageIndex), 27, title);
 
         ConfigurationSection cfg = plugin.getDungeonManager().loadDungeonConfig(dungeonId);
-        String path = "stages." + (stageIndex + 1);
         String bossId = cfg.getString(path + ".boss.id", "None");
-        String bLocStr = cfg.getString(path + ".boss.spawn-location", "Not Set");
+        String bLocStr = cfg.getString(path + ".locations.1.boss-spawn", "Not Set");
 
         // Info & Select
         inv.setItem(11, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
@@ -78,13 +77,13 @@ public class SimpleBossGUI implements Listener {
         Player player = (Player) e.getWhoClicked();
         GUIUtils.playClickSound(player);
 
-        String path = "stages." + (holder.stageIndex + 1) + ".boss";
+        String path = "stages." + (holder.stageIndex + 1);
 
         switch (e.getSlot()) {
             case 11 -> {
                 player.closeInventory();
                 new MobPickerGUI(plugin).open(player, selectedMobId -> {
-                    plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".id", selectedMobId);
+                    plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".boss.id", selectedMobId);
                     player.sendMessage(ChatUtils.colorize("&#55FF55✔ Boss diubah menjadi: &f" + selectedMobId));
                     open(player, holder.dungeonId, holder.stageIndex);
                 });
@@ -94,12 +93,13 @@ public class SimpleBossGUI implements Listener {
                 String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
                         + loc.getBlockZ() + "," + String.format("%.1f", loc.getYaw()) + ","
                         + String.format("%.1f", loc.getPitch());
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".spawn-location", locStr);
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".locations.1.boss-spawn", locStr);
                 player.sendMessage(ChatUtils.colorize("&#55FF55✔ Lokasi spawn boss diatur!"));
                 open(player, holder.dungeonId, holder.stageIndex);
             }
             case 15 -> {
-                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, null);
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".boss.id", null);
+                plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path + ".locations.1.boss-spawn", null);
                 player.sendMessage(ChatUtils.colorize("&#FF5555✖ Boss dihapus dari stage ini."));
                 open(player, holder.dungeonId, holder.stageIndex);
             }
