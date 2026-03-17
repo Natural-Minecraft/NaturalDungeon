@@ -26,6 +26,7 @@ public class SimpleBossGUI implements Listener {
         Inventory inv = Bukkit.createInventory(new BossHolder(dungeonId, stageIndex), 27, title);
 
         ConfigurationSection cfg = plugin.getDungeonManager().loadDungeonConfig(dungeonId);
+        String path = "stages." + (stageIndex + 1);
         String bossId = cfg.getString(path + ".boss.id", "None");
         String bLocStr = cfg.getString(path + ".locations.1.boss-spawn", "Not Set");
 
