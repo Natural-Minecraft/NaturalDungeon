@@ -618,7 +618,7 @@ public class DungeonInstance {
                 for (int i = 0; i < 3; i++) {
                     double x = Math.cos(angle + (i * Math.PI * 2 / 3)) * radius;
                     double z = Math.sin(angle + (i * Math.PI * 2 / 3)) * radius;
-                    spawn.getWorld().spawnParticle(org.bukkit.Particle.DRAGON_BREATH,
+                    spawn.getWorld().spawnParticle(org.bukkit.Particle.SPELL_WITCH,
                             spawn.clone().add(x, ticks * 0.05, z), 2, 0, 0, 0, 0.02);
                 }
 
