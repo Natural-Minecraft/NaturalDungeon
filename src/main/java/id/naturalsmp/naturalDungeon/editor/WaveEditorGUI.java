@@ -74,6 +74,14 @@ public class WaveEditorGUI implements Listener {
                 "",
                 "&#FFAA00&l➥ KLIK"));
 
+        // Boss Setup
+        inv.setItem(32, GUIUtils.createItem(Material.WITHER_SKELETON_SKULL,
+                "&#AA44FF&l🐉 ᴇᴅɪᴛ ʙᴏꜱꜱ",
+                GUIUtils.separator(),
+                "&7Atur Boss untuk stage ini.",
+                "",
+                "&#FFAA00&l➥ KLIK"));
+
         player.openInventory(inv);
         GUIUtils.playOpenSound(player);
     }
@@ -106,7 +114,7 @@ public class WaveEditorGUI implements Listener {
                         plugin.getDungeonManager().getDungeon(holder.dungeonId), holder.stageIndex + 1);
             }
             case 29 -> {
-                String path = "stages." + (holder.stageIndex + 1) + ".mob-spawns";
+                String path = "stages." + (holder.stageIndex + 1) + ".locations.1.mob-spawns";
                 plugin.getDungeonManager().setDungeonConfig(holder.dungeonId, path, new ArrayList<String>());
                 player.sendMessage(ChatUtils.colorize("&#FF5555✖ Semua spawner dihapus!"));
                 open(player, holder.dungeonId, holder.stageIndex);

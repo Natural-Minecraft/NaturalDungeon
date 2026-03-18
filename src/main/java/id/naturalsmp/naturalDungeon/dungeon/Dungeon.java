@@ -178,7 +178,7 @@ public class Dungeon {
         }
 
         public boolean hasBoss() {
-            return bossId != null && !bossId.isEmpty();
+            return bossId != null && !bossId.isEmpty() && !bossId.equalsIgnoreCase("None");
         }
 
         public String getBossId() {

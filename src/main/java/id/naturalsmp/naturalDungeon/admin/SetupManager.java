@@ -108,9 +108,9 @@ public class SetupManager implements Listener {
                         "&7Click to confirm arena region."));
 
         player.getInventory().setItem(5,
-                createTool(Material.BLAZE_POWDER, "&#FFAA00&l📍 ᴀᴅᴅ ᴍᴏʙ ꜱᴘᴀᴡɴᴇʀ", "ADD_SPAWNER",
-                        "&7R-Click blok untuk",
-                        "&7menambah titik mob spawn."));
+                createTool(Material.BLAZE_POWDER, "&#FFAA00&l📍 ᴍᴏʙ ꜱᴘᴀᴡɴᴇʀ ᴡᴀɴᴅ", "ADD_SPAWNER",
+                        "&7R-Click: &aTambah Spawner",
+                        "&7L-Click: &cHapus Terdekat"));
 
         player.getInventory().setItem(6,
                 createTool(Material.WITHER_SKELETON_SKULL, "&#AA44FF&l🐉 ꜱᴇᴛ ʙᴏꜱꜱ ꜱᴘᴀᴡɴ", "SET_BOSS",
@@ -173,6 +173,8 @@ public class SetupManager implements Listener {
                     Location loc = e.getClickedBlock() != null ? e.getClickedBlock().getLocation().add(0.5, 1, 0.5)
                             : p.getLocation();
                     saveMobSpawner(p, session, loc);
+                } else if (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.LEFT_CLICK_AIR) {
+                    removeNearestSpawner(p, session);
                 }
             }
             case "OPEN_GUI" -> {
@@ -283,8 +285,8 @@ public class SetupManager implements Listener {
         List<Double> coords = Arrays.asList(loc.getX(), loc.getY(), loc.getZ());
         session.bossHolo = createOrMoveHolo(session.bossHolo, loc, "&#AA44FF🐉 Boss Spawn\n&7Stage " + session.stage);
         saveConfig(session.dungeon.getId(), "stages." + session.stage + ".locations.1.boss-spawn", coords);
-        saveConfig(session.dungeon.getId(), "stages." + session.stage + ".boss.id", "ZOMBIE");
         p.sendMessage(ChatUtils.colorize("&#AA44FF🐉 &7Boss Spawn set: &#FFAA00" + formatLoc(loc)));
+        p.sendMessage(ChatUtils.colorize("&#AA44FF   &7Pilih boss via GUI Editor (⚙ OPEN GUI)"));
         GUIUtils.playSuccessSound(p);
     }
 
@@ -306,6 +308,45 @@ public class SetupManager implements Listener {
         p.sendMessage(
                 ChatUtils.colorize("&#55FF55✔ &7Spawner #" + spawns.size() + " ditambahkan: &f" + formatLoc(loc)));
         GUIUtils.playSuccessSound(p);
+    }
+
+    private void removeNearestSpawner(Player p, EditorSession session) {
+        if (session.mobSpawners.isEmpty()) {
+            p.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Tidak ada spawner untuk dihapus!"));
+            GUIUtils.playErrorSound(p);
+            return;
+        }
+
+        Location playerLoc = p.getLocation();
+        int nearestIdx = 0;
+        double nearestDist = Double.MAX_VALUE;
+        for (int i = 0; i < session.mobSpawners.size(); i++) {
+            double dist = session.mobSpawners.get(i).distanceSquared(playerLoc);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                nearestIdx = i;
+            }
+        }
+
+        Location removed = session.mobSpawners.remove(nearestIdx);
+        if (nearestIdx < session.spawnerHolos.size()) {
+            TextDisplay holo = session.spawnerHolos.remove(nearestIdx);
+            if (holo != null) holo.remove();
+        }
+
+        // Rebuild and save the spawner list
+        List<String> newSpawns = new ArrayList<>();
+        for (Location loc : session.mobSpawners) {
+            String locStr = loc.getWorld().getName() + "," + loc.getBlockX() + "," + loc.getBlockY() + ","
+                    + loc.getBlockZ() + ",0.0,0.0";
+            newSpawns.add(locStr);
+        }
+        String path = "stages." + session.stage + ".locations.1.mob-spawns";
+        saveConfig(session.dungeon.getId(), path, newSpawns);
+
+        p.sendMessage(ChatUtils.colorize("&#FF5555✖ &7Spawner terdekat dihapus! &8(" + formatLoc(removed) + ")"));
+        p.sendMessage(ChatUtils.colorize("&#FFAA00   &7Sisa spawner: &f" + session.mobSpawners.size()));
+        GUIUtils.playClickSound(p);
     }
 
     private void saveConfig(String dungeonId, String path, Object value) {
