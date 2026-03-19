@@ -234,6 +234,7 @@ public class SetupManager implements Listener {
             current = loc.getWorld().spawn(loc.clone().add(0.5, 1.5, 0.5), TextDisplay.class);
             current.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
             current.setBackgroundColor(org.bukkit.Color.fromARGB(100, 0, 0, 0));
+            current.getPersistentDataContainer().set(new NamespacedKey(plugin, "nd_holo_type"), PersistentDataType.STRING, "setup");
         } else {
             current.teleport(loc.clone().add(0.5, 1.5, 0.5));
         }

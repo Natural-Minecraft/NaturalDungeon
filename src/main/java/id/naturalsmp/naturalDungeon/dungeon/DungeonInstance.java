@@ -598,47 +598,14 @@ public class DungeonInstance {
 
         final Location spawn = center;
 
-        // Add 3-second Aesthetic Boss Portal Sequence
-        new org.bukkit.scheduler.BukkitRunnable() {
-            int ticks = 0;
-            double angle = 0;
+        // Legacy Instant Spawning
+        if (!active) return;
+        spawn.getWorld().strikeLightningEffect(spawn);
+        playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f);
+        broadcastTitle("&d&lBOSS SPAWNED", "&cKILL IT!", 5, 20, 10);
 
-            @Override
-            public void run() {
-                if (!active) {
-                    this.cancel();
-                    return;
-                }
-
-                ticks += 2; // Run every 2 ticks
-                angle += Math.PI / 4;
-
-                // Helix Particle Effect
-                double radius = 1.5;
-                for (int i = 0; i < 3; i++) {
-                    double x = Math.cos(angle + (i * Math.PI * 2 / 3)) * radius;
-                    double z = Math.sin(angle + (i * Math.PI * 2 / 3)) * radius;
-                    spawn.getWorld().spawnParticle(org.bukkit.Particle.PORTAL,
-                            spawn.clone().add(x, ticks * 0.05, z), 2, 0, 0, 0, 0.02);
-                }
-
-                // Sound Effect (growing pitch)
-                if (ticks % 10 == 0) {
-                    playSound(Sound.BLOCK_BEACON_AMBIENT, 0.5f + (ticks * 0.02f));
-                }
-
-                // Pre-Spawn Strike and Rumble at the end
-                if (ticks >= 60) {
-                    this.cancel();
-                    spawn.getWorld().strikeLightningEffect(spawn);
-                    playSound(Sound.ENTITY_ENDER_DRAGON_GROWL, 1.5f);
-                    broadcastTitle("&d&lBOSS SPAWNED", "&cKILL IT!", 5, 20, 10);
-
-                    // Spawn the boss finally
-                    waveManager.spawnBoss(stage.getBossId(), spawn, participants.size());
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 2L);
+        // Spawn the boss finally
+        waveManager.spawnBoss(stage.getBossId(), spawn, participants.size());
     }
 
     private void onStageComplete() {

@@ -72,7 +72,6 @@ public final class NaturalDungeon extends JavaPlugin {
     private AchievementManager achievementManager;
     private id.naturalsmp.naturaldungeon.progression.MasteryManager masteryManager;
     private id.naturalsmp.naturaldungeon.progression.SeasonManager seasonManager;
-    private id.naturalsmp.naturaldungeon.admin.HubManager hubManager;
     private id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager difficultyEffectsManager;
     private id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager randomEventsManager;
     private id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager weeklyChallengeManager;
@@ -142,7 +141,6 @@ public final class NaturalDungeon extends JavaPlugin {
         this.achievementManager = new id.naturalsmp.naturaldungeon.player.AchievementManager(this);
         this.masteryManager = new id.naturalsmp.naturaldungeon.progression.MasteryManager(this);
         this.seasonManager = new id.naturalsmp.naturaldungeon.progression.SeasonManager(this);
-        this.hubManager = new id.naturalsmp.naturaldungeon.admin.HubManager(this);
         this.difficultyEffectsManager = new id.naturalsmp.naturaldungeon.dungeon.DifficultyEffectsManager(this);
         this.randomEventsManager = new id.naturalsmp.naturaldungeon.dungeon.RandomEventsManager(this);
         this.weeklyChallengeManager = new id.naturalsmp.naturaldungeon.progression.WeeklyChallengeManager(this);
@@ -449,8 +447,27 @@ public final class NaturalDungeon extends JavaPlugin {
         return sqliteStorage;
     }
 
-    public id.naturalsmp.naturaldungeon.admin.HubManager getHubManager() {
-        return hubManager;
+    public org.bukkit.Location getHubLocation() {
+        if (!getConfig().contains("hub-location.world")) return getServer().getWorlds().get(0).getSpawnLocation();
+        return new org.bukkit.Location(
+            getServer().getWorld(getConfig().getString("hub-location.world")),
+            getConfig().getDouble("hub-location.x"),
+            getConfig().getDouble("hub-location.y"),
+            getConfig().getDouble("hub-location.z"),
+            (float) getConfig().getDouble("hub-location.yaw"),
+            (float) getConfig().getDouble("hub-location.pitch")
+        );
+    }
+
+    public void setHubLocation(org.bukkit.Location loc) {
+        if (loc == null) return;
+        getConfig().set("hub-location.world", loc.getWorld().getName());
+        getConfig().set("hub-location.x", loc.getX());
+        getConfig().set("hub-location.y", loc.getY());
+        getConfig().set("hub-location.z", loc.getZ());
+        getConfig().set("hub-location.yaw", loc.getYaw());
+        getConfig().set("hub-location.pitch", loc.getPitch());
+        saveConfig();
     }
 
     public StatsGUI getStatsGUI() {

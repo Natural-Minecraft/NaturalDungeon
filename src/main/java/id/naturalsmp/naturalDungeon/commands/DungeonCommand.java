@@ -44,7 +44,7 @@ public class DungeonCommand implements CommandExecutor, org.bukkit.command.TabCo
         }
 
         if (args.length == 0) {
-            Location hub = plugin.getHubManager().getHubLocation();
+            Location hub = plugin.getHubLocation();
             if (hub != null) {
                 player.teleport(hub);
                 player.sendMessage(ChatUtils.colorize("&#55FF55✔ &7Teleporting to Dungeon Hub..."));
